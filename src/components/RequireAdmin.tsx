@@ -4,6 +4,6 @@ import Login from '../pages/Login'
 
 export default function RequireAdmin({ children }: { children: ReactNode }) {
   const { loading, isAdmin } = useAuth()
-  if (loading) return <p className="text-sm text-[var(--color-muted)]">확인 중…</p>
+  if (loading) return <p className="text-sm text-[var(--muted)]">확인 중…</p>
   return isAdmin ? <>{children}</> : <Login />
 }

@@ -10,52 +10,66 @@ export default function Layout() {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[color-mix(in_oklab,Canvas_86%,transparent)] backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4">
-          <Link to="/" className="text-[15px] font-semibold tracking-tight">
+      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/75 backdrop-blur-xl">
+        <div className="flex w-full items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-10">
+          <Link
+            to="/"
+            className="group flex items-center gap-2 text-[15px] font-semibold tracking-tight"
+          >
+            <span className="grid size-6 place-items-center rounded-lg bg-[var(--ink)] text-[11px] font-bold text-[var(--bg)] transition-transform group-hover:-rotate-6">
+              s
+            </span>
             sanghak
           </Link>
+
           <div className="flex-1" />
+
           {inAdmin && (
-            <Link to="/admin" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)]">
+            <Link
+              to="/admin"
+              className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+            >
               관리
             </Link>
           )}
+
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-lg border border-[var(--color-line)] px-2.5 py-1 text-sm lg:hidden"
+            className="rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] lg:hidden"
             aria-expanded={menuOpen}
           >
             태그
           </button>
         </div>
+
         {menuOpen && (
-          <div className="border-t border-[var(--color-line)] px-5 py-4 lg:hidden">
+          <div className="border-t border-[var(--line)] px-4 py-4 sm:px-6 lg:hidden">
             <TagSidebar onNavigate={() => setMenuOpen(false)} />
           </div>
         )}
       </header>
 
-      <div className="mx-auto flex max-w-5xl gap-10 px-5 py-10">
-        <aside className="hidden w-48 shrink-0 lg:block">
+      <div className="flex w-full gap-8 px-4 py-8 sm:px-6 lg:gap-14 lg:px-10 lg:py-12">
+        <aside className="hidden shrink-0 lg:block lg:w-44 xl:w-56">
           <div className="sticky top-24">
             <TagSidebar />
           </div>
         </aside>
+
         <main className="min-w-0 flex-1">
           <Outlet />
         </main>
       </div>
 
-      <footer className="border-t border-[var(--color-line)]">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-8 text-xs text-[var(--color-muted)]">
+      <footer className="mt-8 border-t border-[var(--line)]">
+        <div className="flex w-full flex-wrap items-center gap-x-5 gap-y-2 px-4 py-8 text-xs text-[var(--muted)] sm:px-6 lg:px-10">
           <span>© {new Date().getFullYear()} sanghak</span>
-          <Link to="/privacy" className="hover:text-[var(--color-ink)]">
+          <Link to="/privacy" className="transition-colors hover:text-[var(--ink)]">
             개인정보처리방침
           </Link>
           <span>개인정보 보호책임자 배상학</span>
-          <a href="mailto:bae@sanghak.kr" className="hover:text-[var(--color-ink)]">
+          <a href="mailto:bae@sanghak.kr" className="transition-colors hover:text-[var(--ink)]">
             bae@sanghak.kr
           </a>
         </div>

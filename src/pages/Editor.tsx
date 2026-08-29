@@ -124,7 +124,7 @@ export default function Editor() {
     }
   }
 
-  if (!loaded) return <p className="text-sm text-[var(--color-muted)]">불러오는 중…</p>
+  if (!loaded) return <p className="text-sm text-[var(--muted)]">불러오는 중…</p>
 
   return (
     <div className="space-y-5">
@@ -138,7 +138,7 @@ export default function Editor() {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="제목"
-        className="w-full border-b border-[var(--color-line)] bg-transparent pb-3 text-2xl font-semibold tracking-tight outline-none placeholder:text-[var(--color-muted)]"
+        className="w-full border-b border-[var(--line)] bg-transparent pb-3 text-2xl font-semibold tracking-tight outline-none placeholder:text-[var(--muted)]"
       />
 
       <textarea
@@ -154,20 +154,20 @@ export default function Editor() {
           if (file?.type.startsWith('image/')) { e.preventDefault(); insertImage(file) }
         }}
         placeholder="마크다운으로 자유롭게 쓰세요. 이미지는 붙여넣거나 끌어다 놓으면 됩니다."
-        className="min-h-[50vh] w-full resize-y rounded-xl border border-[var(--color-line)] bg-transparent p-4 font-mono text-sm leading-relaxed outline-none focus:border-[var(--color-accent)]"
+        className="min-h-[50vh] w-full resize-y rounded-xl border border-[var(--line)] bg-transparent p-4 font-mono text-sm leading-relaxed outline-none focus:border-[var(--accent)]"
       />
 
-      <section className="rounded-xl border border-[var(--color-line)] p-4">
+      <section className="rounded-xl border border-[var(--line)] p-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-sm font-semibold">태그</h2>
-          <span className="text-xs text-[var(--color-muted)]">
+          <span className="text-xs text-[var(--muted)]">
             본문 분석 결과 · 최대 {MAX_TAGS}개 · 눌러서 바꿀 수 있습니다
           </span>
           {touched && (
             <button
               type="button"
               onClick={() => { setTouched(false); setPicked([]) }}
-              className="ml-auto rounded-lg border border-[var(--color-line)] px-2.5 py-1 text-xs"
+              className="ml-auto rounded-lg border border-[var(--line)] px-2.5 py-1 text-xs"
             >
               분석 결과로 되돌리기
             </button>
@@ -175,7 +175,7 @@ export default function Editor() {
         </div>
 
         {candidates.length === 0 ? (
-          <p className="mt-3 text-sm text-[var(--color-muted)]">
+          <p className="mt-3 text-sm text-[var(--muted)]">
             본문이 짧아 아직 분석할 내용이 없습니다.
           </p>
         ) : (
@@ -189,19 +189,19 @@ export default function Editor() {
                     onClick={() => toggle(c.tag)}
                     className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
                       on
-                        ? 'bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)]'
-                        : 'hover:bg-[color-mix(in_oklab,var(--color-line)_50%,transparent)]'
+                        ? 'bg-[var(--accent-soft)]'
+                        : 'hover:bg-[var(--bg-elev)]'
                     }`}
                   >
                     <span
-                      className={`shrink-0 text-sm ${on ? 'font-medium text-[var(--color-accent)]' : ''}`}
+                      className={`shrink-0 text-sm ${on ? 'font-medium text-[var(--accent)]' : ''}`}
                     >
                       #{c.tag}
                     </span>
-                    <span className="flex-1 truncate text-xs text-[var(--color-muted)]">
+                    <span className="flex-1 truncate text-xs text-[var(--muted)]">
                       {c.reason}
                     </span>
-                    <span className="shrink-0 text-xs tabular-nums text-[var(--color-muted)]">
+                    <span className="shrink-0 text-xs tabular-nums text-[var(--muted)]">
                       {c.score.toFixed(1)}
                     </span>
                   </button>
@@ -217,7 +217,7 @@ export default function Editor() {
           type="button"
           onClick={() => handleSave(true)}
           disabled={!title.trim() || settings.postingLocked}
-          className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           {published ? '발행 상태로 저장' : '발행'}
         </button>
@@ -225,7 +225,7 @@ export default function Editor() {
           type="button"
           onClick={() => handleSave(false)}
           disabled={settings.postingLocked}
-          className="rounded-lg border border-[var(--color-line)] px-4 py-2 text-sm disabled:opacity-50"
+          className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-50"
         >
           임시저장
         </button>
@@ -234,7 +234,7 @@ export default function Editor() {
             삭제
           </button>
         )}
-        <span className="text-xs text-[var(--color-muted)]">{status}</span>
+        <span className="text-xs text-[var(--muted)]">{status}</span>
       </div>
     </div>
   )

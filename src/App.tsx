@@ -14,7 +14,7 @@ const AdminSecurity = lazy(() => import('./pages/AdminSecurity'))
 const Editor = lazy(() => import('./pages/Editor'))
 const RequireAdmin = lazy(() => import('./components/RequireAdmin'))
 
-const Loading = <p className="text-sm text-[var(--color-muted)]">불러오는 중…</p>
+const Loading = <p className="text-sm text-[var(--muted)]">불러오는 중…</p>
 
 const guarded = (el: React.ReactNode) => (
   <Suspense fallback={Loading}>
@@ -40,7 +40,7 @@ export default function App() {
           </Route>
           <Route
             path="*"
-            element={<p className="text-sm text-[var(--color-muted)]">페이지를 찾을 수 없습니다.</p>}
+            element={<p className="text-sm text-[var(--muted)]">페이지를 찾을 수 없습니다.</p>}
           />
         </Route>
       </Routes>

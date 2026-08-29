@@ -18,29 +18,38 @@ export default function PostView() {
     import('../lib/markdown').then((m) => setHtml(m.renderMarkdown(post.body)))
   }, [post])
 
-  if (post === null) return <p className="text-sm text-[var(--color-muted)]">불러오는 중…</p>
-  if (post === 'missing') return <p className="text-sm text-[var(--color-muted)]">글을 찾을 수 없습니다.</p>
+  if (post === null) return <p className="text-sm text-[var(--muted)]">불러오는 중…</p>
+  if (post === 'missing') return <p className="text-sm text-[var(--muted)]">글을 찾을 수 없습니다.</p>
 
   return (
     <article>
-      <Link to="/" className="text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)]">
+      <Link
+        to="/"
+        className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+      >
         ← 전체 글
       </Link>
-      <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight">{post.title}</h1>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--color-line)] pb-6">
-        <time className="text-xs text-[var(--color-muted)]">{formatDate(post.createdAt)}</time>
+
+      <h1 className="mt-4 max-w-4xl text-3xl font-semibold leading-[1.15] tracking-[-0.03em] sm:text-[2.6rem]">
+        {post.title}
+      </h1>
+
+      <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--line)] pb-6">
+        <time className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
+          {formatDate(post.createdAt)}
+        </time>
         {post.tags.map((tag) => (
           <Link
             key={tag}
             to={`/tags/${encodeURIComponent(tag)}`}
-            className="rounded-full border border-[var(--color-line)] px-2.5 py-0.5 text-xs text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            className="rounded-full bg-[var(--bg-elev)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
           >
             #{tag}
           </Link>
         ))}
       </div>
       <div
-        className="prose mt-8"
+        className="prose mt-9 max-w-3xl"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </article>
