@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listAllPosts, type Post } from '../lib/posts'
 import { auditAll, summarize, type IssueArea, type PostAudit } from '../lib/seo'
 import {
-  ENGINES, ENGINE_LABEL, confirmedOn, searchUrl, toggleIndexed,
+  ENGINES, ENGINE_LABEL, confirmedOn, toggleIndexed,
   type Engine, type IndexStatus,
 } from '../lib/indexStatus'
+
+// 확인 팝업은 열어볼 때만 내려받는다
+const IndexCheckModal = lazy(() => import('../components/IndexCheckModal'))
+
+/** 확인 팝업을 띄울 대상 */
+type Check = { id: string; title: string; engine: Engine }
 
 const AREAS: IssueArea[] = ['SEO', 'GEO', '이미지', '에디토리얼']
 
@@ -27,6 +33,7 @@ export default function AdminSeo() {
   const [area, setArea] = useState<IssueArea | null>(null)
   // 색인 확인 기록은 화면에서 바로 갱신한다
   const [status, setStatus] = useState<Record<string, IndexStatus>>({})
+  const [check, setCheck] = useState<Check | null>(null)
 
   useEffect(() => {
     listAllPosts(300)
@@ -118,47 +125,27 @@ export default function AdminSeo() {
                 {a.title}
               </Link>
 
-              {/* 색인 여부는 각 포털에서만 확인할 수 있다.
-                  칩을 누르면 site: 검색이 열릴 뿐이고, 색이 바뀌지는 않는다.
-                  노란 바탕은 확인한 사실을 기록했을 때만 켜진다 — 그 기록은
-                  옆의 네모를 눌러야 남는다. 확인하러 가는 행동과 확인됐다고
-                  적는 행동을 갈라놔야 잘못 눌러 색이 바뀌지 않는다. */}
+              {/* 포털을 누르면 확인 팝업이 열린다. 여는 것만으로는 색이 바뀌지
+                  않고, 팝업에서 결과를 기록해야 노란 바탕이 켜진다. */}
               <span className="flex items-center gap-1.5">
                 <span className="text-[10px] text-[var(--muted)]">색인</span>
                 {ENGINES.map((e) => {
                   const on = !!status[a.id]?.[e]
                   return (
-                    <span
+                    <button
                       key={e}
-                      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
+                      type="button"
+                      onClick={() => setCheck({ id: a.id, title: a.title, engine: e })}
+                      title={`${ENGINE_LABEL[e]} 색인 확인`}
+                      className={`rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
                         on
                           ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
-                          : 'border-[var(--line)] text-[var(--muted)]'
+                          : 'border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
                       }`}
                     >
-                      <a
-                        href={searchUrl(e, a.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        title={`${ENGINE_LABEL[e]}에서 site: 검색으로 확인`}
-                      >
-                        {ENGINE_LABEL[e]}
-                        {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`} ↗
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => mark(a.id, e)}
-                        aria-pressed={on}
-                        title={
-                          on
-                            ? `${ENGINE_LABEL[e]} 색인됨 (${confirmedOn(status[a.id] ?? {}, e)} 기록) — 눌러서 해제`
-                            : `${ENGINE_LABEL[e]} 검색 결과에 나온다면 눌러 색인됨으로 기록`
-                        }
-                        className={`ml-0.5 leading-none ${on ? '' : 'opacity-50 hover:opacity-100'}`}
-                      >
-                        {on ? '☑' : '☐'}
-                      </button>
-                    </span>
+                      {ENGINE_LABEL[e]}
+                      {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`}
+                    </button>
                   )
                 })}
               </span>
@@ -205,6 +192,19 @@ export default function AdminSeo() {
           </li>
         ))}
       </ul>
+
+      {check && (
+        <Suspense fallback={null}>
+          <IndexCheckModal
+            engine={check.engine}
+            postId={check.id}
+            title={check.title}
+            status={status[check.id] ?? {}}
+            onToggle={() => mark(check.id, check.engine)}
+            onClose={() => setCheck(null)}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }
