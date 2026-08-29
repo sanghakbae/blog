@@ -175,18 +175,20 @@ export default function AdminSeo() {
                 {a.issues
                   .filter((i) => !area || i.area === area)
                   .map((i) => (
-                    <li key={i.field} className="flex flex-wrap items-baseline gap-2 text-[11px]">
-                      <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${AREA_STYLE[i.area]} ${
-                          i.level === 'fail' ? 'ring-1 ring-red-500/40' : ''
-                        }`}
-                      >
-                        {i.area}
+                    <li key={i.field} className="flex items-baseline gap-2 text-[11px]">
+                      {/* 배지와 항목 이름은 한 덩어리로 묶는다. 따로 두면 좁은 화면에서
+                          설명만 다음 줄로 밀려나 빈 줄처럼 보인다. */}
+                      <span className="flex shrink-0 items-baseline gap-2">
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${AREA_STYLE[i.area]} ${
+                            i.level === 'fail' ? 'ring-1 ring-red-500/40' : ''
+                          }`}
+                        >
+                          {i.area}
+                        </span>
+                        <code className="font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
                       </span>
-                      <code className="shrink-0 font-mono text-[10px] text-[var(--muted)]">
-                        {i.field}
-                      </code>
-                      <span className="text-[var(--ink)]">— {i.message}</span>
+                      <span className="min-w-0 flex-1 text-[var(--ink)]">— {i.message}</span>
                     </li>
                   ))}
               </ul>

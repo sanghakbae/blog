@@ -90,6 +90,11 @@ body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* 한글은 글자마다 줄바꿈이 가능해서 그냥 두면 '유리합니 / 다' 처럼
+     낱말 한가운데가 잘린다. keep-all 로 낱말 단위에서만 끊는다.
+     대신 긴 URL 같은 건 끊을 데가 없어 넘치므로 그때만 강제로 끊는다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 ::selection { background: var(--accent); color: var(--accent-ink); }
@@ -98,24 +103,6 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 6px;
-}
-
-/* ── 모바일 ──────────────────────────────────────────────────────────────
-   좁은 화면에서는 글자를 최대한 줄여 한 화면에 더 많은 내용이 들어가게 한다. */
-@media (max-width: 639px) {
-  .prose { font-size: 0.8125rem; line-height: 1.72; }
-  .prose h2 { font-size: 1.075rem; margin-top: 1.8em; }
-  .prose h3 { font-size: 0.95rem; margin-top: 1.4em; }
-  .prose pre { font-size: 0.75rem; padding: 0.75rem 0.85rem; }
-  .prose code { font-size: 0.8em; }
-  .prose table { font-size: 0.75rem; }
-  .prose th, .prose td { padding: 0.4em 0.55em; white-space: nowrap; }
-  .prose ul, .prose ol { padding-left: 1.1rem; }
-
-  /* 팝업은 화면의 80% 안에 들어가야 하므로 한 단계 더 줄인다 */
-  dialog .prose { font-size: 0.75rem; line-height: 1.65; }
-  dialog .prose h2 { font-size: 0.875rem; margin-top: 1.5em; }
-  dialog .prose li::marker { font-size: 0.8em; }
 }
 
 /* 큰 제목 — 한글은 Pretendard, 라틴/숫자는 세리프로 떨어져 대비가 생긴다 */
@@ -284,3 +271,25 @@ body {
 .prose hr { border: 0; border-top: 1px solid var(--line); margin: 2.6em 0; }
 .prose table { width: 100%; border-collapse: collapse; font-size: 0.94em; }
 .prose th, .prose td { border-bottom: 1px solid var(--line); padding: 0.65em 0.85em; text-align: left; }
+
+/* ── 모바일 ──────────────────────────────────────────────────────────────
+   좁은 화면에서는 글자를 최대한 줄여 한 화면에 더 많은 내용이 들어가게 한다.
+
+   이 블록은 반드시 위의 .prose 규칙보다 뒤에 있어야 한다. 명시도가 같아서
+   순서로 승패가 갈리는데, 앞에 두면 뒤따르는 .prose 가 그대로 덮어써서
+   모바일에서 데스크톱 글자 크기가 그대로 나온다. */
+@media (max-width: 639px) {
+  .prose { font-size: 0.8125rem; line-height: 1.72; }
+  .prose h2 { font-size: 1rem; margin-top: 1.7em; }
+  .prose h3 { font-size: 0.95rem; margin-top: 1.4em; }
+  .prose pre { font-size: 0.75rem; padding: 0.75rem 0.85rem; }
+  .prose code { font-size: 0.8em; }
+  .prose table { font-size: 0.75rem; }
+  .prose th, .prose td { padding: 0.4em 0.5em; }
+  .prose ul, .prose ol { padding-left: 1.1rem; }
+
+  /* 팝업은 화면의 80% 안에 들어가야 하므로 한 단계 더 줄인다 */
+  dialog .prose { font-size: 0.75rem; line-height: 1.65; }
+  dialog .prose h2 { font-size: 0.875rem; margin-top: 1.5em; }
+  dialog .prose li::marker { font-size: 0.8em; }
+}
