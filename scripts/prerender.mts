@@ -94,9 +94,16 @@ const esc = (s: string) =>
 /** 셸의 메타를 글 정보로 바꾸고, 본문을 #root 안에 미리 넣는다 */
 function buildPage(
   shell: string,
-  opts: { title: string; description: string; url: string; jsonLd?: object[]; content?: string },
+  opts: {
+    title: string
+    description: string
+    url: string
+    image?: string
+    jsonLd?: object[]
+    content?: string
+  },
 ): string {
-  const { title, description, url, jsonLd = [], content = '' } = opts
+  const { title, description, url, image = '', jsonLd = [], content = '' } = opts
   let html = shell
 
   html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
@@ -116,6 +123,14 @@ function buildPage(
     /<meta property="og:url" content="[^"]*" \/>/,
     `<meta property="og:url" content="${esc(url)}" />`,
   )
+
+  // 공유했을 때 뜨는 그림. 글마다 도식이 하나씩 있으니 그것을 쓴다.
+  if (image) {
+    html = html.replace(
+      '<meta name="twitter:card" content="summary" />',
+      `<meta name="twitter:card" content="summary_large_image" />\n    <meta property="og:image" content="${esc(image)}" />\n    <meta name="twitter:image" content="${esc(image)}" />`,
+    )
+  }
 
   const head = [
     `<link rel="canonical" href="${esc(url)}" />`,
@@ -166,6 +181,9 @@ for (const post of posts) {
   const url = `${SITE}/posts/${post.id}/`
   const description = (post.excerpt || post.body.slice(0, 160)).replace(/\s+/g, ' ').slice(0, 160)
   const faqs = faqEntries(post.body)
+  // 본문 첫 이미지를 대표 그림으로 쓴다. 경로가 상대면 절대 주소로 바꾼다.
+  const firstImage = /!\[[^\]]*\]\(([^)\s]+)/.exec(post.body)?.[1] ?? ''
+  const image = firstImage.startsWith('/') ? SITE + firstImage : firstImage
 
   const jsonLd: object[] = [
     {
@@ -198,7 +216,7 @@ for (const post of posts) {
   mkdirSync(`${DIST}/posts/${post.id}`, { recursive: true })
   writeFileSync(
     `${DIST}/posts/${post.id}/index.html`,
-    buildPage(shell, { title: `${post.title} · sanghak`, description, url, jsonLd, content }),
+    buildPage(shell, { title: `${post.title} · sanghak`, description, url, image, jsonLd, content }),
   )
 }
 

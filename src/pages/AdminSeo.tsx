@@ -34,6 +34,7 @@ export default function AdminSeo() {
   // 색인 확인 기록은 화면에서 바로 갱신한다
   const [status, setStatus] = useState<Record<string, IndexStatus>>({})
   const [check, setCheck] = useState<Check | null>(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     listAllPosts(300)
@@ -48,8 +49,15 @@ export default function AdminSeo() {
     Object.values(status).filter((s) => s[engine]).length
 
   async function mark(postId: string, engine: Engine) {
-    const next = await toggleIndexed(postId, engine, status[postId] ?? {})
-    setStatus((prev) => ({ ...prev, [postId]: next }))
+    // 규칙에 막히거나 연결이 끊기면 조용히 실패한다. 눌렀는데 아무 일도
+    // 일어나지 않으면 눌리지 않은 것으로 오해하므로 이유를 보여준다.
+    try {
+      const next = await toggleIndexed(postId, engine, status[postId] ?? {})
+      setStatus((prev) => ({ ...prev, [postId]: next }))
+      setError('')
+    } catch (err) {
+      setError(`색인 기록을 저장하지 못했습니다 — ${(err as Error).message}`)
+    }
   }
 
   const audits = useMemo(() => (posts ? auditAll(posts) : []), [posts])
@@ -68,6 +76,12 @@ export default function AdminSeo() {
           점수가 낮은 글이 위에 옵니다.
         </p>
       </header>
+
+      {error && (
+        <p className="mb-3 rounded-lg border border-red-400/50 bg-red-500/10 px-3 py-2 text-[11px] text-red-500">
+          {error}
+        </p>
+      )}
 
       {/* 지적 4종 + 포털 3종. 넓은 화면은 한 줄, 좁은 화면은 네 개씩 두 줄. */}
       <div className="mb-6 grid grid-cols-4 gap-1 sm:gap-1.5 lg:grid-cols-7">
