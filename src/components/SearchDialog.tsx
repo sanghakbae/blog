@@ -102,9 +102,9 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
       ref={ref}
       onClose={() => { if (!closing.current) onClose() }}
       onClick={(e) => { if (e.target === ref.current) onClose() }}
-      className="mx-auto mt-[12vh] w-[min(40rem,calc(100vw-1.5rem))] rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[80dvh] max-h-none w-[min(40rem,calc(100vw-1.5rem))] flex-col rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/40 backdrop:backdrop-blur-sm"
     >
-      <div className="flex items-center gap-2 border-b border-[var(--line)] px-4">
+      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--line)] px-4">
         <span className="text-[var(--muted)]">⌕</span>
         <input
           autoFocus
@@ -119,7 +119,7 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
         </kbd>
       </div>
 
-      <div className="max-h-[55vh] overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {q && results.length === 0 && (
           <p className="px-4 py-8 text-center text-xs text-[var(--muted)]">결과가 없습니다.</p>
         )}
