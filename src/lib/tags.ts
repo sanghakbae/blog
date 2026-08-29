@@ -1,0 +1,23 @@
+/** 게시물 하나당 허용되는 최대 태그 수 */
+export const MAX_TAGS = 3
+
+/**
+ * 태그 표기 통일.
+ * 이 값이 곧 URL 슬러그이자 tags 컬렉션의 문서 ID 다.
+ */
+export function normalizeTag(raw: string): string {
+  return raw.trim().toLowerCase().replace(/^#/, '').replace(/\s+/g, '-').slice(0, 30)
+}
+
+/** 목록에 보여줄 짧은 요약 */
+export function makeExcerpt(body: string, len = 140): string {
+  const text = body
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^[#>*\-\s]+/gm, ' ')
+    .replace(/[*_`~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text.length > len ? text.slice(0, len).trimEnd() + '…' : text
+}

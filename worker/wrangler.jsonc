@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blog-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  "r2_buckets": [
+    { "binding": "BUCKET", "bucket_name": "blog-images" }
+  ],
+
+  "vars": {
+    // Firebase 프로젝트 ID — ID 토큰의 aud/iss 검증에 쓴다
+    "FIREBASE_PROJECT_ID": "",
+    // 글쓰기(업로드/태그분석) 권한을 가진 이메일, 쉼표 구분
+    "ADMIN_EMAILS": "qa@muhayu.com",
+    // R2 공개 도메인 (예: https://img.sanghak.kr)
+    "PUBLIC_BASE_URL": "https://img.sanghak.kr",
+    // 프론트 오리진 (CORS)
+    "ALLOWED_ORIGIN": "https://blog.sanghak.kr"
+  }
+
+  // 시크릿: wrangler secret put ANTHROPIC_API_KEY
+}

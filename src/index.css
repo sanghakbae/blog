@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Pretendard", ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --color-ink: oklch(0.22 0.01 260);
+  --color-muted: oklch(0.55 0.01 260);
+  --color-line: oklch(0.92 0.004 260);
+  --color-accent: oklch(0.55 0.13 250);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: #fff;
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink: oklch(0.93 0.005 260);
+    --color-muted: oklch(0.68 0.01 260);
+    --color-line: oklch(0.30 0.008 260);
+    --color-accent: oklch(0.75 0.11 250);
+  }
+  body { background: oklch(0.17 0.008 260); }
+}
+
+/* 본문(마크다운) 타이포그래피 */
+.prose { line-height: 1.75; }
+.prose > * + * { margin-top: 1.1em; }
+.prose h2 { font-size: 1.35rem; font-weight: 700; margin-top: 2em; letter-spacing: -0.01em; }
+.prose h3 { font-size: 1.12rem; font-weight: 700; margin-top: 1.6em; }
+.prose a { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
+.prose img { border-radius: 0.75rem; max-width: 100%; height: auto; }
+.prose ul { list-style: disc; padding-left: 1.25rem; }
+.prose ol { list-style: decimal; padding-left: 1.25rem; }
+.prose blockquote { border-left: 3px solid var(--color-line); padding-left: 1rem; color: var(--color-muted); }
+.prose code { background: color-mix(in oklab, var(--color-line) 60%, transparent); padding: 0.15em 0.4em; border-radius: 0.3rem; font-size: 0.9em; }
+.prose pre { background: color-mix(in oklab, var(--color-line) 55%, transparent); padding: 1rem; border-radius: 0.75rem; overflow-x: auto; }
+.prose pre code { background: none; padding: 0; }

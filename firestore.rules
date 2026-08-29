@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 글쓰기 권한을 가진 관리자 계정
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['qa@muhayu.com'];
+    }
+
+    function validPost(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 200
+        && d.body is string && d.body.size() <= 200000
+        && d.published is bool
+        && d.tags is list && d.tags.size() <= 3;   // 게시물당 태그 최대 3개
+    }
+
+    match /posts/{postId} {
+      // 발행된 글은 누구나, 임시저장은 관리자만
+      allow get, list: if resource.data.published == true || isAdmin();
+      allow create, update: if isAdmin() && validPost(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /tags/{tagId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
