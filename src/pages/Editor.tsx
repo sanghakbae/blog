@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { deletePost, fetchCorpus, fetchTagNames, getPost, savePost } from '../lib/posts'
-import { analyzeContent, type CorpusDoc, type TagCandidate } from '../lib/localTagger'
+import {
+  analyzeContent, buildCorpusIndex, type CorpusDoc, type TagCandidate,
+} from '../lib/localTagger'
 import { uploadImage } from '../lib/upload'
 import { MAX_TAGS } from '../lib/tags'
 import {
@@ -81,10 +83,19 @@ export default function Editor() {
     return () => clearTimeout(t)
   }, [body, preview])
 
-  /** 본문이 바뀔 때마다 다시 분석한다. 외부 호출이 없어 즉시 끝난다. */
+  // 코퍼스 색인은 글 목록이 바뀔 때만 다시 만든다
+  const index = useMemo(() => buildCorpusIndex(corpus), [corpus])
+
+  // 타이핑 중에는 분석을 미룬다. 매 글자마다 돌리면 입력이 끊긴다.
+  const [analyzed, setAnalyzed] = useState({ title: '', body: '' })
+  useEffect(() => {
+    const t = setTimeout(() => setAnalyzed({ title, body }), 400)
+    return () => clearTimeout(t)
+  }, [title, body])
+
   const candidates: TagCandidate[] = useMemo(
-    () => analyzeContent({ title, body, corpus, existingTags, max: 10 }),
-    [title, body, corpus, existingTags],
+    () => analyzeContent({ ...analyzed, index, existingTags, max: 10 }),
+    [analyzed, index, existingTags],
   )
 
   const tags = touched ? picked : candidates.slice(0, MAX_TAGS).map((c) => c.tag)

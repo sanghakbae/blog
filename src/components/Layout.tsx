@@ -1,17 +1,32 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import TagSidebar from './TagSidebar'
 import AuthButton from './AuthButton'
+import ThemeToggle from './ThemeToggle'
 
 // 처리방침은 열어볼 때만 내려받는다
 const PrivacyModal = lazy(() => import('./PrivacyModal'))
+const SearchDialog = lazy(() => import('./SearchDialog'))
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  // ⌘K / Ctrl+K 로 어디서든 검색을 연다
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <header className="z-20 shrink-0 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-xl">
+      <header className="appbar z-20 shrink-0 border-b border-[var(--line)]">
         <div className="flex w-full items-center gap-4 px-2 py-2 sm:px-3 lg:px-4">
           <Link to="/" className="group flex items-baseline gap-2">
             <span className="display text-2xl">sanghak</span>
@@ -21,6 +36,18 @@ export default function Layout() {
           </Link>
 
           <div className="flex-1" />
+
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md border border-[var(--line)] px-2.5 py-1.5 text-xs text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            <span aria-hidden>⌕</span>
+            <span className="hidden sm:inline">검색</span>
+            <kbd className="hidden font-mono text-[10px] opacity-60 lg:inline">⌘K</kbd>
+          </button>
+
+          <ThemeToggle />
 
           <AuthButton />
 
@@ -66,6 +93,12 @@ export default function Layout() {
           </button>
         </div>
       </footer>
+
+      {searchOpen && (
+        <Suspense fallback={null}>
+          <SearchDialog onClose={() => setSearchOpen(false)} />
+        </Suspense>
+      )}
 
       {privacyOpen && (
         <Suspense fallback={null}>

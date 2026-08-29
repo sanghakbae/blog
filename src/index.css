@@ -20,8 +20,9 @@
   --radius: 16px;
 }
 
+/* 시스템이 어둡거나 사용자가 어둡게 골랐을 때 */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: oklch(0.15 0.008 270);
     --bg-elev: oklch(0.19 0.011 270);
     --ink: oklch(0.96 0.004 90);
@@ -31,6 +32,17 @@
     --accent-ink: oklch(0.16 0.01 270);
     --accent-soft: oklch(0.28 0.08 268);
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: oklch(0.15 0.008 270);
+  --bg-elev: oklch(0.19 0.011 270);
+  --ink: oklch(0.96 0.004 90);
+  --muted: oklch(0.64 0.014 270);
+  --line: oklch(0.28 0.014 270);
+  --accent: oklch(0.78 0.17 268);
+  --accent-ink: oklch(0.16 0.01 270);
+  --accent-soft: oklch(0.28 0.08 268);
 }
 
 html { scroll-behavior: smooth; }

@@ -1,87 +1,29 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { signIn, signOut, subscribeViewer, type Viewer } from '../lib/authState'
 
-/**
- * 헤더 우측 상단의 구글 로그인 버튼.
- *
- * firebase/auth 는 무겁다. 글만 읽는 방문자에게까지 내려보내지 않으려고
- * 로그인한 적 있는 브라우저(SEEN 표시가 남은 경우)와 실제로 버튼을 누른
- * 순간에만 동적으로 불러온다.
- */
-const SEEN = 'auth:seen'
-
-type State =
-  | { status: 'anon' }
-  | { status: 'busy' }
-  | { status: 'user'; email: string; photo: string | null; isAdmin: boolean }
-
+/** 헤더 우측 상단의 구글 로그인 버튼 */
 export default function AuthButton() {
-  const [state, setState] = useState<State>({ status: 'anon' })
+  const [viewer, setViewer] = useState<Viewer>(null)
+  const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    if (!localStorage.getItem(SEEN)) return
-    let unsubscribe: (() => void) | undefined
-    let alive = true
+  useEffect(() => subscribeViewer(setViewer), [])
 
-    ;(async () => {
-      const [{ auth, ADMIN_EMAILS }, { onAuthStateChanged }] = await Promise.all([
-        import('../lib/authClient'),
-        import('firebase/auth'),
-      ])
-      if (!alive) return
-      unsubscribe = onAuthStateChanged(auth, (u) => {
-        if (!u) return setState({ status: 'anon' })
-        setState({
-          status: 'user',
-          email: u.email ?? '',
-          photo: u.photoURL,
-          isAdmin: ADMIN_EMAILS.includes((u.email ?? '').toLowerCase()),
-        })
-      })
-    })()
-
-    return () => { alive = false; unsubscribe?.() }
-  }, [])
-
-  async function signIn() {
-    setState({ status: 'busy' })
+  async function handleSignIn() {
+    setBusy(true)
     try {
-      const [{ auth, googleProvider, ADMIN_EMAILS }, { signInWithPopup }, { logAudit }] =
-        await Promise.all([
-          import('../lib/authClient'),
-          import('firebase/auth'),
-          import('../lib/audit'),
-        ])
-      const { user } = await signInWithPopup(auth, googleProvider)
-      localStorage.setItem(SEEN, '1')
-      setState({
-        status: 'user',
-        email: user.email ?? '',
-        photo: user.photoURL,
-        isAdmin: ADMIN_EMAILS.includes((user.email ?? '').toLowerCase()),
-      })
-      logAudit('auth.signin', user.uid, user.email ?? '')
+      await signIn()
     } catch {
-      setState({ status: 'anon' })
+      // 사용자가 팝업을 닫은 경우 — 조용히 되돌린다
+    } finally {
+      setBusy(false)
     }
   }
 
-  async function signOutNow() {
-    const [{ auth }, { signOut }, { logAudit }] = await Promise.all([
-      import('../lib/authClient'),
-      import('firebase/auth'),
-      import('../lib/audit'),
-    ])
-    await logAudit('auth.signout', auth.currentUser?.uid ?? '', auth.currentUser?.email ?? '')
-    await signOut(auth)
-    localStorage.removeItem(SEEN)
-    setState({ status: 'anon' })
-  }
-
-  if (state.status === 'user') {
+  if (viewer) {
     return (
       <div className="flex items-center gap-1.5">
-        {state.isAdmin && (
+        {viewer.isAdmin && (
           <>
             <Link
               to="/admin/new"
@@ -99,14 +41,19 @@ export default function AuthButton() {
         )}
         <button
           type="button"
-          onClick={signOutNow}
-          title={`${state.email} — 눌러서 로그아웃`}
+          onClick={() => signOut()}
+          title={`${viewer.email} — 눌러서 로그아웃`}
           className="grid size-7 place-items-center overflow-hidden rounded-full border border-[var(--line)] text-[10px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]"
         >
-          {state.photo ? (
-            <img src={state.photo} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
+          {viewer.photo ? (
+            <img
+              src={viewer.photo}
+              alt=""
+              className="size-full object-cover"
+              referrerPolicy="no-referrer"
+            />
           ) : (
-            state.email.slice(0, 1).toUpperCase()
+            viewer.email.slice(0, 1).toUpperCase()
           )}
         </button>
       </div>
@@ -116,8 +63,8 @@ export default function AuthButton() {
   return (
     <button
       type="button"
-      onClick={signIn}
-      disabled={state.status === 'busy'}
+      onClick={handleSignIn}
+      disabled={busy}
       className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] py-1.5 pl-2 pr-3 text-xs font-medium text-[var(--muted)] transition-colors hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-50"
     >
       <svg viewBox="0 0 18 18" className="size-3.5" aria-hidden>
@@ -126,7 +73,7 @@ export default function AuthButton() {
         <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33Z" />
         <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z" />
       </svg>
-      {state.status === 'busy' ? '여는 중…' : '로그인'}
+      {busy ? '여는 중…' : '로그인'}
     </button>
   )
 }

@@ -72,6 +72,42 @@ export async function listAllPosts(max = 100): Promise<Post[]> {
   return snap.docs.map((d) => toPost(d.id, d.data()))
 }
 
+/**
+ * 이전·다음 글.
+ * 목록 전체를 받아 위치를 찾으면 글이 늘어날수록 읽기 비용이 그대로 커진다.
+ * 작성 시각을 기준으로 양쪽에서 한 건씩만 가져온다.
+ */
+export async function getAdjacentPosts(post: Post): Promise<{ prev?: Post; next?: Post }> {
+  if (USE_LOCAL) return (await import('./localData')).localAdjacent(post.id)
+  if (!post.createdAt) return {}
+
+  const [older, newer] = await Promise.all([
+    getDocs(
+      query(
+        postsCol,
+        where('published', '==', true),
+        where('createdAt', '<', post.createdAt),
+        orderBy('createdAt', 'desc'),
+        limit(1),
+      ),
+    ),
+    getDocs(
+      query(
+        postsCol,
+        where('published', '==', true),
+        where('createdAt', '>', post.createdAt),
+        orderBy('createdAt', 'asc'),
+        limit(1),
+      ),
+    ),
+  ])
+
+  return {
+    prev: older.docs[0] ? toPost(older.docs[0].id, older.docs[0].data()) : undefined,
+    next: newer.docs[0] ? toPost(newer.docs[0].id, newer.docs[0].data()) : undefined,
+  }
+}
+
 export async function getPost(id: string): Promise<Post | null> {
   if (USE_LOCAL) return (await import('./localData')).localGetPost(id)
   const snap = await getDoc(doc(postsCol, id))

@@ -5,11 +5,16 @@ import { getPost, type Post } from '../lib/posts'
 import { formatDate } from '../lib/date'
 import CommentSection from '../components/CommentSection'
 import PostActions from '../components/PostActions'
+import TableOfContents from '../components/TableOfContents'
+import PostNav from '../components/PostNav'
+import { readingStats } from '../lib/editorCommands'
+import type { Heading } from '../lib/markdown'
 
 export default function PostView() {
   const { id = '' } = useParams()
   const [post, setPost] = useState<Post | null | 'missing'>(null)
   const [html, setHtml] = useState('')
+  const [headings, setHeadings] = useState<Heading[]>([])
 
   useEffect(() => {
     getPost(id).then((p) => setPost(p ?? 'missing')).catch(() => setPost('missing'))
@@ -17,7 +22,10 @@ export default function PostView() {
 
   useEffect(() => {
     if (typeof post !== 'object' || !post) return
-    import('../lib/markdown').then((m) => setHtml(m.renderMarkdown(post.body)))
+    import('../lib/markdown').then((m) => {
+      setHtml(m.renderMarkdown(post.body))
+      setHeadings(m.extractHeadings(post.body))
+    })
   }, [post])
 
   if (post === null) return <p className="text-sm text-[var(--muted)]">불러오는 중…</p>
@@ -43,6 +51,9 @@ export default function PostView() {
         <time className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
           {formatDate(post.createdAt)}
         </time>
+        <span className="font-mono text-[11px] text-[var(--muted)]">
+          {readingStats(post.body).minutes}분 분량
+        </span>
         {post.tags.map((tag) => (
           <Link
             key={tag}
@@ -53,10 +64,16 @@ export default function PostView() {
           </Link>
         ))}
       </div>
+      <div className="mt-6 sm:mt-8">
+        <TableOfContents headings={headings} />
+      </div>
+
       <div
-        className="prose mt-6 max-w-none sm:mt-8"
+        className="prose max-w-none"
         dangerouslySetInnerHTML={{ __html: html }}
       />
+
+      <PostNav post={post} />
 
       <div className="no-print">
         <CommentSection postId={post.id} />

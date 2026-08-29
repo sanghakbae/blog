@@ -2,15 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import {
   MAX_COMMENT_LENGTH, addComment, editComment, removeComment, subscribeComments, type Comment,
 } from '../lib/comments'
-
-type Me = { uid: string; name: string; photo: string | null; isAdmin: boolean } | null
-
-const SEEN = 'auth:seen'
+import { signIn, subscribeViewer, type Viewer } from '../lib/authState'
 
 /** 게시글 하단의 댓글 영역. 댓글을 쓰려면 구글 로그인이 필요하다. */
 export default function CommentSection({ postId }: { postId: string }) {
   const [comments, setComments] = useState<Comment[] | null>(null)
-  const [me, setMe] = useState<Me>(null)
+  const [me, setMe] = useState<Viewer>(null)
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
@@ -20,48 +17,12 @@ export default function CommentSection({ postId }: { postId: string }) {
 
   useEffect(() => subscribeComments(postId, setComments), [postId])
 
-  // 읽기만 하는 방문자에게 인증 모듈을 내려보내지 않는다
-  useEffect(() => {
-    if (!localStorage.getItem(SEEN)) return
-    let alive = true
-    let unsubscribe: (() => void) | undefined
-    ;(async () => {
-      const [{ auth, ADMIN_EMAILS }, { onAuthStateChanged }] = await Promise.all([
-        import('../lib/authClient'),
-        import('firebase/auth'),
-      ])
-      if (!alive) return
-      unsubscribe = onAuthStateChanged(auth, (u) =>
-        setMe(
-          u
-            ? {
-                uid: u.uid,
-                name: u.displayName ?? u.email?.split('@')[0] ?? '익명',
-                photo: u.photoURL,
-                isAdmin: ADMIN_EMAILS.includes((u.email ?? '').toLowerCase()),
-              }
-            : null,
-        ),
-      )
-    })()
-    return () => { alive = false; unsubscribe?.() }
-  }, [])
+  useEffect(() => subscribeViewer(setMe), [])
 
-  async function signIn() {
+  async function handleSignIn() {
     setBusy(true)
     try {
-      const [{ auth, googleProvider, ADMIN_EMAILS }, { signInWithPopup }] = await Promise.all([
-        import('../lib/authClient'),
-        import('firebase/auth'),
-      ])
-      const { user } = await signInWithPopup(auth, googleProvider)
-      localStorage.setItem(SEEN, '1')
-      setMe({
-        uid: user.uid,
-        name: user.displayName ?? user.email?.split('@')[0] ?? '익명',
-        photo: user.photoURL,
-        isAdmin: ADMIN_EMAILS.includes((user.email ?? '').toLowerCase()),
-      })
+      await signIn()
     } catch {
       setStatus('로그인을 취소했습니다.')
     } finally {
@@ -249,7 +210,7 @@ export default function CommentSection({ postId }: { postId: string }) {
             <p className="text-xs text-[var(--muted)]">댓글을 쓰려면 로그인이 필요합니다.</p>
             <button
               type="button"
-              onClick={signIn}
+              onClick={handleSignIn}
               disabled={busy}
               className="mt-3 rounded-md border border-[var(--line)] px-4 py-1.5 text-xs font-medium transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
             >

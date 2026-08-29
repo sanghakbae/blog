@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Post } from '../lib/posts'
 import { formatDate } from '../lib/date'
+import { readingStats } from '../lib/editorCommands'
 
 /**
  * 카드를 격자로 늘어놓으면 모든 글이 똑같은 무게로 보인다.
@@ -51,6 +52,9 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
               <time className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
                 {formatDate(post.createdAt)}
               </time>
+              <span className="font-mono text-[10px] text-[var(--muted)]">
+                {readingStats(post.body).minutes}분
+              </span>
               {post.tags.map((tag) => (
                 <Link
                   key={tag}

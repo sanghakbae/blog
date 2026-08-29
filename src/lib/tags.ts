@@ -13,6 +13,8 @@ export function normalizeTag(raw: string): string {
 export function makeExcerpt(body: string, len = 140): string {
   const text = body
     .replace(/```[\s\S]*?```/g, ' ')
+    // 표는 요약에 넣으면 구분자만 늘어놓게 된다
+    .replace(/^\|.*\|\s*$/gm, ' ')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^[#>*\-\s]+/gm, ' ')

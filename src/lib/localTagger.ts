@@ -155,6 +155,17 @@ function sections(title: string, body: string): Weighted[] {
 
 // ── 코퍼스 (다른 글들) 로 문서빈도 계산 ─────────────────────────────────────
 
+export type CorpusIndex = { df: Map<string, number>; size: number }
+
+/**
+ * 코퍼스 문서빈도 색인.
+ * 에디터는 글자를 칠 때마다 분석을 다시 돌리는데, 그때마다 100편을 토큰화하면
+ * 입력이 멈춘다. 코퍼스가 바뀔 때만 한 번 만들어 재사용한다.
+ */
+export function buildCorpusIndex(corpus: CorpusDoc[]): CorpusIndex {
+  return { df: documentFrequency(corpus), size: corpus.length }
+}
+
 function documentFrequency(corpus: CorpusDoc[]): Map<string, number> {
   const df = new Map<string, number>()
   for (const d of corpus) {
@@ -182,7 +193,9 @@ type Stat = { tf: number; raw: number; places: Map<string, number>; words: numbe
 export function analyzeContent(input: {
   title: string
   body: string
+  /** 코퍼스를 직접 넘기면 매번 색인을 만든다. 반복 호출에는 index 를 쓴다. */
   corpus?: CorpusDoc[]
+  index?: CorpusIndex
   existingTags?: string[]
   max?: number
 }): TagCandidate[] {
@@ -209,8 +222,9 @@ export function analyzeContent(input: {
     }
   }
 
-  const df = documentFrequency(corpus)
-  const N = Math.max(corpus.length, 1)
+  const index = input.index ?? buildCorpusIndex(corpus)
+  const df = index.df
+  const N = Math.max(index.size, 1)
   const existing = new Set(existingTags.map((t) => t.toLowerCase()))
 
   const scored: (TagCandidate & { raw: number; words: number })[] = []
@@ -233,7 +247,7 @@ export function analyzeContent(input: {
     // 제목에 한 번 스쳤을 뿐 본문이 받쳐주지 않는 말은 끌어내린다
     const support = s.raw === 1 ? 0.6 : 1
 
-    const score = Math.sqrt(s.tf) * (corpus.length ? idf : 1) * specificity * reuse * support
+    const score = Math.sqrt(s.tf) * (index.size ? idf : 1) * specificity * reuse * support
     const places = [...s.places.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([where, n]) => (where === '제목' ? '제목' : `${where} ${n}회`))

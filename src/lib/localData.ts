@@ -105,6 +105,14 @@ export async function localGetPost(id: string): Promise<Post | null> {
   return (await load()).posts.find((p) => p.id === id) ?? null
 }
 
+export async function localAdjacent(id: string): Promise<{ prev?: Post; next?: Post }> {
+  const published = (await load()).posts.filter((p) => p.published)
+  const i = published.findIndex((p) => p.id === id)
+  if (i < 0) return {}
+  // 목록은 최신순이므로 앞이 다음 글, 뒤가 이전 글이다
+  return { next: published[i - 1], prev: published[i + 1] }
+}
+
 export async function localSavePost(
   id: string | null,
   input: { title: string; body: string; excerpt: string; published: boolean; tags: string[] },
