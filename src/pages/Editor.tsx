@@ -438,7 +438,7 @@ export default function Editor() {
                   {i.area}
                 </span>
                 <code className="font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
-                <span className="min-w-0">— {i.message}</span>
+                <span className="min-w-0">{i.message}</span>
               </li>
             ))}
           </ul>

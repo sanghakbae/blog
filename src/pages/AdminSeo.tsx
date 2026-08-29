@@ -119,7 +119,10 @@ export default function AdminSeo() {
               </Link>
 
               {/* 색인 여부는 각 포털에서만 확인할 수 있다.
-                  ↗ 를 누르면 site: 검색이 열리고, 이름을 누르면 확인 표시를 남긴다. */}
+                  칩을 누르면 site: 검색이 열릴 뿐이고, 색이 바뀌지는 않는다.
+                  노란 바탕은 확인한 사실을 기록했을 때만 켜진다 — 그 기록은
+                  옆의 네모를 눌러야 남는다. 확인하러 가는 행동과 확인됐다고
+                  적는 행동을 갈라놔야 잘못 눌러 색이 바뀌지 않는다. */}
               <span className="flex items-center gap-1.5">
                 <span className="text-[10px] text-[var(--muted)]">색인</span>
                 {ENGINES.map((e) => {
@@ -133,27 +136,28 @@ export default function AdminSeo() {
                           : 'border-[var(--line)] text-[var(--muted)]'
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => mark(a.id, e)}
-                        title={
-                          on
-                            ? `${ENGINE_LABEL[e]} 색인 확인 ${confirmedOn(status[a.id] ?? {}, e)} — 눌러서 해제`
-                            : `${ENGINE_LABEL[e]} 색인을 확인했다면 눌러 표시`
-                        }
-                      >
-                        {ENGINE_LABEL[e]}
-                        {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`}
-                      </button>
                       <a
                         href={searchUrl(e, a.id)}
                         target="_blank"
                         rel="noreferrer"
                         title={`${ENGINE_LABEL[e]}에서 site: 검색으로 확인`}
-                        className="opacity-60 transition-opacity hover:opacity-100"
                       >
-                        ↗
+                        {ENGINE_LABEL[e]}
+                        {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`} ↗
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => mark(a.id, e)}
+                        aria-pressed={on}
+                        title={
+                          on
+                            ? `${ENGINE_LABEL[e]} 색인됨 (${confirmedOn(status[a.id] ?? {}, e)} 기록) — 눌러서 해제`
+                            : `${ENGINE_LABEL[e]} 검색 결과에 나온다면 눌러 색인됨으로 기록`
+                        }
+                        className={`ml-0.5 leading-none ${on ? '' : 'opacity-50 hover:opacity-100'}`}
+                      >
+                        {on ? '☑' : '☐'}
+                      </button>
                     </span>
                   )
                 })}
@@ -193,7 +197,7 @@ export default function AdminSeo() {
                         {i.area}
                       </span>
                       <code className="font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
-                      <span className="min-w-0 text-[var(--ink)]">— {i.message}</span>
+                      <span className="min-w-0 text-[var(--ink)]">{i.message}</span>
                     </li>
                   ))}
               </ul>
