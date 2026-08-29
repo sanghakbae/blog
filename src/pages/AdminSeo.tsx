@@ -62,47 +62,41 @@ export default function AdminSeo() {
         </p>
       </header>
 
-      <div className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 지적 4종 + 포털 3종을 한 줄에 둔다 */}
+      <div className="mb-6 grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-7">
         {AREAS.map((a) => (
           <button
             key={a}
             type="button"
             onClick={() => setArea(area === a ? null : a)}
-            className={`rounded-xl border p-4 text-left transition-colors ${
+            className={`rounded-lg border p-2.5 text-left transition-colors ${
               area === a
                 ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
                 : 'border-[var(--line)] bg-[var(--bg-elev)] hover:border-[var(--accent)]'
             }`}
           >
-            <span className="text-[20px] font-bold uppercase tracking-[0.08em] text-[var(--muted)]">
+            <span className="block truncate text-[13px] font-bold tracking-tight text-[var(--muted)]">
               {a}
             </span>
-            <span className="mt-1 block text-center text-2xl font-semibold tabular-nums">{counts[a]}</span>
-            <span className="text-[11px] text-[var(--muted)]">해결해야 할 항목</span>
+            <span className="mt-0.5 block text-center text-xl font-semibold tabular-nums">
+              {counts[a]}
+            </span>
+            <span className="block truncate text-[10px] text-[var(--muted)]">해결할 항목</span>
           </button>
         ))}
-      </div>
 
-      <div className="mb-6 grid gap-2 sm:grid-cols-3">
-        {ENGINES.map((e) => {
-          const n = indexed(e)
-          const total = posts?.length ?? 0
-          return (
-            <div
-              key={e}
-              className="rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-4"
-            >
-              <span className="text-[20px] font-bold tracking-[0.08em] text-[var(--muted)]">
-                {ENGINE_LABEL[e]}
-              </span>
-              <span className="mt-1 block text-center text-2xl font-semibold tabular-nums">
-                {n}
-                <span className="text-base font-normal text-[var(--muted)]"> / {total}</span>
-              </span>
-              <span className="text-[11px] text-[var(--muted)]">색인 확인된 글</span>
-            </div>
-          )
-        })}
+        {ENGINES.map((e) => (
+          <div key={e} className="rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] p-2.5">
+            <span className="block truncate text-[13px] font-bold tracking-tight text-[var(--muted)]">
+              {ENGINE_LABEL[e]}
+            </span>
+            <span className="mt-0.5 block text-center text-xl font-semibold tabular-nums">
+              {indexed(e)}
+              <span className="text-xs font-normal text-[var(--muted)]"> / {posts?.length ?? 0}</span>
+            </span>
+            <span className="block truncate text-[10px] text-[var(--muted)]">색인 확인</span>
+          </div>
+        ))}
       </div>
 
       {!posts && <p className="text-xs text-[var(--muted)]">불러오는 중…</p>}
