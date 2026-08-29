@@ -32,6 +32,7 @@ export default function Editor() {
   const [html, setHtml] = useState('')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [loaded, setLoaded] = useState(!id)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
@@ -210,13 +211,26 @@ export default function Editor() {
 
   async function handleDelete() {
     if (!id) return
-    if (settings.postingLocked) return setStatus('보안 설정에서 글쓰기가 잠겨 있습니다.')
-    if (!confirm('이 글을 삭제할까요? 되돌릴 수 없습니다.')) return
+    setError('')
+    if (settings.postingLocked) return setError('보안 설정에서 글쓰기가 잠겨 있습니다.')
+
     if (needsReauth(settings)) {
-      try { await reauthenticate() } catch (err) { return setStatus((err as Error).message) }
+      try {
+        await reauthenticate()
+      } catch (err) {
+        return setError(`재인증에 실패해 삭제하지 못했습니다 — ${(err as Error).message}`)
+      }
     }
-    await deletePost(id, title)
-    navigate('/admin')
+
+    setStatus('삭제 중…')
+    try {
+      await deletePost(id, title)
+      localStorage.removeItem(draftKey(id))
+      navigate('/admin')
+    } catch (err) {
+      setStatus('')
+      setError(`삭제하지 못했습니다 — ${(err as Error).message}`)
+    }
   }
 
   /** 이미지를 R2 에 올리고 커서 위치에 마크다운을 끼워 넣는다 */
@@ -389,11 +403,34 @@ export default function Editor() {
         >
           임시저장
         </button>
-        {id && (
-          <button type="button" onClick={handleDelete} className="text-sm text-red-500">
-            삭제
-          </button>
-        )}
+        {id &&
+          (confirmDelete ? (
+            <span className="flex items-center gap-2 text-sm">
+              <span className="text-[var(--muted)]">정말 삭제할까요?</span>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded-md bg-red-500 px-3 py-1 text-xs font-medium text-white"
+              >
+                삭제
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-md border border-[var(--line)] px-3 py-1 text-xs"
+              >
+                취소
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="text-sm text-red-500"
+            >
+              삭제
+            </button>
+          ))}
         <span className="text-xs text-[var(--muted)]">{status}</span>
       </div>
     </div>

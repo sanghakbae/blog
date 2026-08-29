@@ -62,3 +62,15 @@ export async function purge(): Promise<string> {
   await tb.commit()
   return `삭제 완료: 글 ${snap.size}편, 태그 ${tagSnap.size}종`
 }
+
+/** 옛 태거가 남긴 태그 문서를 정리한다 (하이픈 포함, 카운트 0 이하) */
+export async function cleanupTags(): Promise<string> {
+  const snap = await getDocs(collection(db, 'tags'))
+  const stale = snap.docs.filter((d) => d.id.includes('-') || (d.data().count ?? 0) <= 0)
+  for (let i = 0; i < stale.length; i += 100) {
+    const batch = writeBatch(db)
+    stale.slice(i, i + 100).forEach((d) => batch.delete(d.ref))
+    await batch.commit()
+  }
+  return `태그 ${snap.size}종 중 ${stale.length}종 정리 (남은 ${snap.size - stale.length}종)`
+}

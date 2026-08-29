@@ -26,8 +26,9 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
           <article className="row-fill py-5">
             <Link to={`/posts/${post.id}`} className="group block">
               <div className="flex items-baseline gap-4">
-                <span className="w-5 shrink-0 font-mono text-[10px] tabular-nums text-[var(--muted)] sm:w-8 sm:text-xs">
-                  {String(i + 1).padStart(2, '0')}
+                {/* 목록에서의 순서가 아니라 글 번호다. 새 글이 나올수록 번호가 커진다. */}
+                <span className="w-6 shrink-0 font-mono text-[10px] tabular-nums text-[var(--muted)] sm:w-9 sm:text-xs">
+                  {String(posts.length - i).padStart(2, '0')}
                 </span>
 
                 <div className="min-w-0 flex-1">
