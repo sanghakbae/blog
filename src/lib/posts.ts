@@ -2,7 +2,7 @@ import {
   collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp,
   setDoc, deleteDoc, where, writeBatch, increment, type Timestamp,
 } from 'firebase/firestore'
-import { db } from './firebase'
+import { db, isConfigured } from './firebase'
 import { MAX_TAGS, makeExcerpt, normalizeTag } from './tags'
 import { addAuditToBatch, logAudit } from './audit'
 
@@ -25,6 +25,9 @@ export type Tag = { id: string; name: string; count: number }
  */
 const USE_LOCAL = import.meta.env.DEV && import.meta.env.VITE_LOCAL_DATA === '1'
 
+/** 설정이 없으면 네트워크 호출을 하지 않고 빈 결과를 돌려준다 */
+const OFFLINE = !USE_LOCAL && !isConfigured
+
 const postsCol = collection(db, 'posts')
 const tagsCol = collection(db, 'tags')
 
@@ -43,6 +46,7 @@ function toPost(id: string, d: any): Post {
 
 /** 발행된 글 목록 (최신순) */
 export async function listPosts(max = 50): Promise<Post[]> {
+  if (OFFLINE) return []
   if (USE_LOCAL) return (await import('./localData')).localListPosts(max)
   const snap = await getDocs(
     query(postsCol, where('published', '==', true), orderBy('createdAt', 'desc'), limit(max)),
@@ -52,6 +56,7 @@ export async function listPosts(max = 50): Promise<Post[]> {
 
 /** 특정 태그가 달린 글 목록 */
 export async function listPostsByTag(tag: string, max = 50): Promise<Post[]> {
+  if (OFFLINE) return []
   if (USE_LOCAL) return (await import('./localData')).localListByTag(tag, max)
   const snap = await getDocs(
     query(
@@ -67,6 +72,7 @@ export async function listPostsByTag(tag: string, max = 50): Promise<Post[]> {
 
 /** 관리자용 — 임시저장 포함 전체 */
 export async function listAllPosts(max = 100): Promise<Post[]> {
+  if (OFFLINE) return []
   if (USE_LOCAL) return (await import('./localData')).localListPosts(max, true)
   const snap = await getDocs(query(postsCol, orderBy('updatedAt', 'desc'), limit(max)))
   return snap.docs.map((d) => toPost(d.id, d.data()))
@@ -109,6 +115,7 @@ export async function getAdjacentPosts(post: Post): Promise<{ prev?: Post; next?
 }
 
 export async function getPost(id: string): Promise<Post | null> {
+  if (OFFLINE) return null
   if (USE_LOCAL) return (await import('./localData')).localGetPost(id)
   const snap = await getDoc(doc(postsCol, id))
   return snap.exists() ? toPost(snap.id, snap.data()) : null
@@ -116,6 +123,7 @@ export async function getPost(id: string): Promise<Post | null> {
 
 /** 태그 분석의 기준이 되는 코퍼스 — 다른 글들의 제목·본문 */
 export async function fetchCorpus(max = 100): Promise<{ title: string; body: string }[]> {
+  if (OFFLINE) return []
   if (USE_LOCAL)
     return (await import('./localData')).localListPosts(max).then((ps) =>
       ps.map((p) => ({ title: p.title, body: p.body })),
@@ -126,6 +134,7 @@ export async function fetchCorpus(max = 100): Promise<{ title: string; body: str
 
 /** 태그 목록 1회 조회 — 태그 분석 시 재사용 힌트로 넘긴다 */
 export async function fetchTagNames(): Promise<string[]> {
+  if (OFFLINE) return []
   if (USE_LOCAL) return (await import('./localData')).localTagNames()
   const snap = await getDocs(query(tagsCol, orderBy('count', 'desc'), limit(200)))
   return snap.docs.map((d) => d.id)
@@ -133,18 +142,35 @@ export async function fetchTagNames(): Promise<string[]> {
 
 /** 사이드바용 태그 목록 구독 (글 수 많은 순) */
 export function subscribeTags(cb: (tags: Tag[]) => void) {
+  if (OFFLINE) {
+    cb([])
+    return () => {}
+  }
   if (USE_LOCAL) {
     let stop: (() => void) | undefined
     import('./localData').then((m) => m.localSubscribeTags(cb).then((fn) => (stop = fn)))
     return () => stop?.()
   }
-  return onSnapshot(query(tagsCol, orderBy('count', 'desc'), limit(100)), (snap) => {
-    cb(
-      snap.docs
-        .map((d) => ({ id: d.id, name: d.data().name ?? d.id, count: d.data().count ?? 0 }))
-        .filter((t) => t.count > 0),
+  try {
+    return onSnapshot(
+      query(tagsCol, orderBy('count', 'desc'), limit(100)),
+      (snap) =>
+        cb(
+          snap.docs
+            .map((d) => ({ id: d.id, name: d.data().name ?? d.id, count: d.data().count ?? 0 }))
+            .filter((t) => t.count > 0),
+        ),
+      // 권한이 없거나 네트워크가 막혀도 화면은 떠야 한다
+      (err) => {
+        console.warn('태그를 불러오지 못했습니다', err)
+        cb([])
+      },
     )
-  })
+  } catch (err) {
+    console.warn('태그 구독을 시작하지 못했습니다', err)
+    cb([])
+    return () => {}
+  }
 }
 
 /**

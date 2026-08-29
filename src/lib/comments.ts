@@ -2,7 +2,7 @@ import {
   addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp,
   updateDoc, type Timestamp,
 } from 'firebase/firestore'
-import { db } from './firebase'
+import { db, isConfigured } from './firebase'
 
 export type Comment = {
   id: string
@@ -32,6 +32,10 @@ const commentsCol = (postId: string) => collection(db, 'posts', postId, 'comment
 
 /** 댓글 목록 실시간 구독 (오래된 것부터) */
 export function subscribeComments(postId: string, cb: (comments: Comment[]) => void) {
+  if (!USE_LOCAL && !isConfigured) {
+    cb([])
+    return () => {}
+  }
   if (USE_LOCAL) {
     const subs = localSubs.get(postId) ?? new Set()
     subs.add(cb)

@@ -1,5 +1,5 @@
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
-import { db } from './firebase'
+import { db, isConfigured } from './firebase'
 import { auth } from './authClient'
 import { logAudit } from './audit'
 
@@ -33,6 +33,10 @@ export async function getSettings(): Promise<SecuritySettings> {
 }
 
 export function subscribeSettings(cb: (s: SecuritySettings) => void) {
+  if (!USE_LOCAL && !isConfigured) {
+    cb(DEFAULT_SETTINGS)
+    return () => {}
+  }
   if (USE_LOCAL) {
     let stop: (() => void) | undefined
     import('./localData').then((m) => m.localSubscribeSettings(cb).then((fn) => (stop = fn)))
