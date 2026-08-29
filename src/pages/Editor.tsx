@@ -428,18 +428,17 @@ export default function Editor() {
         {audit.issues.length === 0 ? (
           <p className="mt-2 text-xs text-emerald-600">모든 항목을 충족합니다.</p>
         ) : (
-          <ul className="mt-3 space-y-1.5">
+          <ul className="mt-3 grid grid-cols-[auto_auto_1fr] gap-x-2 gap-y-1.5 text-[11px]">
+            {/* 배지와 항목 이름은 길이가 제각각이라, 행마다 따로 배치하면 설명이
+                시작하는 자리가 들쭉날쭉해진다. 목록 전체를 세 칸 격자로 두고 각
+                행이 그 칸을 물려받게 해서 설명의 왼쪽 끝을 한 줄로 맞춘다. */}
             {audit.issues.map((i) => (
-              <li key={i.field} className="flex items-baseline gap-2 text-[11px]">
-                {/* 배지와 항목 이름은 한 덩어리로 묶는다. 따로 두면 좁은 화면에서
-                    설명만 다음 줄로 밀려나 빈 줄처럼 보인다. */}
-                <span className="flex shrink-0 items-baseline gap-2">
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${AREA_TONE[i.area]}`}>
-                    {i.area}
-                  </span>
-                  <code className="font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
+              <li key={i.field} className="col-span-3 grid grid-cols-subgrid items-baseline">
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${AREA_TONE[i.area]}`}>
+                  {i.area}
                 </span>
-                <span className="min-w-0 flex-1">— {i.message}</span>
+                <code className="font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
+                <span className="min-w-0">— {i.message}</span>
               </li>
             ))}
           </ul>
