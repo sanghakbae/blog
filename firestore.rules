@@ -39,6 +39,29 @@ service cloud.firestore {
       // 글쓰기 잠금이 켜져 있으면 관리자라도 쓸 수 없다
       allow create, update: if isAdmin() && postingUnlocked() && validPost(request.resource.data);
       allow delete: if isAdmin() && postingUnlocked();
+
+      // ── 댓글 ────────────────────────────────────────────────────────────
+      match /comments/{commentId} {
+        function validComment(d) {
+          return d.body is string && d.body.size() > 0 && d.body.size() <= 1000
+            && d.authorUid == request.auth.uid
+            && d.authorName is string && d.authorName.size() <= 60
+            && d.createdAt == request.time;
+        }
+
+        // 발행된 글의 댓글은 누구나 읽는다
+        allow get, list: if get(/databases/$(database)/documents/posts/$(postId)).data.published == true
+          || isAdmin();
+
+        // 로그인한 사용자만 자기 이름으로 남길 수 있다
+        allow create: if request.auth != null
+          && request.auth.token.email_verified == true
+          && validComment(request.resource.data);
+
+        // 수정은 막고, 삭제는 작성자 본인과 관리자만
+        allow update: if false;
+        allow delete: if isAdmin() || request.auth.uid == resource.data.authorUid;
+      }
     }
 
     // ── 태그 집계 ───────────────────────────────────────────────────────────

@@ -10,8 +10,8 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-xl">
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <header className="z-20 shrink-0 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-xl">
         <div className="flex w-full items-center gap-4 px-2 py-2 sm:px-3 lg:px-4">
           <Link to="/" className="group flex items-baseline gap-2">
             <span className="display text-2xl">sanghak</span>
@@ -41,20 +41,20 @@ export default function Layout() {
         )}
       </header>
 
-      <div className="flex w-full gap-3 px-2 py-3 sm:px-3 lg:gap-5 lg:px-4 lg:py-5">
-        <main className="min-w-0 flex-1">
+      <div className="flex min-h-0 w-full flex-1">
+        {/* 본문만 스크롤한다. 헤더와 푸터는 자리에 남는다. */}
+        <main className="min-w-0 flex-1 overflow-y-auto px-2 py-3 sm:px-3 lg:px-4 lg:py-5">
           <Outlet />
         </main>
 
-        {/* 사이드바를 오른쪽에 둬서 본문이 왼쪽 기준선에 붙는다 */}
-        <aside className="hidden shrink-0 lg:block lg:w-52 xl:w-60">
-          <div className="sticky top-16">
-            <TagSidebar />
-          </div>
+        {/* 사이드바를 오른쪽에 둬서 본문이 왼쪽 기준선에 붙는다.
+            태그는 화면에 들어가는 만큼만 자동으로 보여준다. */}
+        <aside className="hidden shrink-0 overflow-hidden border-l border-[var(--line)] bg-[var(--bg-elev)] p-4 lg:block lg:w-56 xl:w-64">
+          <TagSidebar fit />
         </aside>
       </div>
 
-      <footer className="border-t border-[var(--line)]">
+      <footer className="shrink-0 border-t border-[var(--line)]">
         <div className="flex w-full flex-wrap items-center gap-x-6 gap-y-2 px-2 py-3 text-xs text-[var(--muted)] sm:px-3 lg:px-4">
           <span>© {new Date().getFullYear()} sanghak</span>
           <button

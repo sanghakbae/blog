@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getPost, type Post } from '../lib/posts'
 
 import { formatDate } from '../lib/date'
+import CommentSection from '../components/CommentSection'
 
 export default function PostView() {
   const { id = '' } = useParams()
@@ -30,11 +31,11 @@ export default function PostView() {
         ← 전체 글
       </Link>
 
-      <h1 className="mt-5 text-[clamp(2rem,4.5vw,3.25rem)] font-semibold leading-[1.15] tracking-[-0.035em]">
+      <h1 className="mt-3 text-[clamp(1.4rem,4.5vw,3.25rem)] font-semibold leading-[1.2] tracking-[-0.03em]">
         {post.title}
       </h1>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--line)] pb-6">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--line)] pb-4 sm:pb-6">
         <time className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
           {formatDate(post.createdAt)}
         </time>
@@ -49,9 +50,11 @@ export default function PostView() {
         ))}
       </div>
       <div
-        className="prose mt-9 max-w-none"
+        className="prose mt-6 max-w-none sm:mt-8"
         dangerouslySetInnerHTML={{ __html: html }}
       />
+
+      <CommentSection postId={post.id} />
     </article>
   )
 }

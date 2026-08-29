@@ -14,7 +14,7 @@ export default function TagView() {
 
   return (
     <div>
-      <header className="mb-12">
+      <header className="mb-7 sm:mb-10">
         <Link
           to="/"
           className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:text-[var(--ink)]"

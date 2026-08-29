@@ -22,18 +22,18 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
           className="rise border-b border-[var(--line)]"
           style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
         >
-          <article className="row-fill py-7">
+          <article className="row-fill py-5">
             <Link to={`/posts/${post.id}`} className="group block">
               <div className="flex items-baseline gap-4">
-                <span className="w-8 shrink-0 font-mono text-xs tabular-nums text-[var(--muted)]">
+                <span className="w-5 shrink-0 font-mono text-[10px] tabular-nums text-[var(--muted)] sm:w-8 sm:text-xs">
                   {String(i + 1).padStart(2, '0')}
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl font-semibold leading-snug tracking-[-0.03em] transition-colors group-hover:text-[var(--accent)] sm:text-[1.75rem]">
+                  <h2 className="text-[15px] font-semibold leading-snug tracking-[-0.02em] transition-colors group-hover:text-[var(--accent)] sm:text-[1.6rem] sm:tracking-[-0.03em]">
                     {post.title}
                   </h2>
-                  <p className="mt-2.5 line-clamp-2 text-[15px] leading-relaxed text-[var(--muted)]">
+                  <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-[var(--muted)] sm:mt-2.5 sm:text-[15px]">
                     {post.excerpt}
                   </p>
                 </div>
@@ -47,7 +47,7 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
               </div>
             </Link>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2 pl-0 sm:pl-12">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-0 sm:mt-4 sm:pl-12">
               <time className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
                 {formatDate(post.createdAt)}
               </time>

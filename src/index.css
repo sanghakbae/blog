@@ -50,6 +50,19 @@ body {
   border-radius: 6px;
 }
 
+/* ── 모바일 ──────────────────────────────────────────────────────────────
+   좁은 화면에서는 글자를 최대한 줄여 한 화면에 더 많은 내용이 들어가게 한다. */
+@media (max-width: 639px) {
+  .prose { font-size: 0.875rem; line-height: 1.7; }
+  .prose h2 { font-size: 1.075rem; margin-top: 1.8em; }
+  .prose h3 { font-size: 0.95rem; margin-top: 1.4em; }
+  .prose pre { font-size: 0.75rem; padding: 0.75rem 0.85rem; }
+  .prose code { font-size: 0.8em; }
+  .prose table { font-size: 0.75rem; }
+  .prose th, .prose td { padding: 0.4em 0.55em; white-space: nowrap; }
+  .prose ul, .prose ol { padding-left: 1.1rem; }
+}
+
 /* 큰 제목 — 한글은 Pretendard, 라틴/숫자는 세리프로 떨어져 대비가 생긴다 */
 .display {
   font-family: var(--font-display);
@@ -83,7 +96,10 @@ body {
 
 /* ── 본문(마크다운) ──────────────────────────────────────────────────────── */
 
-.prose { font-size: 1.075rem; line-height: 1.85; letter-spacing: -0.004em; }
+.prose { font-size: 1.0625rem; line-height: 1.85; letter-spacing: -0.004em; }
+
+/* 표는 좁은 화면에서 스스로 가로 스크롤한다. 본문 전체가 밀리지 않게 한다. */
+.prose table { display: block; width: 100%; max-width: 100%; overflow-x: auto; }
 .prose > * + * { margin-top: 1.2em; }
 .prose h2 {
   margin-top: 2.4em;
