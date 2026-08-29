@@ -10,7 +10,11 @@ import { logAudit } from './audit'
 export type SecuritySettings = {
   /** 켜면 글 작성·수정·삭제가 전면 차단된다 (계정 탈취 의심 시 잠금) */
   postingLocked: boolean
-  /** 발행/삭제 전에 재로그인을 요구하는 기준 시간(분). 0 이면 요구하지 않음 */
+  /**
+   * 발행·삭제 전에 재로그인을 요구하는 기준 시간(분). 0 이면 요구하지 않는다.
+   * 기본은 꺼둔다. 켜면 팝업이 뜨는데, 브라우저가 팝업을 막으면 저장 자체가
+   * 막히면서 원인이 눈에 띄지 않는다. 필요한 조직만 켜서 쓴다.
+   */
   reauthAfterMinutes: number
   /** 이미지 업로드 허용 */
   allowImageUpload: boolean
@@ -18,7 +22,7 @@ export type SecuritySettings = {
 
 export const DEFAULT_SETTINGS: SecuritySettings = {
   postingLocked: false,
-  reauthAfterMinutes: 120,
+  reauthAfterMinutes: 0,
   allowImageUpload: true,
 }
 

@@ -31,6 +31,7 @@ export default function Editor() {
   const [preview, setPreview] = useState(true)
   const [html, setHtml] = useState('')
   const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
   const [dirty, setDirty] = useState(false)
   const [loaded, setLoaded] = useState(!id)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
@@ -168,12 +169,23 @@ export default function Editor() {
   )
 
   async function handleSave(nextPublished: boolean) {
-    if (settings.postingLocked) return setStatus('보안 설정에서 글쓰기가 잠겨 있습니다.')
-    if (!title.trim()) return setStatus('제목을 입력하세요.')
+    setError('')
+    if (settings.postingLocked) return setError('보안 설정에서 글쓰기가 잠겨 있습니다.')
+    if (!title.trim()) return setError('제목을 입력하세요.')
 
     if (needsReauth(settings)) {
       setStatus('마지막 로그인이 오래되어 재인증이 필요합니다…')
-      try { await reauthenticate() } catch (err) { return setStatus(`재인증 실패 — ${(err as Error).message}`) }
+      try {
+        await reauthenticate()
+      } catch (err) {
+        const code = (err as { code?: string }).code ?? ''
+        setStatus('')
+        return setError(
+          code.includes('popup-blocked')
+            ? '재인증 창이 브라우저에 막혔습니다. 주소창의 팝업 차단을 해제하고 다시 시도하세요.'
+            : `재인증에 실패해 저장하지 못했습니다 — ${(err as Error).message}`,
+        )
+      }
     }
 
     setStatus('저장 중…')
@@ -191,7 +203,8 @@ export default function Editor() {
       setStatus(`임시저장했습니다 · ${new Date().toLocaleTimeString('ko-KR')}`)
       if (!id) navigate(`/admin/edit/${savedId}`, { replace: true })
     } catch (err) {
-      setStatus((err as Error).message)
+      setStatus('')
+      setError(`저장하지 못했습니다 — ${(err as Error).message}`)
     }
   }
 
@@ -224,6 +237,15 @@ export default function Editor() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-400/60 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500"
+        >
+          {error}
+        </p>
+      )}
+
       {settings.postingLocked && (
         <p className="rounded-xl border border-red-400/50 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-500">
           보안 설정에서 글쓰기가 잠겨 있습니다. 저장·삭제가 차단됩니다.
