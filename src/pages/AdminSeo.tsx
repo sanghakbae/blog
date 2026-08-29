@@ -84,6 +84,7 @@ export default function AdminSeo() {
 
               {/* 색인 여부는 각 포털에서만 확인할 수 있다. 해당 주소로 바로 조회한다. */}
               <span className="flex items-center gap-1.5">
+                <span className="text-[10px] text-[var(--muted)]">색인 확인</span>
                 {[
                   { name: '구글', href: `https://www.google.com/search?q=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
                   { name: '네이버', href: `https://search.naver.com/search.naver?query=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
@@ -94,7 +95,7 @@ export default function AdminSeo() {
                     href={s.href}
                     target="_blank"
                     rel="noreferrer"
-                    title={`${s.name}에 색인됐는지 확인`}
+                    title={`${s.name}에서 이 글이 색인됐는지 검색합니다 (site: 검색)`}
                     className="rounded border border-[var(--line)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
                   >
                     {s.name}
