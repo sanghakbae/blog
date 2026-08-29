@@ -53,12 +53,12 @@ export default function PostActions({ post }: { post: Post }) {
   }
 
   return (
-    <div className="no-print flex shrink-0 items-center gap-1">
+    <div className="no-print flex shrink-0 items-center gap-1 sm:gap-1.5">
       {viewer?.isAdmin && (
         <Link
           to={`/admin/edit/${post.id}`}
           title="이 글 편집"
-          className="rounded-md border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 text-[10px] font-medium tracking-wider text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-ink)]"
+          className="rounded-md border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 text-[10px] font-medium tracking-wider text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-ink)] sm:px-4 sm:py-1.5 sm:text-[13px]"
         >
           편집
         </Link>
@@ -67,7 +67,7 @@ export default function PostActions({ post }: { post: Post }) {
         type="button"
         onClick={() => downloadMarkdown(post)}
         title="마크다운 파일로 저장"
-        className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+        className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] sm:px-4 sm:py-1.5 sm:text-[13px]"
       >
         MD
       </button>
@@ -76,7 +76,7 @@ export default function PostActions({ post }: { post: Post }) {
         onClick={savePdf}
         disabled={busy}
         title="PDF 파일로 저장"
-        className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-50"
+        className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-50 sm:px-4 sm:py-1.5 sm:text-[13px]"
       >
         {busy ? '…' : 'PDF'}
       </button>
