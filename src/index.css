@@ -103,7 +103,7 @@ body {
 /* ── 모바일 ──────────────────────────────────────────────────────────────
    좁은 화면에서는 글자를 최대한 줄여 한 화면에 더 많은 내용이 들어가게 한다. */
 @media (max-width: 639px) {
-  .prose { font-size: 0.875rem; line-height: 1.7; }
+  .prose { font-size: 0.8125rem; line-height: 1.72; }
   .prose h2 { font-size: 1.075rem; margin-top: 1.8em; }
   .prose h3 { font-size: 0.95rem; margin-top: 1.4em; }
   .prose pre { font-size: 0.75rem; padding: 0.75rem 0.85rem; }
@@ -111,6 +111,11 @@ body {
   .prose table { font-size: 0.75rem; }
   .prose th, .prose td { padding: 0.4em 0.55em; white-space: nowrap; }
   .prose ul, .prose ol { padding-left: 1.1rem; }
+
+  /* 팝업은 화면의 80% 안에 들어가야 하므로 한 단계 더 줄인다 */
+  dialog .prose { font-size: 0.75rem; line-height: 1.65; }
+  dialog .prose h2 { font-size: 0.875rem; margin-top: 1.5em; }
+  dialog .prose li::marker { font-size: 0.8em; }
 }
 
 /* 큰 제목 — 한글은 Pretendard, 라틴/숫자는 세리프로 떨어져 대비가 생긴다 */

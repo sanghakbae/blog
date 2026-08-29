@@ -4,8 +4,8 @@ const UPDATED = '2026년 8월 29일'
 export default function PrivacyContent() {
   return (
     <div className="prose max-w-none">
-    <h1 className="text-2xl font-semibold tracking-tight">개인정보처리방침</h1>
-    <p className="text-sm text-[var(--muted)]">시행일: {UPDATED}</p>
+    <h1 className="text-base font-semibold tracking-tight sm:text-2xl">개인정보처리방침</h1>
+    <p className="text-[11px] text-[var(--muted)] sm:text-sm">시행일: {UPDATED}</p>
 
     <p>
       본 사이트(blog.sanghak.kr, 이하 “사이트”)는 개인이 운영하는 블로그로,
