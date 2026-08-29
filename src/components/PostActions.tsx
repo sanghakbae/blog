@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Post } from '../lib/posts'
+import { subscribeViewer, type Viewer } from '../lib/authState'
 
 /** 파일 이름으로 쓸 수 없는 문자를 정리한다 */
 function safeName(title: string): string {
@@ -35,8 +38,20 @@ function downloadMarkdown(post: Post) {
  * 한글 폰트를 번들에 싣지 않아도 된다. 인쇄용 스타일은 index.css 에 있다.
  */
 export default function PostActions({ post }: { post: Post }) {
+  const [viewer, setViewer] = useState<Viewer>(null)
+  useEffect(() => subscribeViewer(setViewer), [])
+
   return (
     <div className="no-print flex shrink-0 items-center gap-1">
+      {viewer?.isAdmin && (
+        <Link
+          to={`/admin/edit/${post.id}`}
+          title="이 글 편집"
+          className="rounded-md border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 text-[10px] font-medium tracking-wider text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-ink)]"
+        >
+          편집
+        </Link>
+      )}
       <button
         type="button"
         onClick={() => downloadMarkdown(post)}
