@@ -29,9 +29,9 @@ export default function PrivacyModal({ onClose }: { onClose: () => void }) {
         // 바깥(백드롭)을 누르면 닫는다
         if (e.target === ref.current) onClose()
       }}
-      className="m-auto w-[min(46rem,calc(100vw-2rem))] rounded-2xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/45 backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[80dvh] max-h-none w-[80vw] max-w-none flex-col rounded-2xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/45 backdrop:backdrop-blur-sm"
     >
-      <div className="flex items-center gap-3 border-b border-[var(--line)] px-6 py-4">
+      <div className="flex shrink-0 items-center gap-3 border-b border-[var(--line)] px-6 py-4">
         <h2 className="text-sm font-semibold">개인정보처리방침</h2>
         <button
           type="button"
@@ -43,11 +43,11 @@ export default function PrivacyModal({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-10">
         <PrivacyContent />
       </div>
 
-      <div className="border-t border-[var(--line)] px-6 py-3 text-right">
+      <div className="shrink-0 border-t border-[var(--line)] px-6 py-3 text-right">
         <button
           type="button"
           onClick={onClose}
