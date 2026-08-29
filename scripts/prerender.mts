@@ -163,7 +163,7 @@ marked.setOptions({ breaks: true, gfm: true })
 
 // 글 페이지
 for (const post of posts) {
-  const url = `${SITE}/posts/${post.id}`
+  const url = `${SITE}/posts/${post.id}/`
   const description = (post.excerpt || post.body.slice(0, 160)).replace(/\s+/g, ' ').slice(0, 160)
   const faqs = faqEntries(post.body)
 
@@ -207,13 +207,15 @@ const tags = new Map<string, Post[]>()
 for (const p of posts) for (const t of p.tags) tags.set(t, [...(tags.get(t) ?? []), p])
 
 for (const [tag, list] of tags) {
-  const url = `${SITE}/tags/${encodeURIComponent(tag)}`
+  // 디렉터리는 원래 글자로 만든다. 퍼센트 인코딩한 이름으로 만들면
+  // 서버가 경로를 디코딩해 찾을 때 일치하지 않아 404 가 된다.
+  const url = `${SITE}/tags/${encodeURIComponent(tag)}/`
   const content = `<h1>${esc(tag)}</h1><ul>${list
     .map((p) => `<li><a href="/posts/${p.id}">${esc(p.title)}</a></li>`)
     .join('')}</ul>`
-  mkdirSync(`${DIST}/tags/${encodeURIComponent(tag)}`, { recursive: true })
+  mkdirSync(`${DIST}/tags/${tag}`, { recursive: true })
   writeFileSync(
-    `${DIST}/tags/${encodeURIComponent(tag)}/index.html`,
+    `${DIST}/tags/${tag}/index.html`,
     buildPage(shell, {
       title: `${tag} · sanghak`,
       description: `${tag} 태그가 붙은 글 ${list.length}편`,
@@ -226,8 +228,8 @@ for (const [tag, list] of tags) {
 // sitemap.xml
 const urls = [
   { loc: SITE + '/', lastmod: posts[0]?.updatedAt },
-  ...posts.map((p) => ({ loc: `${SITE}/posts/${p.id}`, lastmod: p.updatedAt || p.createdAt })),
-  ...[...tags.keys()].map((t) => ({ loc: `${SITE}/tags/${encodeURIComponent(t)}` })),
+  ...posts.map((p) => ({ loc: `${SITE}/posts/${p.id}/`, lastmod: p.updatedAt || p.createdAt })),
+  ...[...tags.keys()].map((t) => ({ loc: `${SITE}/tags/${encodeURIComponent(t)}/` })),
 ]
 writeFileSync(
   `${DIST}/sitemap.xml`,
@@ -256,12 +258,12 @@ writeFileSync(
     '',
     '## 글 목록',
     '',
-    ...posts.map((p) => `- [${p.title}](${SITE}/posts/${p.id}): ${p.excerpt.slice(0, 120)}`),
+    ...posts.map((p) => `- [${p.title}](${SITE}/posts/${p.id}/): ${p.excerpt.slice(0, 120)}`),
     '',
     '## 인용 안내',
     '',
     '- 저자: 배상학 (bae@sanghak.kr)',
-    `- 원문 주소를 함께 표기해 주세요: ${SITE}/posts/<id>`,
+    `- 원문 주소를 함께 표기해 주세요: ${SITE}/posts/<id>/`,
     '- 각 글의 "참고" 절에 근거 표준 문서를 밝혀 두었습니다.',
     '',
   ].join('\n'),
