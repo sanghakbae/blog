@@ -8,16 +8,14 @@ export default function Home() {
 
   return (
     <div>
-      <header className="mb-3">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--accent)]">
-          Personal journal
-        </p>
-        <h1 className="display mt-3 text-[clamp(1.75rem,7vw,5rem)]">
-          쓰고 싶은 걸 씁니다
-        </h1>
-        <p className="mt-3 text-[13px] leading-relaxed text-[var(--muted)] sm:text-[15px]">
-          주제를 정해두지 않은 블로그입니다. 태그는 글을 쓰면 본문 분석으로 붙습니다.
-        </p>
+      {/* 표어 대신 지금 무엇이 있는지만 적는다 */}
+      <header className="mb-3 flex items-baseline gap-2.5">
+        <h1 className="text-[13px] font-semibold tracking-tight">최근 글</h1>
+        {posts && (
+          <span className="font-mono text-[11px] tabular-nums text-[var(--muted)]">
+            {posts.length}편
+          </span>
+        )}
       </header>
 
       {!posts ? (
