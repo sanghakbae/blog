@@ -9,7 +9,7 @@ export default function TagView() {
 
   useEffect(() => {
     setPosts(null)
-    listPostsByTag(tag).then(setPosts).catch(() => setPosts([]))
+    listPostsByTag(tag, 200).then(setPosts).catch(() => setPosts([]))
   }, [tag])
 
   return (

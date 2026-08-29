@@ -102,18 +102,45 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
       ref={ref}
       onClose={() => { if (!closing.current) onClose() }}
       onClick={(e) => { if (e.target === ref.current) onClose() }}
-      className="m-auto flex h-[80dvh] max-h-none w-[min(40rem,calc(100vw-1.5rem))] flex-col rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[80dvh] max-h-none w-[80vw] flex-col rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/40 backdrop:backdrop-blur-sm"
     >
-      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--line)] px-4">
-        <span className="text-[var(--muted)]">⌕</span>
+      <div className="flex shrink-0 items-center gap-3 border-b border-[var(--line)] px-4 py-3">
+        <svg
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          className="size-4 shrink-0 text-[var(--muted)]"
+          aria-hidden
+        >
+          <circle cx="9" cy="9" r="6" />
+          <path d="m13.5 13.5 3.5 3.5" />
+        </svg>
+
         <input
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="제목, 태그, 본문에서 찾기"
-          className="w-full bg-transparent py-3.5 text-sm outline-none placeholder:text-[var(--muted)]"
+          aria-label="글 검색"
+          /* 입력칸이 줄 전체를 차지하므로 포커스 테두리를 따로 그리면
+             컨테이너에 잘려 어색해진다. 커서만으로 충분하다. */
+          className="w-full bg-transparent text-[15px] outline-none focus-visible:outline-none placeholder:text-[var(--muted)]"
         />
+
+        {q && (
+          <button
+            type="button"
+            onClick={() => setQ('')}
+            aria-label="지우기"
+            className="shrink-0 text-xs text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+          >
+            ✕
+          </button>
+        )}
+
         <kbd className="hidden shrink-0 rounded border border-[var(--line)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--muted)] sm:block">
           ESC
         </kbd>

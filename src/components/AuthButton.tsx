@@ -22,18 +22,18 @@ export default function AuthButton() {
 
   if (viewer) {
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         {viewer.isAdmin && (
           <>
             <Link
               to="/admin/new"
-              className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)]"
+              className="rounded-md bg-[var(--accent)] px-2 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--accent-ink)]"
             >
               글쓰기
             </Link>
             <Link
               to="/admin"
-              className="rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+              className="hidden rounded-md px-1.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--muted)] transition-colors hover:text-[var(--ink)] sm:block"
             >
               관리
             </Link>
@@ -43,7 +43,7 @@ export default function AuthButton() {
           type="button"
           onClick={() => signOut()}
           title={`${viewer.email} — 눌러서 로그아웃`}
-          className="grid size-7 place-items-center overflow-hidden rounded-full border border-[var(--line)] text-[10px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]"
+          className="grid size-6 place-items-center overflow-hidden rounded-full border border-[var(--line)] text-[10px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]"
         >
           {viewer.photo ? (
             <img
@@ -65,7 +65,7 @@ export default function AuthButton() {
       type="button"
       onClick={handleSignIn}
       disabled={busy}
-      className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] py-1.5 pl-2 pr-3 text-xs font-medium text-[var(--muted)] transition-colors hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-50"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--line)] py-1 pl-1.5 pr-2 text-[11px] font-medium whitespace-nowrap text-[var(--muted)] transition-colors hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-50 sm:pr-3"
     >
       <svg viewBox="0 0 18 18" className="size-3.5" aria-hidden>
         <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z" />

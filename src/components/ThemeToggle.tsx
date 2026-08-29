@@ -20,7 +20,7 @@ export default function ThemeToggle() {
       onClick={cycle}
       title={`화면 테마: ${LABEL[theme]}`}
       aria-label={`화면 테마 ${LABEL[theme]}, 눌러서 변경`}
-      className="grid size-7 place-items-center rounded-md text-sm text-[var(--muted)] transition-colors hover:bg-[var(--bg-elev)] hover:text-[var(--ink)]"
+      className="grid size-6 shrink-0 place-items-center rounded-md text-xs text-[var(--muted)] transition-colors hover:bg-[var(--bg-elev)] hover:text-[var(--ink)]"
     >
       {ICON[theme]}
     </button>

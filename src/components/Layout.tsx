@@ -27,9 +27,9 @@ export default function Layout() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <header className="appbar z-20 shrink-0 border-b border-[var(--line)]">
-        <div className="flex w-full items-center gap-4 px-2 py-2 sm:px-3 lg:px-4">
+        <div className="flex w-full flex-nowrap items-center gap-1.5 px-2 py-2 sm:gap-3 sm:px-3 lg:px-4">
           <Link to="/" className="group flex items-baseline gap-2">
-            <span className="display text-2xl">sanghak</span>
+            <span className="display text-lg sm:text-xl">sanghak</span>
             <span className="hidden text-[11px] uppercase tracking-[0.18em] text-[var(--muted)] sm:inline">
               blog
             </span>
@@ -40,7 +40,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-[var(--line)] px-2.5 py-1.5 text-xs text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="inline-flex shrink-0 items-center gap-2 rounded-md border border-[var(--line)] px-1.5 py-1 text-[11px] whitespace-nowrap text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] sm:px-2"
           >
             <span aria-hidden>⌕</span>
             <span className="hidden sm:inline">검색</span>
@@ -54,7 +54,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-md bg-[var(--ink)] px-3.5 py-1.5 text-xs font-medium text-[var(--bg)] lg:hidden"
+            className="shrink-0 rounded-md bg-[var(--ink)] px-2 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--bg)] lg:hidden"
             aria-expanded={menuOpen}
           >
             태그

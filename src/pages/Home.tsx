@@ -4,7 +4,7 @@ import { listPosts, type Post } from '../lib/posts'
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[] | null>(null)
-  useEffect(() => { listPosts().then(setPosts).catch(() => setPosts([])) }, [])
+  useEffect(() => { listPosts(200).then(setPosts).catch(() => setPosts([])) }, [])
 
   return (
     <div>
