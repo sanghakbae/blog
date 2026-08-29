@@ -36,7 +36,9 @@ export default function Editor() {
   const [corpus, setCorpus] = useState<CorpusDoc[]>([])
   const [existingTags, setExistingTags] = useState<string[]>([])
   const [settings, setSettings] = useState<SecuritySettings>(DEFAULT_SETTINGS)
-  const [preview, setPreview] = useState(true)
+  // 좁은 화면에서는 미리보기가 본문 아래에 그대로 붙어 페이지만 두 배로 길어진다.
+  // 나란히 볼 수 있는 넓이가 될 때만 기본으로 켠다.
+  const [preview, setPreview] = useState(() => window.innerWidth >= 1024)
   const [html, setHtml] = useState('')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
@@ -321,12 +323,12 @@ export default function Editor() {
             }}
             placeholder="마크다운으로 자유롭게 쓰세요. 이미지는 붙여넣거나 끌어다 놓으면 됩니다."
             className={`min-h-[55vh] w-full resize-y border border-[var(--line)] bg-transparent p-2.5 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent)] sm:p-4 sm:text-sm ${
-              preview ? 'rounded-bl-xl lg:border-r-0' : 'rounded-b-xl'
+              preview ? 'hidden rounded-bl-xl lg:block lg:border-r-0' : 'rounded-b-xl'
             }`}
           />
 
           {preview && (
-            <div className="prose max-h-[70vh] overflow-y-auto rounded-br-xl border border-[var(--line)] bg-[var(--bg-elev)] p-3 sm:p-6 sm:text-[15px]">
+            <div className="prose max-h-[70vh] overflow-y-auto rounded-b-xl border border-[var(--line)] bg-[var(--bg-elev)] p-3 sm:p-6 sm:text-[15px] lg:rounded-b-none lg:rounded-br-xl">
               {body.trim() ? (
                 <div dangerouslySetInnerHTML={{ __html: html }} />
               ) : (
@@ -342,7 +344,7 @@ export default function Editor() {
             onClick={() => setPreview((v) => !v)}
             className="transition-colors hover:text-[var(--ink)]"
           >
-            미리보기 {preview ? '끄기' : '켜기'}
+            {preview ? '편집으로' : '미리보기'}
           </button>
           <span className="font-mono tabular-nums">{stats.chars}자</span>
           <span className="font-mono tabular-nums">{stats.words}단어</span>
@@ -361,7 +363,7 @@ export default function Editor() {
             <button
               type="button"
               onClick={() => { setTouched(false); setPicked([]) }}
-              className="ml-auto rounded-md border border-[var(--line)] px-2.5 py-1 text-xs transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              className="ml-auto rounded-md border border-[var(--line)] px-2 py-0.5 text-[11px] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] sm:px-2.5 sm:py-1 sm:text-xs"
             >
               분석 결과로 되돌리기
             </button>
@@ -444,12 +446,12 @@ export default function Editor() {
         )}
       </section>
 
-      <div className="sticky bottom-0 -mx-1 flex flex-wrap items-center gap-3 border-t border-[var(--line)] bg-[var(--bg)]/85 px-1 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-1 flex flex-wrap items-center gap-2 border-t border-[var(--line)] bg-[var(--bg)]/85 px-1 py-2 backdrop-blur sm:gap-3 sm:py-3">
         <button
           type="button"
           onClick={() => handleSave(true)}
           disabled={!title.trim() || settings.postingLocked}
-          className="rounded-md bg-[var(--accent)] px-5 py-2 text-sm font-medium text-[var(--accent-ink)] transition-opacity disabled:opacity-40"
+          className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)] transition-opacity disabled:opacity-40 sm:px-5 sm:py-2 sm:text-sm"
         >
           {published ? '발행 상태로 저장' : '발행'}
         </button>
@@ -457,13 +459,13 @@ export default function Editor() {
           type="button"
           onClick={() => handleSave(false)}
           disabled={settings.postingLocked}
-          className="rounded-md border border-[var(--line)] px-4 py-2 text-sm transition-colors hover:border-[var(--ink)] disabled:opacity-40"
+          className="rounded-md border border-[var(--line)] px-3 py-1.5 text-xs transition-colors hover:border-[var(--ink)] disabled:opacity-40 sm:px-4 sm:py-2 sm:text-sm"
         >
           임시저장
         </button>
         {id &&
           (confirmDelete ? (
-            <span className="flex items-center gap-2 text-sm">
+            <span className="flex items-center gap-2 text-xs sm:text-sm">
               <span className="text-[var(--muted)]">정말 삭제할까요?</span>
               <button
                 type="button"
@@ -484,7 +486,7 @@ export default function Editor() {
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="text-sm text-red-500"
+              className="text-xs text-red-500 sm:text-sm"
             >
               삭제
             </button>

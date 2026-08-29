@@ -32,7 +32,7 @@ const GROUPS: { cmd: string; label: string; title: string }[][] = [
 
 export default function EditorToolbar({ onCommand, onImage, disabled }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-t-xl border border-b-0 border-[var(--line)] bg-[var(--bg-elev)] px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-1 rounded-t-xl border border-b-0 border-[var(--line)] bg-[var(--bg-elev)] px-1.5 py-1 sm:px-2 sm:py-1.5">
       {GROUPS.map((group, gi) => (
         <div key={gi} className="flex items-center gap-0.5">
           {gi > 0 && <span className="mx-1 h-4 w-px bg-[var(--line)]" />}
@@ -43,7 +43,7 @@ export default function EditorToolbar({ onCommand, onImage, disabled }: Props) {
               title={b.title}
               disabled={disabled}
               onClick={() => (b.cmd === 'image' ? onImage() : onCommand(b.cmd))}
-              className={`grid h-7 min-w-7 place-items-center rounded-md px-1.5 text-xs transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-40 ${
+              className={`grid h-6 min-w-6 place-items-center rounded-md px-1 text-[11px] transition-colors sm:h-7 sm:min-w-7 sm:px-1.5 sm:text-xs hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-40 ${
                 b.cmd === 'bold' ? 'font-bold' : b.cmd === 'italic' ? 'font-serif italic' : ''
               } ${b.cmd === 'strike' ? 'line-through' : ''}`}
             >
