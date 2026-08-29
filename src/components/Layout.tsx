@@ -27,7 +27,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-full bg-[var(--ink)] px-3.5 py-1.5 text-xs font-medium text-[var(--bg)] lg:hidden"
+            className="rounded-md bg-[var(--ink)] px-3.5 py-1.5 text-xs font-medium text-[var(--bg)] lg:hidden"
             aria-expanded={menuOpen}
           >
             태그

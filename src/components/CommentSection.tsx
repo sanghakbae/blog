@@ -190,7 +190,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                       <button
                         type="button"
                         onClick={() => setEditingId(null)}
-                        className="ml-auto rounded-full border border-[var(--line)] px-3 py-1 text-[11px]"
+                        className="ml-auto rounded-md border border-[var(--line)] px-3 py-1 text-[11px]"
                       >
                         취소
                       </button>
@@ -198,7 +198,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                         type="button"
                         onClick={() => saveEdit(c)}
                         disabled={busy || !editBody.trim() || editBody.trim() === c.body}
-                        className="rounded-full bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-[var(--accent-ink)] disabled:opacity-40"
+                        className="rounded-md bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-[var(--accent-ink)] disabled:opacity-40"
                       >
                         저장
                       </button>
@@ -238,7 +238,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                 type="button"
                 onClick={submit}
                 disabled={busy || !body.trim()}
-                className="ml-auto rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-[var(--accent-ink)] disabled:opacity-40"
+                className="ml-auto rounded-md bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-[var(--accent-ink)] disabled:opacity-40"
               >
                 등록
               </button>
@@ -251,7 +251,7 @@ export default function CommentSection({ postId }: { postId: string }) {
               type="button"
               onClick={signIn}
               disabled={busy}
-              className="mt-3 rounded-full border border-[var(--line)] px-4 py-1.5 text-xs font-medium transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+              className="mt-3 rounded-md border border-[var(--line)] px-4 py-1.5 text-xs font-medium transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
             >
               구글로 로그인
             </button>

@@ -85,13 +85,13 @@ export default function AuthButton() {
           <>
             <Link
               to="/admin/new"
-              className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)]"
+              className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)]"
             >
               글쓰기
             </Link>
             <Link
               to="/admin"
-              className="rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+              className="rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
             >
               관리
             </Link>
@@ -118,7 +118,7 @@ export default function AuthButton() {
       type="button"
       onClick={signIn}
       disabled={state.status === 'busy'}
-      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] py-1.5 pl-2 pr-3 text-xs font-medium text-[var(--muted)] transition-colors hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] py-1.5 pl-2 pr-3 text-xs font-medium text-[var(--muted)] transition-colors hover:border-[var(--ink)] hover:text-[var(--ink)] disabled:opacity-50"
     >
       <svg viewBox="0 0 18 18" className="size-3.5" aria-hidden>
         <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z" />

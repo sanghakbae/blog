@@ -31,7 +31,7 @@ export default function Admin() {
                   {post.tags.map((t) => (
                     <span
                       key={t}
-                      className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[10px]"
+                      className="rounded-md border border-[var(--line)] px-2 py-0.5 text-[10px]"
                     >
                       {t}
                     </span>
@@ -39,7 +39,7 @@ export default function Admin() {
                 </span>
               </Link>
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
+                className={`shrink-0 rounded-md px-2 py-0.5 text-xs ${
                   post.published
                     ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
                     : 'border border-[var(--line)] text-[var(--muted)]'

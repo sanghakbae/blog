@@ -70,7 +70,7 @@ export default function AdminSecurity() {
             <li key={e} className="flex items-center gap-2">
               <span>{e}</span>
               {e === user?.email?.toLowerCase() && (
-                <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent)]">
+                <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent)]">
                   현재 계정
                 </span>
               )}

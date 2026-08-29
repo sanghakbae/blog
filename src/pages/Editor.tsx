@@ -292,7 +292,7 @@ export default function Editor() {
             <button
               type="button"
               onClick={() => { setTouched(false); setPicked([]) }}
-              className="ml-auto rounded-full border border-[var(--line)] px-2.5 py-1 text-xs transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              className="ml-auto rounded-md border border-[var(--line)] px-2.5 py-1 text-xs transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
             >
               분석 결과로 되돌리기
             </button>
@@ -315,7 +315,7 @@ export default function Editor() {
                     }`}
                   >
                     <span
-                      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      className={`shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                         on
                           ? 'border-transparent bg-[var(--accent)] text-[var(--accent-ink)]'
                           : 'border-[var(--line)] text-[var(--muted)]'
@@ -340,7 +340,7 @@ export default function Editor() {
           type="button"
           onClick={() => handleSave(true)}
           disabled={!title.trim() || settings.postingLocked}
-          className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-medium text-[var(--accent-ink)] transition-opacity disabled:opacity-40"
+          className="rounded-md bg-[var(--accent)] px-5 py-2 text-sm font-medium text-[var(--accent-ink)] transition-opacity disabled:opacity-40"
         >
           {published ? '발행 상태로 저장' : '발행'}
         </button>
@@ -348,7 +348,7 @@ export default function Editor() {
           type="button"
           onClick={() => handleSave(false)}
           disabled={settings.postingLocked}
-          className="rounded-full border border-[var(--line)] px-4 py-2 text-sm transition-colors hover:border-[var(--ink)] disabled:opacity-40"
+          className="rounded-md border border-[var(--line)] px-4 py-2 text-sm transition-colors hover:border-[var(--ink)] disabled:opacity-40"
         >
           임시저장
         </button>

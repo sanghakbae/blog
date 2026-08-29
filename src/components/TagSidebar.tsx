@@ -68,7 +68,7 @@ export default function TagSidebar({
           {[64, 48, 72, 56, 40].map((w, i) => (
             <div
               key={i}
-              className="h-7 animate-pulse rounded-full bg-[var(--bg-elev)]"
+              className="h-7 animate-pulse rounded-md bg-[var(--bg-elev)]"
               style={{ width: w }}
             />
           ))}
@@ -85,7 +85,7 @@ export default function TagSidebar({
               onClick={onNavigate}
               className={({ isActive }) =>
                 [
-                  'inline-flex max-w-full items-center gap-1.5 rounded-full border py-1 pl-2.5 pr-1.5 text-xs transition-all duration-150',
+                  'inline-flex max-w-full items-center gap-1.5 rounded-md border py-1 pl-2.5 pr-1.5 text-xs transition-all duration-150',
                   isActive
                     ? 'border-transparent bg-[var(--accent-soft)] font-medium text-[var(--accent)]'
                     : 'border-[var(--line)] bg-[var(--bg-elev)] text-[var(--ink)] hover:-translate-y-px hover:border-[var(--accent)] hover:text-[var(--accent)]',
@@ -93,7 +93,7 @@ export default function TagSidebar({
               }
             >
               <span className="truncate">{tag.name}</span>
-              <span className="rounded-full bg-[var(--bg)] px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums text-[var(--muted)]">
+              <span className="rounded-md bg-[var(--bg)] px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums text-[var(--muted)]">
                 {tag.count}
               </span>
             </NavLink>
