@@ -94,6 +94,80 @@ body {
   }
 }
 
+/* ── 인쇄 (PDF 저장) ─────────────────────────────────────────────────────
+   앱 셸이 화면 높이에 고정되어 있어 그대로 두면 첫 장만 인쇄된다.
+   높이와 넘침 제한을 풀고 본문만 남긴다. */
+@media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  main,
+  main * {
+    visibility: visible;
+  }
+  header,
+  footer,
+  aside,
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+  #root > div {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  main {
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  .prose {
+    font-size: 10.5pt;
+    line-height: 1.65;
+  }
+  .prose h2 {
+    margin-top: 1.4em;
+    break-after: avoid;
+  }
+  .prose h3 {
+    break-after: avoid;
+  }
+  .prose img,
+  .prose table,
+  .prose pre,
+  .prose blockquote {
+    break-inside: avoid;
+  }
+  .prose pre {
+    background: #f4f4f5 !important;
+    color: #18181b !important;
+    border: 1px solid #e4e4e7;
+  }
+  .prose code {
+    background: #f4f4f5 !important;
+  }
+  .prose a {
+    color: #000 !important;
+    text-decoration-color: #999 !important;
+  }
+  .prose table {
+    display: table;
+  }
+  @page {
+    margin: 16mm 14mm;
+  }
+}
+
 /* ── 본문(마크다운) ──────────────────────────────────────────────────────── */
 
 .prose { font-size: 1.0625rem; line-height: 1.85; letter-spacing: -0.004em; }

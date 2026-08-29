@@ -82,12 +82,20 @@ export default function AuthButton() {
     return (
       <div className="flex items-center gap-1.5">
         {state.isAdmin && (
-          <Link
-            to="/admin"
-            className="rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
-          >
-            관리
-          </Link>
+          <>
+            <Link
+              to="/admin/new"
+              className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[var(--accent-ink)]"
+            >
+              글쓰기
+            </Link>
+            <Link
+              to="/admin"
+              className="rounded-full px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+            >
+              관리
+            </Link>
+          </>
         )}
         <button
           type="button"

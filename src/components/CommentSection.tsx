@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  MAX_COMMENT_LENGTH, addComment, removeComment, subscribeComments, type Comment,
+  MAX_COMMENT_LENGTH, addComment, editComment, removeComment, subscribeComments, type Comment,
 } from '../lib/comments'
 
 type Me = { uid: string; name: string; photo: string | null; isAdmin: boolean } | null
@@ -14,6 +14,8 @@ export default function CommentSection({ postId }: { postId: string }) {
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editBody, setEditBody] = useState('')
   const areaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => subscribeComments(postId, setComments), [postId])
@@ -87,6 +89,18 @@ export default function CommentSection({ postId }: { postId: string }) {
     }
   }
 
+  async function saveEdit(comment: Comment) {
+    setBusy(true)
+    try {
+      await editComment(postId, comment.id, editBody)
+      setEditingId(null)
+    } catch (err) {
+      setStatus((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function remove(comment: Comment) {
     if (!confirm('이 댓글을 삭제할까요?')) return
     try {
@@ -131,19 +145,70 @@ export default function CommentSection({ postId }: { postId: string }) {
                   <time className="font-mono text-[10px] text-[var(--muted)]">
                     {c.createdAt?.toDate?.().toLocaleString('ko-KR') ?? ''}
                   </time>
+                  {c.editedAt && <span className="text-[10px] text-[var(--muted)]">(수정됨)</span>}
+
+                  {/* 수정은 작성자 본인만. 관리자는 삭제만 한다. */}
+                  {me?.uid === c.authorUid && editingId !== c.id && (
+                    <button
+                      type="button"
+                      onClick={() => { setEditingId(c.id); setEditBody(c.body) }}
+                      className="ml-auto text-[10px] text-[var(--muted)] transition-colors hover:text-[var(--accent)]"
+                    >
+                      수정
+                    </button>
+                  )}
                   {(me?.uid === c.authorUid || me?.isAdmin) && (
                     <button
                       type="button"
                       onClick={() => remove(c)}
-                      className="ml-auto text-[10px] text-[var(--muted)] transition-colors hover:text-red-500"
+                      className={`text-[10px] text-[var(--muted)] transition-colors hover:text-red-500 ${
+                        me?.uid === c.authorUid && editingId !== c.id ? '' : 'ml-auto'
+                      }`}
                     >
                       삭제
                     </button>
                   )}
                 </div>
-                <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed">
-                  {c.body}
-                </p>
+
+                {editingId === c.id ? (
+                  <div className="mt-1.5">
+                    <textarea
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value.slice(0, MAX_COMMENT_LENGTH))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setEditingId(null)
+                        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') saveEdit(c)
+                      }}
+                      rows={3}
+                      autoFocus
+                      className="w-full resize-y rounded-lg border border-[var(--accent)] bg-transparent p-2.5 text-[13px] outline-none"
+                    />
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-[var(--muted)]">
+                        {editBody.length}/{MAX_COMMENT_LENGTH}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="ml-auto rounded-full border border-[var(--line)] px-3 py-1 text-[11px]"
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => saveEdit(c)}
+                        disabled={busy || !editBody.trim() || editBody.trim() === c.body}
+                        className="rounded-full bg-[var(--accent)] px-3 py-1 text-[11px] font-medium text-[var(--accent-ink)] disabled:opacity-40"
+                      >
+                        저장
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1 whitespace-pre-wrap break-words text-[13px] leading-relaxed">
+                    {c.body}
+                  </p>
+                )}
               </div>
             </li>
           ))}

@@ -1,6 +1,6 @@
 import {
   addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, serverTimestamp,
-  type Timestamp,
+  updateDoc, type Timestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
 
@@ -11,6 +11,8 @@ export type Comment = {
   authorName: string
   authorPhoto: string | null
   createdAt?: Timestamp
+  /** 수정된 적이 있으면 그 시각이 남는다 */
+  editedAt?: Timestamp
 }
 
 export const MAX_COMMENT_LENGTH = 1000
@@ -51,6 +53,7 @@ export function subscribeComments(postId: string, cb: (comments: Comment[]) => v
             authorName: data.authorName ?? '이름 없음',
             authorPhoto: data.authorPhoto ?? null,
             createdAt: data.createdAt,
+            editedAt: data.editedAt,
           }
         }),
       ),
@@ -80,6 +83,28 @@ export async function addComment(
   }
 
   await addDoc(commentsCol(postId), { ...input, body, createdAt: serverTimestamp() })
+}
+
+/** 댓글 수정. 규칙상 작성자 본인만 가능하며 본문만 바뀐다. */
+export async function editComment(
+  postId: string,
+  commentId: string,
+  nextBody: string,
+): Promise<void> {
+  const body = nextBody.trim().slice(0, MAX_COMMENT_LENGTH)
+  if (!body) throw new Error('내용을 입력하세요.')
+
+  if (USE_LOCAL) {
+    const list = localStore.get(postId) ?? []
+    const target = list.find((c) => c.id === commentId)
+    if (target) {
+      target.body = body
+      target.editedAt = { toDate: () => new Date() } as Timestamp
+    }
+    return localNotify(postId)
+  }
+
+  await updateDoc(doc(commentsCol(postId), commentId), { body, editedAt: serverTimestamp() })
 }
 
 export async function removeComment(postId: string, commentId: string): Promise<void> {

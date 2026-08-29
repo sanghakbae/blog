@@ -4,6 +4,7 @@ import { getPost, type Post } from '../lib/posts'
 
 import { formatDate } from '../lib/date'
 import CommentSection from '../components/CommentSection'
+import PostActions from '../components/PostActions'
 
 export default function PostView() {
   const { id = '' } = useParams()
@@ -26,14 +27,17 @@ export default function PostView() {
     <article>
       <Link
         to="/"
-        className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+        className="no-print font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
       >
         ← 전체 글
       </Link>
 
-      <h1 className="mt-3 text-[clamp(1.4rem,4.5vw,3.25rem)] font-semibold leading-[1.2] tracking-[-0.03em]">
-        {post.title}
-      </h1>
+      <div className="mt-3 flex items-start gap-4">
+        <h1 className="min-w-0 flex-1 text-[clamp(1.4rem,4.5vw,3.25rem)] font-semibold leading-[1.2] tracking-[-0.03em]">
+          {post.title}
+        </h1>
+        <PostActions post={post} />
+      </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--line)] pb-4 sm:pb-6">
         <time className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
@@ -54,7 +58,9 @@ export default function PostView() {
         dangerouslySetInnerHTML={{ __html: html }}
       />
 
-      <CommentSection postId={post.id} />
+      <div className="no-print">
+        <CommentSection postId={post.id} />
+      </div>
     </article>
   )
 }
