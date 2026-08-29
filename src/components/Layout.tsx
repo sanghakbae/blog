@@ -30,7 +30,7 @@ export default function Layout() {
         <div className="flex w-full flex-nowrap items-center gap-1.5 px-2 py-2 sm:gap-3 sm:px-3 lg:px-4">
           <Link to="/" className="group flex items-baseline gap-2">
             <span className="display text-lg sm:text-xl">sanghak</span>
-            <span className="hidden text-[11px] uppercase tracking-[0.18em] text-[var(--muted)] sm:inline">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)] sm:text-[11px]">
               blog
             </span>
           </Link>
