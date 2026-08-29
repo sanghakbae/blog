@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 318" width="880" height="318" role="img" aria-label="개입 시점별 수정 비용 (상대값)">
+<rect width="880" height="318" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="317" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">개입 시점별 수정 비용 (상대값)</text>
+<text x="24" y="84" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">설계 단계</text>
+<rect x="220" y="70" width="4" height="20" rx="5" fill="#4f46e5"/>
+<text x="234" y="85" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">1배</text>
+<text x="24" y="100" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">가장 저렴하다</text>
+<text x="24" y="130" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">구현 단계</text>
+<rect x="220" y="116" width="8.833333333333334" height="20" rx="5" fill="#c7d2fe"/>
+<text x="238.83333333333334" y="131" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">5배</text>
+
+<text x="24" y="176" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">테스트 단계</text>
+<rect x="220" y="162" width="26.5" height="20" rx="5" fill="#c7d2fe"/>
+<text x="256.5" y="177" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">15배</text>
+
+<text x="24" y="222" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">운영 배포 후</text>
+<rect x="220" y="208" width="106" height="20" rx="5" fill="#c7d2fe"/>
+<text x="336" y="223" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">60배</text>
+
+<text x="24" y="268" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">사고 발생 후</text>
+<rect x="220" y="254" width="530" height="20" rx="5" fill="#c7d2fe"/>
+<text x="760" y="269" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">300배</text>
+<text x="24" y="284" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">피해 복구 비용 포함</text>
+</svg>

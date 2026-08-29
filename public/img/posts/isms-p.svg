@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 326" width="880" height="326" role="img" aria-label="유지 가능한 인증 준비">
+<rect width="880" height="326" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="325" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">유지 가능한 인증 준비</text>
+<path d="M42 92 L42 124" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="76" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="81" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">1</text>
+<text x="72" y="73" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">현재 상태 기록</text>
+<text x="72" y="93" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">이상적 문서가 아니라 실제</text>
+<path d="M42 154 L42 186" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="138" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="143" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">2</text>
+<text x="72" y="135" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">자산과 위험 정리</text>
+<text x="72" y="155" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">모든 통제의 근거</text>
+<path d="M42 216 L42 248" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="200" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="205" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">3</text>
+<text x="72" y="197" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">부족한 통제 보완</text>
+<text x="72" y="217" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">우선순위 기반</text>
+
+<circle cx="42" cy="262" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="267" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">4</text>
+<text x="72" y="259" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">증적 자동화</text>
+<text x="72" y="279" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">사람이 매번 모으지 않게</text>
+</svg>

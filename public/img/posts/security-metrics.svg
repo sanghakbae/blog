@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" width="880" height="420" role="img" aria-label="지표 선택 기준">
+<rect width="880" height="420" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="419" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">지표 선택 기준</text>
+<rect x="130" y="62" width="355" height="150" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="307.5" y="133" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="400" fill="#18181b" text-anchor="middle">참고용</text>
+<rect x="485" y="62" width="355" height="150" fill="#eef2ff" stroke="#e4e4e7"/>
+<text x="662.5" y="133" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#4f46e5" text-anchor="middle">핵심 지표</text>
+<rect x="130" y="212" width="355" height="150" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="307.5" y="283" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="400" fill="#18181b" text-anchor="middle">폐기</text>
+<rect x="485" y="212" width="355" height="150" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="662.5" y="283" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="400" fill="#18181b" text-anchor="middle">보고용 장식</text>
+<text x="307.5" y="396" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a" text-anchor="middle">행동을 바꾸지 못함</text>
+<text x="662.5" y="396" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a" text-anchor="middle">행동을 바꿈</text>
+<text transform="translate(114,137) rotate(-90)" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a" text-anchor="middle">위험과 직결</text>
+<text transform="translate(114,287) rotate(-90)" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a" text-anchor="middle">위험과 무관</text>
+</svg>

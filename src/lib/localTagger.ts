@@ -42,6 +42,8 @@ const KO_STOPWORDS = new Set([
   '통해','위해','대한','관련','이후','이전','동안','상태','상황','방법','내용','기준','중요',
   '필요','가능','시작','마지막','처음','자체','실제','현재','최근','이제','아직','그냥','근데',
   '이유','방식','과정','결과','때문','생각','이야기','정리','참고','때는','만큼','종류','형태',
+  '새로','함께','서로','따로','미리','자주','실제로','반드시','훨씬','오히려','가장','대개','아예',
+  '특히','대부분','전부','절반','여럿','제대로','충분','한편','다만','이때','이제','여기','저기',
   '이라','에서','으로','것들','수도','수가','건데','한번','번째','정말로','때문에','거의다',
 ])
 
@@ -71,13 +73,26 @@ function stem(word: string): string {
   return w
 }
 
-/** "했나", "만들어", "붙이기" 같은 용언 조각은 태그가 될 수 없다. */
+/**
+ * 용언 조각을 걸러낸다.
+ *
+ * 형태소 분석기가 없으므로 어미로 판단한다. 명사와 겹칠 수 있는 어미
+ * (어·아·지·서·나·고 등 — "언어", "이미지", "이력서" 같은 명사가 걸린다)는
+ * 일부러 제외했다. 놓치는 쪽이 멀쩡한 명사를 버리는 쪽보다 낫다.
+ */
 function isVerbFragment(token: string): boolean {
   if (!/[가-힣]$/.test(token)) return false
+  // 과거·추측 선어말어미가 들어간 형태는 확실한 용언이다
   if (/[았었겠했]/.test(token)) return true
-  return /(하다|한다|했다|하는|하고|하며|하면|해서|되다|된다|되는|이다|이고|있다|없다|같다|보다|주다|가다|오다|나다|기|게|서|며|던|음|임|어|아|여|워|러|고|지|나)$/.test(
-    token,
-  )
+  // 종결형 — '다'로 끝나는 한국어 명사는 거의 없다
+  if (token.length >= 2 && /다$/.test(token)) return true
+  // 명사형·부사형 어미 (짧은 형태도 용언일 확률이 높다)
+  if (token.length >= 2 && /(됨|함|음|임|게)$/.test(token)) return true
+  // 관형사형 어미
+  if (token.length >= 3 && /(는|은|한|인|된|될|할|기|며|면|고)$/.test(token)) return true
+  // '~는지', '~을지' 같은 연결형
+  if (/(는|은|을)지$/.test(token)) return true
+  return false
 }
 
 function isNoise(token: string): boolean {
@@ -93,15 +108,24 @@ function isNoise(token: string): boolean {
 
 /** 한 덩어리의 텍스트를 어절 단위로 자른다. 문장 경계는 배열로 구분한다. */
 function tokenizeSentences(text: string): string[][] {
-  return text
-    .split(/[.!?\n·:;()[\]{}"'“”‘’,]+/)
-    .map((sentence) =>
-      sentence
-        .split(/\s+/)
-        .map((w) => stem(w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').toLowerCase()))
-        .filter((w) => w && !isNoise(w)),
-    )
-    .filter((s) => s.length > 0)
+  const runs: string[][] = []
+
+  for (const clause of text.split(/[.!?\n·:;|()[\]{}"'“”‘’,—–]+/)) {
+    let run: string[] = []
+    for (const raw of clause.split(/\s+/)) {
+      const token = stem(raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').toLowerCase())
+      // 걸러낸 낱말은 자리를 끊는다. 그래야 "성공 시 세션" 이
+      // "성공 세션" 이라는 없던 복합어로 합쳐지지 않는다.
+      if (!token || isNoise(token)) {
+        if (run.length) runs.push(run)
+        run = []
+        continue
+      }
+      run.push(token)
+    }
+    if (run.length) runs.push(run)
+  }
+  return runs
 }
 
 // ── 마크다운에서 가중치별 구역 뽑기 ─────────────────────────────────────────
@@ -196,12 +220,15 @@ export function analyzeContent(input: {
     if (s.words > 1 && s.raw < 2) continue
     if (s.words === 1 && s.raw < 2 && !s.places.has('제목') && !s.places.has('소제목')) continue
 
-    // 이 글에서만 두드러지는 말일수록 높다
-    const idf = Math.log(1 + N / (1 + (df.get(term) ?? 0)))
+    // 이 글에서만 두드러지는 말일수록 높다. 다만 그대로 쓰면 딱 한 번만 등장하는
+    // 말이 항상 이겨서 태그가 글 수만큼 늘어난다. 제곱근으로 눌러 여러 글에
+    // 걸치는 말도 살아남게 한다.
+    const idf = Math.sqrt(Math.log(1 + N / (1 + (df.get(term) ?? 0))))
     // 복합어를 조금 우대해 "태그" 보다 "태그 자동생성" 이 뽑히게 한다
     const specificity = 1 + (s.words - 1) * 0.25
-    // 이미 쓰고 있는 태그면 재사용을 유도한다
-    const reuse = existing.has(term) ? 1.7 : 1
+    // 이미 쓰고 있는 태그면 강하게 밀어준다. 이 값이 낮으면 글마다 새 태그가
+    // 생겨 사이드바가 한 번만 쓰인 태그로 가득 찬다.
+    const reuse = existing.has(term) ? 3 : 1
 
     // 제목에 한 번 스쳤을 뿐 본문이 받쳐주지 않는 말은 끌어내린다
     const support = s.raw === 1 ? 0.6 : 1
@@ -227,13 +254,11 @@ export function analyzeContent(input: {
   const picked: typeof scored = []
   for (const c of scored) {
     const parts = c.tag.split('-')
-    // 이미 뽑은 복합어에 이 낱말이 거의 항상 함께 나온다면 중복이므로 뺀다.
+    // 이미 뽑은 태그와 낱말이 겹치면 뺀다. #코드-흐름 옆에 #흐름 이 같이 붙으면
+    // 태그 세 자리 중 두 자리를 같은 말이 차지하게 된다.
     const redundant = picked.some((p) => {
       const pp = p.tag.split('-')
-      const contains = parts.every((w) => pp.includes(w)) || pp.every((w) => parts.includes(w))
-      if (!contains) return false
-      const [longer, shorter] = p.words >= c.words ? [p, c] : [c, p]
-      return longer.raw >= shorter.raw * 0.6
+      return parts.some((w) => pp.includes(w))
     })
     if (!redundant) picked.push(c)
     if (picked.length >= max) break

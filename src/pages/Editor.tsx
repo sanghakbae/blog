@@ -314,8 +314,14 @@ export default function Editor() {
                       on ? 'bg-[var(--accent-soft)]' : 'hover:bg-[var(--bg-elev)]'
                     }`}
                   >
-                    <span className={`shrink-0 text-sm ${on ? 'font-medium text-[var(--accent)]' : ''}`}>
-                      #{c.tag}
+                    <span
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                        on
+                          ? 'border-transparent bg-[var(--accent)] text-[var(--accent-ink)]'
+                          : 'border-[var(--line)] text-[var(--muted)]'
+                      }`}
+                    >
+                      {c.tag}
                     </span>
                     <span className="flex-1 truncate text-xs text-[var(--muted)]">{c.reason}</span>
                     <span className="shrink-0 font-mono text-[11px] tabular-nums text-[var(--muted)]">

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 272" width="880" height="272" role="img" aria-label="베이스 이미지별 알려진 취약점 수 (예시)">
+<rect width="880" height="272" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="271" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">베이스 이미지별 알려진 취약점 수 (예시)</text>
+<text x="24" y="84" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">범용 배포판</text>
+<rect x="220" y="70" width="530" height="20" rx="5" fill="#4f46e5"/>
+<text x="760" y="85" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">420건</text>
+<text x="24" y="100" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">쓰지 않는 패키지가 대부분</text>
+<text x="24" y="130" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">slim 계열</text>
+<rect x="220" y="116" width="164.04761904761907" height="20" rx="5" fill="#c7d2fe"/>
+<text x="394.04761904761904" y="131" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">130건</text>
+
+<text x="24" y="176" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">alpine</text>
+<rect x="220" y="162" width="50.476190476190474" height="20" rx="5" fill="#c7d2fe"/>
+<text x="280.4761904761905" y="177" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">40건</text>
+
+<text x="24" y="222" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">distroless</text>
+<rect x="220" y="208" width="7.571428571428571" height="20" rx="5" fill="#c7d2fe"/>
+<text x="237.57142857142858" y="223" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">6건</text>
+<text x="24" y="238" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">셸과 패키지 관리자 없음</text>
+</svg>

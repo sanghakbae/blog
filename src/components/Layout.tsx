@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import TagSidebar from './TagSidebar'
 import AuthButton from './AuthButton'
 
+// 처리방침은 열어볼 때만 내려받는다
+const PrivacyModal = lazy(() => import('./PrivacyModal'))
+
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(false)
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-xl">
@@ -53,11 +57,21 @@ export default function Layout() {
       <footer className="border-t border-[var(--line)]">
         <div className="flex w-full flex-wrap items-center gap-x-6 gap-y-2 px-5 py-10 text-xs text-[var(--muted)] sm:px-8 lg:px-12">
           <span>© {new Date().getFullYear()} sanghak</span>
-          <Link to="/privacy" className="transition-colors hover:text-[var(--ink)]">
+          <button
+            type="button"
+            onClick={() => setPrivacyOpen(true)}
+            className="underline underline-offset-4 transition-colors hover:text-[var(--ink)]"
+          >
             개인정보처리방침
-          </Link>
+          </button>
         </div>
       </footer>
+
+      {privacyOpen && (
+        <Suspense fallback={null}>
+          <PrivacyModal onClose={() => setPrivacyOpen(false)} />
+        </Suspense>
+      )}
     </div>
   )
 }

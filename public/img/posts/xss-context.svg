@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 240" width="880" height="240" role="img" aria-label="XSS 를 막는 세 겹">
+<rect width="880" height="240" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="239" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">XSS 를 막는 세 겹</text>
+<rect x="24" y="60" width="832" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="40" y="86" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">입력 검증</text>
+<text x="840" y="86" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">형식·길이 제한</text>
+<rect x="58" y="112" width="764" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="74" y="138" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">컨텍스트별 출력 인코딩</text>
+<text x="806" y="138" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">핵심 방어</text>
+<rect x="92" y="164" width="696" height="42" rx="9" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="108" y="190" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#4f46e5">CSP</text>
+<text x="772" y="190" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">놓쳤을 때의 마지막 그물</text>
+</svg>

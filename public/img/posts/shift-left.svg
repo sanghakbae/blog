@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 318" width="880" height="318" role="img" aria-label="단계별 결함 수정 비용 (상대값)">
+<rect width="880" height="318" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="317" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">단계별 결함 수정 비용 (상대값)</text>
+<text x="24" y="84" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">요구사항</text>
+<rect x="220" y="70" width="5.3" height="20" rx="5" fill="#4f46e5"/>
+<text x="235.3" y="85" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">1배</text>
+<text x="24" y="100" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">문장 한 줄 수정</text>
+<text x="24" y="130" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">설계</text>
+<rect x="220" y="116" width="21.2" height="20" rx="5" fill="#c7d2fe"/>
+<text x="251.2" y="131" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">4배</text>
+
+<text x="24" y="176" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">구현</text>
+<rect x="220" y="162" width="63.599999999999994" height="20" rx="5" fill="#c7d2fe"/>
+<text x="293.6" y="177" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">12배</text>
+
+<text x="24" y="222" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">테스트</text>
+<rect x="220" y="208" width="159" height="20" rx="5" fill="#c7d2fe"/>
+<text x="389" y="223" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">30배</text>
+
+<text x="24" y="268" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">운영</text>
+<rect x="220" y="254" width="530" height="20" rx="5" fill="#c7d2fe"/>
+<text x="760" y="269" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">100배</text>
+<text x="24" y="284" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">데이터와 연동까지 영향</text>
+</svg>

@@ -28,7 +28,14 @@ export default function Admin() {
                 <span className="block truncate text-sm font-medium">{post.title}</span>
                 <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
                   <span>{formatDate(post.updatedAt)}</span>
-                  {post.tags.map((t) => <span key={t}>#{t}</span>)}
+                  {post.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[10px]"
+                    >
+                      {t}
+                    </span>
+                  ))}
                 </span>
               </Link>
               <span

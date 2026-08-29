@@ -46,7 +46,7 @@ export default function TagSidebar({ onNavigate }: { onNavigate?: () => void }) 
                 ].join(' ')
               }
             >
-              <span className="truncate">#{tag.name}</span>
+              <span className="truncate">{tag.name}</span>
               <span className="rounded-full bg-[var(--bg)] px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums text-[var(--muted)]">
                 {tag.count}
               </span>

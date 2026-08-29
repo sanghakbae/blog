@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 272" width="880" height="272" role="img" aria-label="튜닝 전후 일일 알람 건수 (예시)">
+<rect width="880" height="272" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="271" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">튜닝 전후 일일 알람 건수 (예시)</text>
+<text x="24" y="84" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">튜닝 전</text>
+<rect x="220" y="70" width="530" height="20" rx="5" fill="#4f46e5"/>
+<text x="760" y="85" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">24000건</text>
+<text x="24" y="100" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">사실상 아무도 보지 않는다</text>
+<text x="24" y="130" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">오탐 예외 적용 후</text>
+<rect x="220" y="116" width="70.66666666666667" height="20" rx="5" fill="#c7d2fe"/>
+<text x="300.6666666666667" y="131" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">3200건</text>
+
+<text x="24" y="176" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">자산 중요도 반영 후</text>
+<rect x="220" y="162" width="14.133333333333335" height="20" rx="5" fill="#c7d2fe"/>
+<text x="244.13333333333333" y="177" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">640건</text>
+
+<text x="24" y="222" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">상관 규칙 적용 후</text>
+<rect x="220" y="208" width="4" height="20" rx="5" fill="#c7d2fe"/>
+<text x="234" y="223" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">45건</text>
+<text x="24" y="238" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">사람이 검토 가능한 수준</text>
+</svg>

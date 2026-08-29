@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 326" width="880" height="326" role="img" aria-label="DMARC 정책을 올리는 순서">
+<rect width="880" height="326" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="325" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">DMARC 정책을 올리는 순서</text>
+<path d="M42 92 L42 124" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="76" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="81" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">1</text>
+<text x="72" y="73" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">보고 수집</text>
+<text x="72" y="93" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">p=none 으로 시작</text>
+<path d="M42 154 L42 186" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="138" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="143" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">2</text>
+<text x="72" y="135" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">발송원 식별</text>
+<text x="72" y="155" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">잊고 있던 시스템이 나온다</text>
+<path d="M42 216 L42 248" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="200" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="205" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">3</text>
+<text x="72" y="197" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">정렬 확보</text>
+<text x="72" y="217" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">SPF·DKIM 을 모두 통과시킴</text>
+
+<circle cx="42" cy="262" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="267" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">4</text>
+<text x="72" y="259" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">정책 상향</text>
+<text x="72" y="279" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">quarantine 후 reject</text>
+</svg>

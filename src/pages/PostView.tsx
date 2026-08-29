@@ -42,9 +42,9 @@ export default function PostView() {
           <Link
             key={tag}
             to={`/tags/${encodeURIComponent(tag)}`}
-            className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            className="rounded-full border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
           >
-            #{tag}
+            {tag}
           </Link>
         ))}
       </div>
