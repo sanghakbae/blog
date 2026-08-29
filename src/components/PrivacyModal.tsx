@@ -12,6 +12,11 @@ export default function PrivacyModal({ onClose }: { onClose: () => void }) {
   const closing = useRef(false)
 
   useEffect(() => {
+    // StrictMode 는 이펙트를 붙였다 떼었다 다시 붙인다. 그 떼는 단계에서 세운
+    // closing 을 여기서 되돌리지 않으면 계속 true 로 남아, 진짜로 닫혔을 때
+    // onClose 가 무시된다. 그러면 팝업은 사라졌는데 상태는 열린 채라 다시
+    // 열리지 않고 body 스크롤도 잠긴 채 남는다.
+    closing.current = false
     const dialog = ref.current
     if (dialog && !dialog.open) dialog.showModal()
     document.body.style.overflow = 'hidden'

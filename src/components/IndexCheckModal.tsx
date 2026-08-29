@@ -1,13 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { ENGINE_LABEL, confirmedOn, searchUrl, type Engine, type IndexStatus } from '../lib/indexStatus'
 
 /**
- * 포털별 색인 확인 팝업.
+ * 포털별 색인 확인 팝업. 화면의 가로·세로 80% 크기로 검색 페이지를 띄운다.
  *
- * 검색 결과를 이 안에 그대로 띄울 수는 없다. 구글·네이버·빙 모두 다른 사이트가
- * 자기 결과 화면을 감싸지 못하도록 막아 두어서, iframe 은 빈 칸으로 남는다.
- * 그래서 확인에 필요한 것 — 검사할 주소, 검색어, 여는 버튼 — 을 모아 두고
- * 결과를 본 뒤 여기서 바로 기록하게 한다.
+ * 포털이 결과 화면을 다른 사이트에서 감싸지 못하게 막아 두는 경우가 있어,
+ * 안쪽이 비어 보일 수 있다. 그때를 위해 새 탭으로 여는 길을 함께 둔다.
  */
 export default function IndexCheckModal({
   engine,
@@ -28,29 +26,24 @@ export default function IndexCheckModal({
   // 정리 단계에서 dialog 가 닫히며 나는 close 이벤트를 무시하기 위한 표시.
   // 없으면 StrictMode 가 이펙트를 두 번 돌릴 때 스스로 닫힌다.
   const closing = useRef(false)
-  const [copied, setCopied] = useState('')
 
   useEffect(() => {
+    // StrictMode 는 이펙트를 붙였다 떼었다 다시 붙인다. 그 떼는 단계에서 세운
+    // closing 을 여기서 되돌리지 않으면 계속 true 로 남아, 진짜로 닫혔을 때
+    // onClose 가 무시된다. 그러면 팝업은 사라졌는데 상태는 열린 채라 다시
+    // 열리지 않고 body 스크롤도 잠긴 채 남는다.
+    closing.current = false
     const dialog = ref.current
     if (dialog && !dialog.open) dialog.showModal()
+    document.body.style.overflow = 'hidden'
     return () => {
       closing.current = true
+      document.body.style.overflow = ''
     }
   }, [])
 
-  const url = `https://blog.sanghak.kr/posts/${postId}/`
-  const query = `site:blog.sanghak.kr/posts/${postId}/`
+  const url = searchUrl(engine, postId)
   const on = !!status[engine]
-
-  async function copy(text: string, what: string) {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(what)
-      setTimeout(() => setCopied(''), 1500)
-    } catch {
-      // 권한이 없으면 조용히 넘어간다. 값은 화면에 그대로 보인다.
-    }
-  }
 
   return (
     <dialog
@@ -61,85 +54,56 @@ export default function IndexCheckModal({
       onClick={(e) => {
         if (e.target === ref.current) onClose()
       }}
-      className="m-auto w-[min(92vw,26rem)] max-w-none rounded-2xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/45 backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[80dvh] max-h-none w-[80vw] max-w-none flex-col rounded-2xl border border-[var(--line)] bg-[var(--bg-elev)] p-0 text-[var(--ink)] backdrop:bg-black/45 backdrop:backdrop-blur-sm"
     >
-      <div className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--line)] px-4 py-2.5">
         <h2 className="text-[13px] font-semibold">{ENGINE_LABEL[engine]} 색인 확인</h2>
-        <span
-          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-            on ? 'bg-amber-300/60 text-amber-900' : 'bg-[var(--bg)] text-[var(--muted)]'
-          }`}
-        >
-          {on ? `색인됨 · ${confirmedOn(status, engine)} 기록` : '미확인'}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="닫기"
-          className="ml-auto grid size-6 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)]"
-        >
-          ✕
-        </button>
-      </div>
+        <span className="min-w-0 max-w-[38%] truncate text-[11px] text-[var(--muted)]">{title}</span>
 
-      <div className="space-y-3 px-4 py-4 text-[11px]">
-        <p className="text-[12px] font-medium">{title}</p>
-
-        {[
-          { label: '주소', value: url },
-          { label: '검색어', value: query },
-        ].map((row) => (
-          <div key={row.label}>
-            <span className="text-[10px] text-[var(--muted)]">{row.label}</span>
-            <div className="mt-0.5 flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded bg-[var(--bg)] px-2 py-1 font-mono text-[10px]">
-                {row.value}
-              </code>
-              <button
-                type="button"
-                onClick={() => copy(row.value, row.label)}
-                className="shrink-0 rounded border border-[var(--line)] px-1.5 py-1 text-[10px] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                {copied === row.label ? '복사됨' : '복사'}
-              </button>
-            </div>
-          </div>
-        ))}
-
-        <p className="text-[10px] leading-relaxed text-[var(--muted)]">
-          검색 결과를 이 창 안에 띄울 수는 없습니다. 포털이 다른 사이트에서 자기 결과 화면을 감싸지
-          못하게 막아 두었습니다. 아래에서 열어 확인한 뒤 결과를 기록하세요.
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2 border-t border-[var(--line)] px-4 py-3">
-        <a
-          href={searchUrl(engine, postId)}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-[11px] font-medium text-[var(--accent-ink)]"
-        >
-          {ENGINE_LABEL[engine]}에서 열기
-        </a>
         <button
           type="button"
           onClick={onToggle}
-          className={`rounded-md border px-3 py-1.5 text-[11px] transition-colors ${
+          className={`ml-auto rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
             on
               ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
               : 'border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
           }`}
         >
-          {on ? '색인됨 해제' : '색인됨으로 기록'}
+          {on ? `색인됨 · ${confirmedOn(status, engine)} — 해제` : '색인됨으로 기록'}
         </button>
+
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-md border border-[var(--line)] px-2.5 py-1 text-[11px] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        >
+          새 탭 ↗
+        </a>
+
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto text-[11px] text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+          aria-label="닫기"
+          className="grid size-6 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)]"
         >
-          닫기
+          ✕
         </button>
       </div>
+
+      <iframe
+        src={url}
+        title={`${ENGINE_LABEL[engine]} 검색 결과`}
+        className="min-h-0 w-full flex-1 border-0 bg-white"
+        referrerPolicy="no-referrer"
+      />
+
+      {/* 포털이 결과 화면을 다른 사이트 안에 띄우지 못하게 막으면 위가 빈 칸으로
+          남는다. 그때 무엇을 해야 하는지는 iframe 에 가리지 않는 자리에 둔다. */}
+      <p className="shrink-0 rounded-b-2xl border-t border-[var(--line)] px-4 py-2 text-[10px] text-[var(--muted)]">
+        위가 비어 있으면 {ENGINE_LABEL[engine]}이(가) 결과 화면을 다른 사이트 안에 띄우지 못하게 막은
+        것입니다. <span className="text-[var(--ink)]">새 탭 ↗</span> 으로 열어 확인하세요.
+      </p>
     </dialog>
   )
 }
