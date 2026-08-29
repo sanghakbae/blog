@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { MAX_TAGS, makeExcerpt, normalizeTag } from './tags'
+import { addAuditToBatch } from './audit'
 
 export type Post = {
   id: string
@@ -67,6 +68,12 @@ export async function getPost(id: string): Promise<Post | null> {
   return snap.exists() ? toPost(snap.id, snap.data()) : null
 }
 
+/** 태그 분석의 기준이 되는 코퍼스 — 다른 글들의 제목·본문 */
+export async function fetchCorpus(max = 100): Promise<{ title: string; body: string }[]> {
+  const snap = await getDocs(query(postsCol, orderBy('updatedAt', 'desc'), limit(max)))
+  return snap.docs.map((d) => ({ title: d.data().title ?? '', body: d.data().body ?? '' }))
+}
+
 /** 태그 목록 1회 조회 — 태그 분석 시 재사용 힌트로 넘긴다 */
 export async function fetchTagNames(): Promise<string[]> {
   const snap = await getDocs(query(tagsCol, orderBy('count', 'desc'), limit(200)))
@@ -91,7 +98,7 @@ export function subscribeTags(cb: (tags: Tag[]) => void) {
  */
 export async function savePost(
   id: string | null,
-  input: { title: string; body: string; published: boolean; tags: string[] },
+  input: { title: string; body: string; published: boolean; tags: string[]; wasPublished?: boolean },
 ): Promise<string> {
   const postRef = id ? doc(postsCol, id) : doc(postsCol)
   const prev = id ? await getDoc(postRef) : null
@@ -121,11 +128,21 @@ export async function savePost(
   for (const t of prevTags.filter((t) => !nextTags.includes(t)))
     batch.set(doc(tagsCol, t), { name: t, count: increment(-1) }, { merge: true })
 
+  // 감사 로그는 같은 배치에 넣어 저장과 함께 원자적으로 남긴다
+  const action = !id
+    ? 'post.create'
+    : input.published && !input.wasPublished
+      ? 'post.publish'
+      : !input.published && input.wasPublished
+        ? 'post.unpublish'
+        : 'post.update'
+  addAuditToBatch(batch, action, postRef.id, `${input.title.trim()} · 태그 ${tags.join(', ') || '없음'}`)
+
   await batch.commit()
   return postRef.id
 }
 
-export async function deletePost(id: string): Promise<void> {
+export async function deletePost(id: string, title = ''): Promise<void> {
   const postRef = doc(postsCol, id)
   const snap = await getDoc(postRef)
   const data = snap.data()
@@ -135,6 +152,7 @@ export async function deletePost(id: string): Promise<void> {
       batch.set(doc(tagsCol, t), { name: t, count: increment(-1) }, { merge: true })
   }
   batch.delete(postRef)
+  addAuditToBatch(batch, 'post.delete', id, title || (data?.title ?? ''))
   await batch.commit()
 }
 

@@ -2,28 +2,21 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listAllPosts, type Post } from '../lib/posts'
 import { formatDate } from '../lib/date'
-import { useAuth } from '../lib/useAuth'
 
 export default function Admin() {
   const [posts, setPosts] = useState<Post[] | null>(null)
-  const { signOut } = useAuth()
-
   useEffect(() => { listAllPosts().then(setPosts).catch(() => setPosts([])) }, [])
 
   return (
     <div>
-      <header className="mb-8 flex items-center gap-3">
-        <h1 className="text-xl font-semibold tracking-tight">글 관리</h1>
+      <div className="mb-6 flex items-center">
         <Link
           to="/admin/new"
           className="ml-auto rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white"
         >
           새 글
         </Link>
-        <button type="button" onClick={() => signOut()} className="text-sm text-[var(--color-muted)]">
-          로그아웃
-        </button>
-      </header>
+      </div>
 
       {!posts ? (
         <p className="text-sm text-[var(--color-muted)]">불러오는 중…</p>

@@ -3,11 +3,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── 공통 ────────────────────────────────────────────────────────────────
+
     // 글쓰기 권한을 가진 관리자 계정
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email in ['qa@muhayu.com'];
+        && request.auth.token.email in ['totoriverce@gmail.com'];
+    }
+
+    // 관리 콘솔의 보안 설정. 문서가 없으면 기본값(잠금 해제)으로 본다.
+    function settings() {
+      return exists(/databases/$(database)/documents/settings/security)
+        ? get(/databases/$(database)/documents/settings/security).data
+        : {};
+    }
+
+    function postingUnlocked() {
+      return settings().get('postingLocked', false) == false;
     }
 
     function validPost(d) {
@@ -17,16 +30,43 @@ service cloud.firestore {
         && d.tags is list && d.tags.size() <= 3;   // 게시물당 태그 최대 3개
     }
 
+    // ── 게시물 ──────────────────────────────────────────────────────────────
+
     match /posts/{postId} {
       // 발행된 글은 누구나, 임시저장은 관리자만
       allow get, list: if resource.data.published == true || isAdmin();
-      allow create, update: if isAdmin() && validPost(request.resource.data);
-      allow delete: if isAdmin();
+
+      // 글쓰기 잠금이 켜져 있으면 관리자라도 쓸 수 없다
+      allow create, update: if isAdmin() && postingUnlocked() && validPost(request.resource.data);
+      allow delete: if isAdmin() && postingUnlocked();
     }
+
+    // ── 태그 집계 ───────────────────────────────────────────────────────────
 
     match /tags/{tagId} {
       allow get, list: if true;
       allow write: if isAdmin();
+    }
+
+    // ── 보안 설정 ───────────────────────────────────────────────────────────
+
+    match /settings/security {
+      // 에디터가 잠금 상태를 읽어야 하므로 관리자에게만 읽기를 연다
+      allow get: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ── 감사 로그 ───────────────────────────────────────────────────────────
+
+    match /audit/{entryId} {
+      allow get, list: if isAdmin();
+
+      // 추가만 가능. 수정·삭제는 관리자도 할 수 없어 기록이 남는다.
+      allow create: if isAdmin()
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.at == request.time
+        && request.resource.data.action is string;
+      allow update, delete: if false;
     }
 
     match /{document=**} {

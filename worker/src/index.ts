@@ -1,5 +1,4 @@
 import { requireAdmin } from './auth'
-import { analyzeTags } from './tagger'
 
 export type Env = {
   BUCKET: R2Bucket
@@ -7,7 +6,6 @@ export type Env = {
   ADMIN_EMAILS: string
   PUBLIC_BASE_URL: string
   ALLOWED_ORIGIN: string
-  ANTHROPIC_API_KEY: string
 }
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -44,7 +42,6 @@ export default {
 
     try {
       if (pathname === '/upload') return await handleUpload(req, env, headers)
-      if (pathname === '/tags') return await handleTags(req, env, headers)
     } catch (err) {
       console.error(err)
       return json({ error: (err as Error).message }, 500, headers)
@@ -72,21 +69,4 @@ async function handleUpload(req: Request, env: Env, headers: Record<string, stri
   })
 
   return json({ url: `${env.PUBLIC_BASE_URL.replace(/\/$/, '')}/${key}` }, 200, headers)
-}
-
-/** 본문을 분석해 태그(최대 3개)를 제안한다. */
-async function handleTags(req: Request, env: Env, headers: Record<string, string>) {
-  const { title = '', body = '', existingTags = [] } = (await req.json()) as {
-    title?: string
-    body?: string
-    existingTags?: string[]
-  }
-  if (body.trim().length < 20) return json({ tags: [] }, 200, headers)
-
-  const tags = await analyzeTags(env.ANTHROPIC_API_KEY, {
-    title,
-    body: body.slice(0, 200_000),
-    existingTags: existingTags.slice(0, 200),
-  })
-  return json({ tags }, 200, headers)
 }

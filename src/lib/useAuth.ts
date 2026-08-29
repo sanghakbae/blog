@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth'
+import {
+  onAuthStateChanged,
+  reauthenticateWithPopup,
+  signInWithPopup,
+  signOut,
+  type User,
+} from 'firebase/auth'
 import { ADMIN_EMAILS, auth, googleProvider } from './authClient'
+import { logAudit } from './audit'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -13,7 +20,20 @@ export function useAuth() {
     user,
     loading,
     isAdmin: !!user && ADMIN_EMAILS.includes(email),
-    signIn: () => signInWithPopup(auth, googleProvider),
-    signOut: () => signOut(auth),
+    signIn: async () => {
+      const cred = await signInWithPopup(auth, googleProvider)
+      await logAudit('auth.signin', cred.user.uid, cred.user.email ?? '')
+      return cred
+    },
+    signOut: async () => {
+      await logAudit('auth.signout', user?.uid ?? '', email)
+      await signOut(auth)
+    },
   }
+}
+
+/** 오래된 세션으로 위험한 작업을 하지 못하도록 구글 재인증을 요구한다. */
+export async function reauthenticate() {
+  if (!auth.currentUser) throw new Error('로그인이 필요합니다.')
+  await reauthenticateWithPopup(auth.currentUser, googleProvider)
 }
