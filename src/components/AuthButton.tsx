@@ -25,15 +25,17 @@ export default function AuthButton() {
       <div className="flex shrink-0 items-center gap-1.5">
         {viewer.isAdmin && (
           <>
+            {/* 좁은 화면에서는 헤더가 한 줄에 다 들어가지 않는다.
+                같은 링크를 메뉴 패널에 두고 여기서는 감춘다. */}
             <Link
               to="/admin/new"
-              className="rounded-md bg-[var(--accent)] px-2 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--accent-ink)]"
+              className="hidden rounded-md bg-[var(--accent)] px-2 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--accent-ink)] lg:block"
             >
               글쓰기
             </Link>
             <Link
               to="/admin"
-              className="hidden rounded-md px-1.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--muted)] transition-colors hover:text-[var(--ink)] sm:block"
+              className="hidden rounded-md px-1.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--muted)] transition-colors hover:text-[var(--ink)] lg:block"
             >
               관리
             </Link>

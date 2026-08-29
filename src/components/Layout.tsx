@@ -1,8 +1,18 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { Link, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import TagSidebar from './TagSidebar'
 import AuthButton from './AuthButton'
 import ThemeToggle from './ThemeToggle'
+import { subscribeViewer, type Viewer } from '../lib/authState'
+
+/** 좁은 화면의 메뉴 패널에서만 쓰는 관리 링크 */
+const ADMIN_LINKS = [
+  { to: '/admin/new', label: '글쓰기', end: false },
+  { to: '/admin', label: '글 목록', end: true },
+  { to: '/admin/audit', label: '감사 로그', end: false },
+  { to: '/admin/seo', label: 'SEO / GEO', end: false },
+  { to: '/admin/security', label: '보안', end: false },
+]
 
 // 처리방침은 열어볼 때만 내려받는다
 const PrivacyModal = lazy(() => import('./PrivacyModal'))
@@ -12,6 +22,9 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [viewer, setViewer] = useState<Viewer>(null)
+
+  useEffect(() => subscribeViewer(setViewer), [])
 
   // ⌘K / Ctrl+K 로 어디서든 검색을 연다
   useEffect(() => {
@@ -57,12 +70,34 @@ export default function Layout() {
             className="shrink-0 rounded-md bg-[var(--ink)] px-2 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--bg)] lg:hidden"
             aria-expanded={menuOpen}
           >
-            태그
+            메뉴
           </button>
         </div>
 
         {menuOpen && (
-          <div className="border-t border-[var(--line)] px-2 py-2 sm:px-3 lg:hidden">
+          <div className="max-h-[70dvh] overflow-y-auto border-t border-[var(--line)] px-2 py-2 sm:px-3 lg:hidden">
+            {/* 관리 메뉴는 헤더에 자리가 없어 여기에 둔다. 좁은 화면에서도 모두 닿아야 한다. */}
+            {viewer?.isAdmin && (
+              <div className="mb-3 flex flex-wrap gap-1.5 border-b border-[var(--line)] pb-3">
+                {ADMIN_LINKS.map((l) => (
+                  <NavLink
+                    key={l.to}
+                    to={l.to}
+                    end={l.end}
+                    onClick={() => setMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `rounded-md border px-2 py-1 text-[11px] font-medium whitespace-nowrap transition-colors ${
+                        isActive
+                          ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-ink)]'
+                          : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--ink)]'
+                      }`
+                    }
+                  >
+                    {l.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
             <TagSidebar onNavigate={() => setMenuOpen(false)} />
           </div>
         )}

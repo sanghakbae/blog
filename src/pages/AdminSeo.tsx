@@ -81,7 +81,6 @@ export default function AdminSeo() {
             <span className="mt-0.5 block text-center text-xl font-semibold tabular-nums">
               {counts[a]}
             </span>
-            <span className="block truncate text-[10px] text-[var(--muted)]">해결할 항목</span>
           </button>
         ))}
 
@@ -94,7 +93,6 @@ export default function AdminSeo() {
               {indexed(e)}
               <span className="text-xs font-normal text-[var(--muted)]"> / {posts?.length ?? 0}</span>
             </span>
-            <span className="block truncate text-[10px] text-[var(--muted)]">색인 확인</span>
           </div>
         ))}
       </div>

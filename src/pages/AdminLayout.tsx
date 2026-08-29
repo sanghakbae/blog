@@ -25,14 +25,14 @@ export default function AdminLayout() {
         </button>
       </header>
 
-      <nav className="mb-8 flex gap-1 border-b border-[var(--line)]">
+      <nav className="mb-8 flex gap-1 overflow-x-auto border-b border-[var(--line)]">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
             to={t.to}
             end={t.end}
             className={({ isActive }) =>
-              `-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
+              `-mb-px shrink-0 border-b-2 px-2.5 py-2 text-sm whitespace-nowrap transition-colors sm:px-3 ${
                 isActive
                   ? 'border-[var(--accent)] font-medium text-[var(--accent)]'
                   : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
