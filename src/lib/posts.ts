@@ -15,6 +15,8 @@ export type Post = {
   published: boolean
   createdAt?: Timestamp
   updatedAt?: Timestamp
+  /** 검색 포털별 색인 확인 기록 */
+  indexStatus?: Record<string, string>
 }
 
 export type Tag = { id: string; name: string; count: number }
@@ -41,6 +43,7 @@ function toPost(id: string, d: any): Post {
     published: !!d.published,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
+    indexStatus: d.indexStatus ?? {},
   }
 }
 

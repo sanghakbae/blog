@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listAllPosts, type Post } from '../lib/posts'
 import { auditAll, summarize, type IssueArea, type PostAudit } from '../lib/seo'
+import {
+  ENGINES, ENGINE_LABEL, confirmedOn, searchUrl, toggleIndexed,
+  type Engine, type IndexStatus,
+} from '../lib/indexStatus'
 
 const AREAS: IssueArea[] = ['SEO', 'GEO', '이미지', '에디토리얼']
 
@@ -21,10 +25,25 @@ function scoreStyle(score: number): string {
 export default function AdminSeo() {
   const [posts, setPosts] = useState<Post[] | null>(null)
   const [area, setArea] = useState<IssueArea | null>(null)
+  // 색인 확인 기록은 화면에서 바로 갱신한다
+  const [status, setStatus] = useState<Record<string, IndexStatus>>({})
 
   useEffect(() => {
-    listAllPosts(300).then(setPosts).catch(() => setPosts([]))
+    listAllPosts(300)
+      .then((list) => {
+        setPosts(list)
+        setStatus(Object.fromEntries(list.map((p) => [p.id, p.indexStatus ?? {}])))
+      })
+      .catch(() => setPosts([]))
   }, [])
+
+  const indexed = (engine: Engine) =>
+    Object.values(status).filter((s) => s[engine]).length
+
+  async function mark(postId: string, engine: Engine) {
+    const next = await toggleIndexed(postId, engine, status[postId] ?? {})
+    setStatus((prev) => ({ ...prev, [postId]: next }))
+  }
 
   const audits = useMemo(() => (posts ? auditAll(posts) : []), [posts])
   const counts = useMemo(() => summarize(audits), [audits])
@@ -64,6 +83,28 @@ export default function AdminSeo() {
         ))}
       </div>
 
+      <div className="mb-6 grid gap-2 sm:grid-cols-3">
+        {ENGINES.map((e) => {
+          const n = indexed(e)
+          const total = posts?.length ?? 0
+          return (
+            <div
+              key={e}
+              className="rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-4"
+            >
+              <span className="text-[20px] font-bold tracking-[0.08em] text-[var(--muted)]">
+                {ENGINE_LABEL[e]}
+              </span>
+              <span className="mt-1 block text-center text-2xl font-semibold tabular-nums">
+                {n}
+                <span className="text-base font-normal text-[var(--muted)]"> / {total}</span>
+              </span>
+              <span className="text-[11px] text-[var(--muted)]">색인 확인된 글</span>
+            </div>
+          )
+        })}
+      </div>
+
       {!posts && <p className="text-xs text-[var(--muted)]">불러오는 중…</p>}
       {posts && shown.length === 0 && (
         <p className="rounded-xl border border-dashed border-[var(--line)] py-12 text-center text-xs text-[var(--muted)]">
@@ -82,25 +123,45 @@ export default function AdminSeo() {
                 {a.title}
               </Link>
 
-              {/* 색인 여부는 각 포털에서만 확인할 수 있다. 해당 주소로 바로 조회한다. */}
+              {/* 색인 여부는 각 포털에서만 확인할 수 있다.
+                  ↗ 를 누르면 site: 검색이 열리고, 이름을 누르면 확인 표시를 남긴다. */}
               <span className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[var(--muted)]">색인 확인</span>
-                {[
-                  { name: '구글', href: `https://www.google.com/search?q=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
-                  { name: '네이버', href: `https://search.naver.com/search.naver?query=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
-                  { name: '빙', href: `https://www.bing.com/search?q=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
-                ].map((s) => (
-                  <a
-                    key={s.name}
-                    href={s.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={`${s.name}에서 이 글이 색인됐는지 검색합니다 (site: 검색)`}
-                    className="rounded border border-[var(--line)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  >
-                    {s.name}
-                  </a>
-                ))}
+                <span className="text-[10px] text-[var(--muted)]">색인</span>
+                {ENGINES.map((e) => {
+                  const on = !!status[a.id]?.[e]
+                  return (
+                    <span
+                      key={e}
+                      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
+                        on
+                          ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
+                          : 'border-[var(--line)] text-[var(--muted)]'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => mark(a.id, e)}
+                        title={
+                          on
+                            ? `${ENGINE_LABEL[e]} 색인 확인 ${confirmedOn(status[a.id] ?? {}, e)} — 눌러서 해제`
+                            : `${ENGINE_LABEL[e]} 색인을 확인했다면 눌러 표시`
+                        }
+                      >
+                        {ENGINE_LABEL[e]}
+                        {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`}
+                      </button>
+                      <a
+                        href={searchUrl(e, a.id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`${ENGINE_LABEL[e]}에서 site: 검색으로 확인`}
+                        className="opacity-60 transition-opacity hover:opacity-100"
+                      >
+                        ↗
+                      </a>
+                    </span>
+                  )
+                })}
               </span>
 
               <span className="ml-auto flex items-center gap-2 font-mono text-[10px] text-[var(--muted)]">
