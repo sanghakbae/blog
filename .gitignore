@@ -5,4 +5,3 @@ dist
 *.local
 .DS_Store
 .wrangler
-src/dev/seed-data.json
