@@ -4,7 +4,7 @@ import type { SeedPost } from './types'
 export const posts5: SeedPost[] = [
   {
     slug: 'data-classification',
-    title: '데이터 분류 없이 시작하는 보안은 겉돈다',
+    title: '데이터 분류 체계와 등급별 통제',
     body: `모든 데이터를 똑같이 지키려 하면 비용이 감당되지 않고, 정작 중요한 것도 제대로 못 지킨다.
 
 ## 등급을 나누는 이유
@@ -30,7 +30,33 @@ export const posts5: SeedPost[] = [
 
 ## 시작점
 
-전수 조사부터 하려 들면 몇 달이 지나도 끝나지 않는다. 개인정보가 들어 있는 저장소 목록을 먼저 만드는 것만으로도 상당한 진전이다.`,
+전수 조사부터 하려 들면 몇 달이 지나도 끝나지 않는다. 개인정보가 들어 있는 저장소 목록을 먼저 만드는 것만으로도 상당한 진전이다.
+
+## 바로 확인하기
+
+전수 조사부터 하려 들면 끝나지 않는다. 개인정보가 들어 있는 저장소 목록을 먼저 만든다.
+
+\`\`\`bash
+psql -c "SELECT table_name, column_name FROM information_schema.columns
+         WHERE column_name ~* '(ssn|jumin|phone|mobile|email|birth|addr|card)'
+         ORDER BY table_name;"
+\`\`\`
+
+등급은 세 단계에서 네 단계면 충분하다. 중요한 것은 등급 수가 아니라 등급마다 **실제로 다른 조치**가 적용되는가다.
+
+\`\`\`
+공개    제한 없음
+내부    사내 저장소, 임직원
+대외비  암호화, 지정 인원
+민감    암호화 + 키 분리, 최소 인원, 접근 기록
+\`\`\`
+
+라벨을 사람이 붙이게 하면 지켜지지 않는다. 저장 위치 자체에 등급을 부여하는 편이 유지된다.
+
+## 참고
+
+- ISO/IEC 27001 A.5.12 — 정보 분류
+- 개인정보의 안전성 확보조치 기준`,
     diagram: {
       type: 'flow',
       caption: '분류가 통제로 연결되는 흐름',
@@ -44,7 +70,7 @@ export const posts5: SeedPost[] = [
   },
   {
     slug: 'encryption-scope',
-    title: '무엇을 암호화할 것인가',
+    title: '암호화 계층 선택과 위협별 효과',
     body: `전부 암호화하겠다는 계획은 대개 성능 문제로 좌초한다. 무엇을 왜 암호화하는지 정하는 게 먼저다.
 
 ## 계층별로 막아주는 것이 다르다
@@ -73,7 +99,33 @@ export const posts5: SeedPost[] = [
 
 ## 암호화보다 중요한 것
 
-암호화된 데이터도 애플리케이션이 복호화해 보여준다. 결국 **접근 통제가 없으면 암호화는 물리적 유출만 막는 조치**다.`,
+암호화된 데이터도 애플리케이션이 복호화해 보여준다. 결국 **접근 통제가 없으면 암호화는 물리적 유출만 막는 조치**다.
+
+## 바로 확인하기
+
+무엇이 암호화돼 있는지 실제 설정에서 확인한다. 디스크 암호화만 켜두고 안심하는 경우가 많다.
+
+\`\`\`bash
+aws rds describe-db-instances --query 'DBInstances[].[DBInstanceIdentifier,StorageEncrypted]'
+aws s3api get-bucket-encryption --bucket my-bucket
+psql -c "SHOW ssl;"
+\`\`\`
+
+계층마다 막아주는 위협이 다르다. 디스크 암호화는 서버가 켜져 있는 동안에는 아무것도 막지 않는다.
+
+\`\`\`
+디스크          물리적 탈취만
+테이블스페이스   파일 유출
+컬럼            DB 관리자 조회
+애플리케이션     DB 전체 유출
+\`\`\`
+
+암호화된 데이터도 애플리케이션이 복호화해 보여준다. 접근 통제가 없으면 암호화는 물리적 유출만 막는 조치다.
+
+## 참고
+
+- NIST SP 800-111 — 저장 데이터 암호화
+- 개인정보의 안전성 확보조치 기준 — 암호화 대상`,
     diagram: {
       type: 'matrix',
       caption: '암호화 계층 선택 기준',
@@ -84,7 +136,7 @@ export const posts5: SeedPost[] = [
   },
   {
     slug: 'key-lifecycle',
-    title: '암호 키는 만드는 것보다 관리가 어렵다',
+    title: '암호 키 수명 주기와 봉투 암호화',
     body: `알고리즘 선택은 몇 분이면 끝난다. 키를 언제 어떻게 바꿀지 정하는 데 훨씬 오래 걸린다.
 
 ## 수명 주기
@@ -112,7 +164,33 @@ export const posts5: SeedPost[] = [
 
 ## 분리 보관
 
-키와 데이터를 같은 곳에 두면 암호화의 의미가 없다. 관리형 키 서비스를 쓰면 접근 이력이 남고 권한 분리가 자연스럽게 이뤄진다.`,
+키와 데이터를 같은 곳에 두면 암호화의 의미가 없다. 관리형 키 서비스를 쓰면 접근 이력이 남고 권한 분리가 자연스럽게 이뤄진다.
+
+## 바로 확인하기
+
+키 회전이 실제로 돌고 있는지, 언제 마지막으로 돌았는지 본다.
+
+\`\`\`bash
+aws kms list-keys --query 'Keys[].KeyId' --output text | tr '\\t' '\\n' \\
+  | xargs -n1 -I@ sh -c \\
+    'echo -n "@ "; aws kms get-key-rotation-status --key-id @ \\
+     --query KeyRotationEnabled --output text'
+\`\`\`
+
+봉투 암호화를 쓰면 마스터 키를 바꿔도 원본을 다시 암호화할 필요가 없다.
+
+\`\`\`
+데이터    →  데이터 키로 암호화
+데이터 키  →  마스터 키로 감싸 함께 저장
+마스터 키 회전 시 감싼 키만 다시 봉인
+\`\`\`
+
+암호화 사고의 상당수는 유출이 아니라 **분실**이다. 키 백업과 복구 시나리오를 데이터 백업과 같은 수준으로 다룬다.
+
+## 참고
+
+- NIST SP 800-57 Part 1 — 키 관리 권고
+- ISO/IEC 27001 A.8.24 — 암호화 사용`,
     diagram: {
       type: 'steps',
       caption: '봉투 암호화로 회전 비용 낮추기',
@@ -126,7 +204,7 @@ export const posts5: SeedPost[] = [
   },
   {
     slug: 'pseudonymization',
-    title: '가명처리와 익명처리는 다른 말이다',
+    title: '가명처리와 익명처리의 차이',
     body: `두 용어를 섞어 쓰면 법적 판단이 완전히 달라진다.
 
 ## 무엇이 다른가
@@ -155,7 +233,38 @@ export const posts5: SeedPost[] = [
 
 ## 판단 기준
 
-처리 후에도 **합리적으로 가능한 수단으로 재식별될 수 있다면** 익명이 아니다. 애매하면 가명처리로 보고 그에 맞는 안전조치를 적용하는 편이 안전하다.`,
+처리 후에도 **합리적으로 가능한 수단으로 재식별될 수 있다면** 익명이 아니다. 애매하면 가명처리로 보고 그에 맞는 안전조치를 적용하는 편이 안전하다.
+
+## 바로 확인하기
+
+식별자를 지웠다고 익명이 되지 않는다. 조합으로 특정되는지 확인한다.
+
+\`\`\`sql
+SELECT birth_date, gender, zip_code, COUNT(*) AS n
+FROM users_pseudo
+GROUP BY 1,2,3
+HAVING COUNT(*) < 5
+ORDER BY n;
+-- 결과가 나오면 그 조합은 재식별 위험이 있다
+\`\`\`
+
+k-익명성을 확보하려면 준식별자를 범주화한다.
+
+\`\`\`sql
+SELECT
+  FLOOR(EXTRACT(YEAR FROM AGE(birth_date)) / 10) * 10 AS age_band,
+  LEFT(zip_code, 3) AS zip_prefix,
+  gender
+FROM users;
+\`\`\`
+
+가명처리한 데이터는 여전히 개인정보다. 추가 정보를 분리 보관하고 안전조치를 그대로 적용해야 한다.
+
+## 참고
+
+- 개인정보보호법 — 가명정보 처리 특례
+- 가명정보 처리 가이드라인 (개인정보보호위원회)
+- ISO/IEC 20889 — 비식별화 기법`,
     diagram: {
       type: 'layers',
       caption: '재식별 위험을 낮추는 단계',
@@ -168,7 +277,7 @@ export const posts5: SeedPost[] = [
   },
   {
     slug: 'backup-recovery',
-    title: '백업은 있는데 복구가 안 되는 경우',
+    title: '복구 가능한 백업의 조건과 격리 사본',
     body: `랜섬웨어 사고에서 가장 흔한 문장은 백업이 없다가 아니다. 백업이 있는데 쓸 수 없었다는 것이다.
 
 ## 왜 못 쓰나
@@ -197,7 +306,33 @@ export const posts5: SeedPost[] = [
 
 ## 복구 훈련
 
-분기에 한 번은 실제로 복원해 봐야 한다. 훈련하지 않은 절차는 사고 당일에 반드시 막힌다.`,
+분기에 한 번은 실제로 복원해 봐야 한다. 훈련하지 않은 절차는 사고 당일에 반드시 막힌다.
+
+## 바로 확인하기
+
+백업이 있는지가 아니라 **복원이 되는지**를 확인한다. 해보지 않은 절차는 사고 당일에 막힌다.
+
+\`\`\`bash
+aws backup list-recovery-points-by-backup-vault --backup-vault-name prod \\
+  --query 'RecoveryPoints[:5].[CreationDate,BackupSizeInBytes,Status]' --output table
+
+aws rds restore-db-instance-from-db-snapshot \\
+  --db-instance-identifier restore-test \\
+  --db-snapshot-identifier prod-snapshot-2026-08-01
+\`\`\`
+
+랜섬웨어 대비의 핵심은 **논리적으로 분리된 사본**이다. 같은 자격 증명으로 지울 수 있으면 백업이 아니다.
+
+\`\`\`
+사본 3벌, 매체 2종, 그중 1벌은 분리 보관
+분리 사본 조건: 별도 계정, 별도 자격 증명, 변경 불가 설정
+보관 기간: 침해 발견 지연을 감안해 최소 90일
+\`\`\`
+
+## 참고
+
+- NIST SP 800-34 — 비상 계획 수립
+- CISA 랜섬웨어 대응 가이드`,
     diagram: {
       type: 'steps',
       caption: '복구 가능한 백업의 조건',
@@ -211,7 +346,7 @@ export const posts5: SeedPost[] = [
   },
   {
     slug: 'log-masking',
-    title: '로그가 개인정보 유출 경로가 될 때',
+    title: '로그의 개인정보 마스킹과 접근 통제',
     body: `데이터베이스는 열심히 지키면서 로그는 아무나 보게 두는 경우가 많다. 로그에는 생각보다 많은 것이 들어 있다.
 
 ## 무심코 들어가는 것들
@@ -240,7 +375,39 @@ export const posts5: SeedPost[] = [
 
 ## 접근 통제와 보관
 
-로그 조회 권한도 개인정보 접근 권한이다. 조회 기록을 남기고, 보관 기간이 지나면 자동 삭제되도록 해야 한다. 검색 편의를 위해 무기한 보관하는 관행이 위험을 키운다.`,
+로그 조회 권한도 개인정보 접근 권한이다. 조회 기록을 남기고, 보관 기간이 지나면 자동 삭제되도록 해야 한다. 검색 편의를 위해 무기한 보관하는 관행이 위험을 키운다.
+
+## 바로 확인하기
+
+로그에 민감 정보가 흘러나가고 있는지 직접 본다.
+
+\`\`\`bash
+grep -oE '(01[016-9][0-9]{7,8}|[0-9]{6}-[1-4][0-9]{6})' /var/log/app/*.log | sort -u | head
+\`\`\`
+
+호출 지점마다 처리하면 반드시 빠뜨린다. 로깅 계층에서 필드 이름 기준으로 한 번에 거른다.
+
+\`\`\`ts
+const SENSITIVE = /^(password|token|authorization|ssn|jumin|card|cvv)$/i
+
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redact)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) =>
+        [k, SENSITIVE.test(k) ? '[REDACTED]' : redact(v)]),
+    )
+  }
+  return value
+}
+\`\`\`
+
+로그 조회 권한도 개인정보 접근 권한이다. 조회 기록을 남기고 보관 기간이 지나면 자동 삭제한다.
+
+## 참고
+
+- OWASP Cheat Sheet — Logging
+- 개인정보의 안전성 확보조치 기준 — 접속기록`,
     diagram: {
       type: 'flow',
       caption: '민감 정보는 기록 전에 걸러낸다',
@@ -254,7 +421,7 @@ export const posts5: SeedPost[] = [
   },
   {
     slug: 'db-access-control',
-    title: '운영 데이터베이스에 사람이 직접 접속하는 문제',
+    title: '운영 데이터베이스 직접 접속 통제',
     body: `장애 대응을 위해 열어둔 직접 접속 경로가 상시 통로가 된다.
 
 ## 왜 위험한가
@@ -294,7 +461,33 @@ export const posts5: SeedPost[] = [
 
 ## 개발자에게 필요한 것은 대개 스키마다
 
-운영 DB 접근 요청의 상당수는 데이터가 아니라 구조를 보려는 것이다. 스키마 문서와 샘플 데이터를 잘 갖춰두면 요청 자체가 줄어든다. 접근을 막기 전에 대안을 먼저 준비하는 편이 순서가 맞다.`,
+운영 DB 접근 요청의 상당수는 데이터가 아니라 구조를 보려는 것이다. 스키마 문서와 샘플 데이터를 잘 갖춰두면 요청 자체가 줄어든다. 접근을 막기 전에 대안을 먼저 준비하는 편이 순서가 맞다.
+
+## 바로 확인하기
+
+지금 누가 운영 DB 에 직접 붙어 있는지, 공용 계정이 남아 있는지 본다.
+
+\`\`\`sql
+SELECT usename, client_addr, application_name, state, query_start
+FROM pg_stat_activity WHERE datname = 'prod' ORDER BY query_start;
+
+SELECT rolname, rolsuper, rolcreaterole FROM pg_roles WHERE rolcanlogin;
+\`\`\`
+
+권한을 가진 사람이라도 한 번에 볼 수 있는 양을 제한한다. 화면에서 100건씩 보는 사람이 10만 건을 내려받을 이유는 없다.
+
+\`\`\`sql
+CREATE VIEW customer_masked AS
+SELECT id,
+       left(name, 1) || repeat('*', length(name) - 1) AS name,
+       regexp_replace(phone, '(\\d{3})\\d{4}(\\d{4})', '\\1****\\2') AS phone
+FROM customer;
+\`\`\`
+
+## 참고
+
+- 개인정보의 안전성 확보조치 기준 — 접근 권한 관리
+- NIST SP 800-53 — AC-3 접근 시행`,
     diagram: {
       type: 'layers',
       caption: '직접 접속을 줄이는 단계',
@@ -307,7 +500,7 @@ export const posts5: SeedPost[] = [
   },
   {
     slug: 'secure-random',
-    title: '난수를 잘못 쓰면 전부 무너진다',
+    title: '보안 토큰에 쓸 난수 선택 기준',
     body: `토큰, 세션 ID, 비밀번호 재설정 링크는 전부 예측 불가능해야 한다. 여기서 일반 난수 함수를 쓰면 안 된다.
 
 ## 무엇이 문제인가
@@ -335,7 +528,40 @@ export const posts5: SeedPost[] = [
 
 ## 흔한 사고
 
-UUID 버전에 따라 예측 가능성이 다르다. 시간과 MAC 주소 기반 버전은 보안 토큰으로 쓰면 안 된다.`,
+UUID 버전에 따라 예측 가능성이 다르다. 시간과 MAC 주소 기반 버전은 보안 토큰으로 쓰면 안 된다.
+
+## 바로 확인하기
+
+보안 토큰에 일반 난수를 쓰는 자리를 찾는다.
+
+\`\`\`bash
+grep -rnE 'Math\\.random|new Random\\(|rand\\(\\)' src/ \\
+  | grep -iE 'token|secret|key|otp|code|session|nonce|reset'
+\`\`\`
+
+암호학적 난수로 바꾸고 길이는 최소 128비트를 준다.
+
+\`\`\`ts
+import { randomBytes, timingSafeEqual } from 'node:crypto'
+
+// 재설정 토큰 (32바이트 = 256비트)
+const token = randomBytes(32).toString('base64url')
+
+// 비교는 상수 시간으로. 일반 비교는 응답 시간으로 값이 새어 나간다.
+function safeEqual(a: string, b: string): boolean {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
+}
+\`\`\`
+
+사람이 입력해야 하는 코드는 길이를 줄이는 대신 시도 횟수 제한과 짧은 만료를 함께 둔다.
+
+## 참고
+
+- NIST SP 800-90A — 난수 생성기
+- OWASP Cheat Sheet — Cryptographic Storage
+- CWE-338 Use of Cryptographically Weak PRNG`,
     diagram: {
       type: 'matrix',
       caption: '난수 선택 기준',
@@ -346,7 +572,7 @@ UUID 버전에 따라 예측 가능성이 다르다. 시간과 MAC 주소 기반
   },
   {
     slug: 'data-retention',
-    title: '지우지 않은 데이터가 가장 큰 위험이다',
+    title: '개인정보 보유 기간 설계와 파기 범위',
     body: `유출 사고의 피해 규모는 대개 필요 이상으로 오래 보관한 데이터 때문에 커진다.
 
 ## 왜 안 지우나
@@ -376,7 +602,39 @@ UUID 버전에 따라 예측 가능성이 다르다. 시간과 MAC 주소 기반
 
 ## 자동화
 
-수동 삭제는 반드시 누락된다. 보관 기간을 데이터에 속성으로 부여하고 만료된 항목을 자동으로 정리하는 배치가 필요하다.`,
+수동 삭제는 반드시 누락된다. 보관 기간을 데이터에 속성으로 부여하고 만료된 항목을 자동으로 정리하는 배치가 필요하다.
+
+## 바로 확인하기
+
+보유 기간이 지난 데이터가 얼마나 남아 있는지 센다.
+
+\`\`\`sql
+SELECT COUNT(*) FROM users
+WHERE withdrawn_at IS NOT NULL AND withdrawn_at < NOW() - INTERVAL '30 days';
+
+SELECT COUNT(*), MIN(created_at) FROM access_log
+WHERE created_at < NOW() - INTERVAL '1 year';
+\`\`\`
+
+삭제는 운영 DB 에서 끝나지 않는다. 사본이 있는 모든 위치를 목록으로 만든다.
+
+\`\`\`
+운영 DB → 읽기 복제본 → 분석 DB → 백업 → 로그 → 캐시 → 검색 인덱스
+\`\`\`
+
+법정 보관 의무가 있는 항목은 오히려 지우면 안 된다. 그래서 항목별 기준표가 필요하다.
+
+\`\`\`
+회원 정보    탈퇴 즉시 파기 (분리 보관 대상 제외)
+결제 기록    5년 (전자상거래법)
+접속 기록    최소 1년 (안전성 확보조치 기준)
+서비스 로그  3~6개월
+\`\`\`
+
+## 참고
+
+- 개인정보보호법 제21조 — 개인정보의 파기
+- 전자상거래법 — 거래기록 보존 의무`,
     diagram: {
       type: 'flow',
       caption: '삭제는 사본까지 도달해야 완료된다',
@@ -390,7 +648,7 @@ UUID 버전에 따라 예측 가능성이 다르다. 시간과 MAC 주소 기반
   },
   {
     slug: 'test-data',
-    title: '개발 환경에 운영 데이터를 복사하는 관행',
+    title: '테스트 데이터 확보 방법과 반출 통제',
     body: `테스트가 어려우니 운영 데이터를 그대로 가져다 쓰는 일이 흔하다. 개발 환경은 운영보다 훨씬 허술하다.
 
 ## 위험이 커지는 이유
@@ -420,7 +678,35 @@ UUID 버전에 따라 예측 가능성이 다르다. 시간과 MAC 주소 기반
 
 ## 반출 통제
 
-가장 흔한 사고는 개발자 노트북에 덤프 파일이 남아 있는 경우다. 데이터 이동 자체를 승인 대상으로 만들고 이력을 남겨야 한다.`,
+가장 흔한 사고는 개발자 노트북에 덤프 파일이 남아 있는 경우다. 데이터 이동 자체를 승인 대상으로 만들고 이력을 남겨야 한다.
+
+## 바로 확인하기
+
+개발 환경에 운영 데이터가 흘러 들어갔는지 확인한다.
+
+\`\`\`bash
+psql -h dev-db -c "SELECT COUNT(*) FROM users
+  WHERE email !~ 'example\\.(com|org)$' AND email ~ '@';"
+
+find ~ -name '*.sql' -o -name '*.dump' -size +10M 2>/dev/null
+\`\`\`
+
+관계는 살리되 값만 바꾸는 방식이 실무에 맞다.
+
+\`\`\`sql
+UPDATE users SET
+  name  = '사용자' || id,
+  email = 'user' || id || '@example.com',
+  phone = '010' || lpad((1000000 + id)::text, 8, '0'),
+  birth_date = date_trunc('year', birth_date);  -- 준식별자도 함께 뭉갠다
+\`\`\`
+
+이름과 주민번호만 바꾸고 나머지를 두면 조합으로 재식별된다.
+
+## 참고
+
+- 개인정보의 안전성 확보조치 기준 — 개발·테스트 환경
+- ISO/IEC 27001 A.8.33 — 시험 정보 보호`,
     diagram: {
       type: 'matrix',
       caption: '테스트 데이터 선택',

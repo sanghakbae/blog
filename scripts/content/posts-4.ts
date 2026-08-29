@@ -4,7 +4,7 @@ import type { SeedPost } from './types'
 export const posts4: SeedPost[] = [
   {
     slug: 'iam-least-privilege',
-    title: '최소 권한은 목표가 아니라 과정이다',
+    title: 'IAM 최소 권한을 사용 기록으로 좁히기',
     body: `IAM 정책을 처음부터 최소 권한으로 만들려는 시도는 대부분 실패한다. 무엇이 필요한지 미리 알 수 없기 때문이다.
 
 ## 넓게 시작해 좁히는 방법
@@ -31,7 +31,32 @@ export const posts4: SeedPost[] = [
 
 ## 정기 재검토
 
-권한은 부여만 되고 회수되지 않는다. 반기마다 소유자에게 확인을 요청하고, 응답이 없으면 자동 회수하는 절차가 실효성이 높다.`,
+권한은 부여만 되고 회수되지 않는다. 반기마다 소유자에게 확인을 요청하고, 응답이 없으면 자동 회수하는 절차가 실효성이 높다.
+
+## 바로 확인하기
+
+권한 상승 경로는 개별 권한이 아니라 조합에서 생긴다. 위험한 조합부터 찾는다.
+
+\`\`\`bash
+# 자원 제한 없는 PassRole (다른 역할을 넘겨받을 수 있다)
+aws iam list-policies --scope Local --query 'Policies[].Arn' --output text \\
+  | xargs -n1 -I{} sh -c 'aws iam get-policy-version --policy-arn {} \\
+      --version-id $(aws iam get-policy --policy-arn {} \\
+      --query Policy.DefaultVersionId --output text)' \\
+  | grep -B3 'iam:PassRole'
+
+# 90일 이상 쓰이지 않은 액세스 키
+aws iam get-credential-report --query Content --output text | base64 -d \\
+  | awk -F, 'NR>1 {print $1, $9, $11}'
+\`\`\`
+
+넓게 주고 사용 기록으로 좁히는 순서가 현실적이다. 클라우드가 마지막 사용 시각을 제공하므로 근거가 남는다.
+
+## 참고
+
+- AWS IAM 보안 모범 사례
+- NIST SP 800-53 — AC-6 최소 권한
+- CIS Benchmark — 클라우드 계정 설정`,
     diagram: {
       type: 'steps',
       caption: '사용 기록 기반 권한 축소',
@@ -45,7 +70,7 @@ export const posts4: SeedPost[] = [
   },
   {
     slug: 'bucket-exposure',
-    title: '스토리지 버킷 공개 설정 사고는 왜 반복되나',
+    title: '스토리지 버킷 공개 설정 사고 차단',
     body: `클라우드 유출 사고 중 상당수가 오브젝트 스토리지 공개 설정이다. 해킹이 아니라 설정 실수다.
 
 ## 어떻게 공개되나
@@ -74,7 +99,30 @@ export const posts4: SeedPost[] = [
 
 ## 탐지
 
-설정 변경을 감지해 알리는 규칙을 두면 사고 시간을 크게 줄일 수 있다. 대부분의 유출은 공개된 뒤 수 개월간 아무도 모른 채 방치되면서 피해가 커진다.`,
+설정 변경을 감지해 알리는 규칙을 두면 사고 시간을 크게 줄일 수 있다. 대부분의 유출은 공개된 뒤 수 개월간 아무도 모른 채 방치되면서 피해가 커진다.
+
+## 바로 확인하기
+
+계정 수준 공개 차단이 켜져 있는지부터 본다. 이것 하나로 개별 실수 대부분이 막힌다.
+
+\`\`\`bash
+# 계정 전체 공개 차단 상태
+aws s3control get-public-access-block --account-id "$ACCOUNT_ID"
+
+# 버킷별 공개 여부
+for b in $(aws s3api list-buckets --query 'Buckets[].Name' --output text); do
+  st=$(aws s3api get-public-access-block --bucket "$b" 2>/dev/null \\
+        | jq -r '.PublicAccessBlockConfiguration.BlockPublicAcls')
+  [ "$st" != "true" ] && echo "확인 필요: $b"
+done
+\`\`\`
+
+공개가 필요한 정적 자산은 **별도 버킷 또는 별도 계정**으로 분리한다. 같은 버킷에 민감 데이터를 두면 정책 하나가 전부를 노출시킨다.
+
+## 참고
+
+- AWS S3 보안 모범 사례
+- CIS AWS Foundations Benchmark — S3 항목`,
     diagram: {
       type: 'layers',
       caption: '공개 차단은 위에서부터 겹쳐 건다',
@@ -87,7 +135,7 @@ export const posts4: SeedPost[] = [
   },
   {
     slug: 'cloud-audit-log',
-    title: '클라우드 감사 로그, 켜두기만 하면 소용없다',
+    title: '클라우드 감사 로그 구성과 보안 계정 분리',
     body: `사고가 나면 가장 먼저 찾는 게 감사 로그다. 그런데 정작 필요한 순간에 없는 경우가 많다.
 
 ## 자주 발견되는 문제
@@ -116,7 +164,35 @@ export const posts4: SeedPost[] = [
 
 ## 무엇을 볼 것인가
 
-전부 보는 건 불가능하다. 루트 계정 사용, 정책 변경, 로그 설정 변경, 신규 자격 증명 생성 같은 소수의 이벤트만 알림으로 걸어도 효과가 크다.`,
+전부 보는 건 불가능하다. 루트 계정 사용, 정책 변경, 로그 설정 변경, 신규 자격 증명 생성 같은 소수의 이벤트만 알림으로 걸어도 효과가 크다.
+
+## 바로 확인하기
+
+전 리전에서 기록되는지, 다른 계정으로 나가는지 확인한다. 이 둘이 빠지면 사고 때 아무것도 남지 않는다.
+
+\`\`\`bash
+aws cloudtrail describe-trails --query \\
+  'trailList[].{Name:Name,MultiRegion:IsMultiRegionTrail,Bucket:S3BucketName}'
+
+# 로그 파일 무결성 검증이 켜져 있는지
+aws cloudtrail get-trail-status --name main-trail
+\`\`\`
+
+전부 보는 건 불가능하다. 소수의 이벤트만 알림으로 걸어도 효과가 크다.
+
+\`\`\`
+즉시 알림 대상
+  - 루트 계정 사용
+  - 감사 로그 설정 변경·중지
+  - IAM 정책 및 신뢰 관계 변경
+  - 새 액세스 키 생성
+  - 보안 그룹의 0.0.0.0/0 허용 추가
+\`\`\`
+
+## 참고
+
+- CIS AWS Foundations Benchmark — 로깅 및 모니터링
+- NIST SP 800-92 — 로그 관리 지침`,
     diagram: {
       type: 'flow',
       caption: '로그를 공격자 손이 닿지 않는 곳으로',
@@ -130,7 +206,7 @@ export const posts4: SeedPost[] = [
   },
   {
     slug: 'container-image',
-    title: '컨테이너 이미지는 대부분 필요 이상으로 크다',
+    title: '컨테이너 베이스 이미지 선택과 공격 표면',
     body: `이미지에 들어 있는 패키지 하나하나가 공격 표면이다. 쓰지 않는 셸과 패키지 관리자까지 전부 포함된다.
 
 ## 작은 이미지가 안전한 이유
@@ -160,7 +236,44 @@ export const posts4: SeedPost[] = [
 
 ## 스캔은 빌드 시점에
 
-배포된 뒤 스캔하면 이미 늦다. 파이프라인에서 기준 이상 취약점이 있으면 빌드를 실패시키는 게 효과적이다.`,
+배포된 뒤 스캔하면 이미 늦다. 파이프라인에서 기준 이상 취약점이 있으면 빌드를 실패시키는 게 효과적이다.
+
+## 바로 확인하기
+
+이미지에 무엇이 들어 있는지 먼저 본다. 대부분 쓰지 않는 패키지다.
+
+\`\`\`bash
+# 취약점과 패키지 수
+trivy image --severity HIGH,CRITICAL myapp:1.4.2
+
+# 루트로 실행되는지
+docker inspect myapp:1.4.2 --format '{{.Config.User}}'
+# 비어 있으면 root 다
+\`\`\`
+
+빌드 단계를 분리해 최종 이미지에서 빌드 도구를 제외한다.
+
+\`\`\`dockerfile
+FROM node:22 AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM gcr.io/distroless/nodejs22-debian12
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+USER nonroot
+CMD ["dist/server.js"]
+\`\`\`
+
+태그 대신 다이제스트로 고정해야 재현이 된다.
+
+## 참고
+
+- NIST SP 800-190 — 컨테이너 보안 지침
+- CIS Docker Benchmark`,
     diagram: {
       type: 'bars',
       caption: '베이스 이미지별 알려진 취약점 수 (예시)',
@@ -175,7 +288,7 @@ export const posts4: SeedPost[] = [
   },
   {
     slug: 'k8s-rbac',
-    title: '쿠버네티스 RBAC 에서 가장 흔한 실수',
+    title: '쿠버네티스 RBAC 설계와 권한 상승 경로',
     body: `클러스터를 빠르게 띄우려다 보면 권한을 넓게 주고 시작한다. 그 상태가 그대로 운영에 들어간다.
 
 ## cluster-admin 남발
@@ -203,7 +316,36 @@ export const posts4: SeedPost[] = [
 
 ## 파드 보안
 
-RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호스트 경로 마운트를 정책으로 차단해야 노드로 넘어가는 경로가 닫힌다.`,
+RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호스트 경로 마운트를 정책으로 차단해야 노드로 넘어가는 경로가 닫힌다.
+
+## 바로 확인하기
+
+클러스터 전체 권한을 가진 주체를 먼저 센다.
+
+\`\`\`bash
+# cluster-admin 이 붙은 주체
+kubectl get clusterrolebindings -o json | jq -r \\
+  '.items[] | select(.roleRef.name=="cluster-admin")
+   | "\\(.metadata.name): \\(.subjects[]?.kind)/\\(.subjects[]?.name)"'
+
+# 시크릿을 읽을 수 있는 서비스 계정
+kubectl auth can-i list secrets --as=system:serviceaccount:default:default
+\`\`\`
+
+기본 서비스 계정의 토큰 자동 마운트를 끄면 파드 침해가 클러스터로 번지는 경로 하나가 닫힌다.
+
+\`\`\`yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default
+automountServiceAccountToken: false
+\`\`\`
+
+## 참고
+
+- Kubernetes RBAC 공식 문서
+- NSA/CISA Kubernetes Hardening Guidance`,
     diagram: {
       type: 'flow',
       caption: '넓은 권한 하나가 만드는 확산',
@@ -217,7 +359,7 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
   },
   {
     slug: 'k8s-secrets',
-    title: '쿠버네티스 시크릿은 암호화되어 있지 않다',
+    title: '쿠버네티스 시크릿 보호 단계',
     body: `이름 때문에 오해하기 쉽다. 기본 설정에서 시크릿은 그냥 인코딩된 값일 뿐이다.
 
 ## 기본 동작
@@ -246,7 +388,40 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
 
 ## 회전
 
-시크릿을 바꿨는데 파드가 재시작되지 않으면 예전 값이 계속 쓰인다. 회전 절차에 재배포까지 포함해야 실제로 교체된다.`,
+시크릿을 바꿨는데 파드가 재시작되지 않으면 예전 값이 계속 쓰인다. 회전 절차에 재배포까지 포함해야 실제로 교체된다.
+
+## 바로 확인하기
+
+시크릿은 base64 인코딩일 뿐이다. 저장 시 암호화가 켜져 있는지 확인한다.
+
+\`\`\`bash
+# 값이 그대로 읽히는지 (인코딩은 암호화가 아니다)
+kubectl get secret db-cred -o jsonpath='{.data.password}' | base64 -d
+
+# API 서버에 저장 시 암호화가 설정돼 있는지
+ps aux | grep kube-apiserver | grep -o 'encryption-provider-config=[^ ]*'
+\`\`\`
+
+환경 변수보다 파일 마운트가 안전하다. 환경 변수는 자식 프로세스로 상속되고 크래시 덤프에 함께 실린다.
+
+\`\`\`yaml
+volumeMounts:
+  - name: db-cred
+    mountPath: /etc/secrets
+    readOnly: true
+volumes:
+  - name: db-cred
+    secret:
+      secretName: db-cred
+      defaultMode: 0400
+\`\`\`
+
+시크릿을 바꿔도 파드를 다시 만들지 않으면 예전 값이 계속 쓰인다. 회전 절차에 재배포를 포함한다.
+
+## 참고
+
+- Kubernetes 저장 시 암호화 공식 문서
+- NSA/CISA Kubernetes Hardening Guidance`,
     diagram: {
       type: 'layers',
       caption: '시크릿 보호는 겹쳐 쌓아야 한다',
@@ -259,7 +434,7 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
   },
   {
     slug: 'serverless-security',
-    title: '서버리스는 서버가 없을 뿐 위험은 그대로다',
+    title: '서버리스 환경의 위험과 함수 단위 권한',
     body: `관리할 서버가 없다는 말이 보안 부담이 없다는 뜻은 아니다. 위험의 위치가 옮겨갈 뿐이다.
 
 ## 무엇이 달라지나
@@ -285,7 +460,33 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
 
 함수마다 별도 역할을 만들고 필요한 자원만 지정한다. 공용 역할 하나를 여러 함수가 공유하는 구성은 최소 권한을 포기하는 것과 같다.
 
-실행 시간 제한과 동시 실행 수 제한도 보안 통제다. 무한 재귀 호출로 비용이 폭증하는 사고가 실제로 자주 발생한다.`,
+실행 시간 제한과 동시 실행 수 제한도 보안 통제다. 무한 재귀 호출로 비용이 폭증하는 사고가 실제로 자주 발생한다.
+
+## 바로 확인하기
+
+함수마다 전용 역할이 있는지, 자원이 명시돼 있는지 본다. 공용 역할 하나를 여러 함수가 공유하면 최소 권한이 무의미해진다.
+
+\`\`\`bash
+# 함수와 역할 대응 관계
+aws lambda list-functions --query \\
+  'Functions[].{Fn:FunctionName,Role:Role}' --output table
+
+# 와일드카드 자원이 있는 정책
+aws iam get-role-policy --role-name my-fn-role --policy-name inline \\
+  | jq '.PolicyDocument.Statement[] | select(.Resource=="*")'
+\`\`\`
+
+실행 시간과 동시 실행 수 제한도 보안 통제다. 무한 재귀 호출로 비용이 폭증하는 사고가 실제로 자주 난다.
+
+\`\`\`bash
+aws lambda put-function-concurrency \\
+  --function-name my-fn --reserved-concurrent-executions 50
+\`\`\`
+
+## 참고
+
+- OWASP Serverless Top 10
+- AWS Lambda 보안 모범 사례`,
     diagram: {
       type: 'matrix',
       caption: '함수 권한 설계',
@@ -296,7 +497,7 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
   },
   {
     slug: 'iac-scanning',
-    title: '인프라 코드에서 미리 잡는 설정 오류',
+    title: '인프라 코드 검사로 설정 오류 미리 잡기',
     body: `클라우드 설정 사고의 상당수는 코드 리뷰 단계에서 발견할 수 있는 것들이다. 사람이 매번 눈으로 볼 수 없을 뿐이다.
 
 ## 코드 단계에서 잡히는 것
@@ -325,7 +526,33 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
 
 ## 드리프트
 
-코드로 관리하더라도 콘솔에서 직접 바꾼 설정이 쌓인다. 실제 상태와 코드를 주기적으로 비교해 차이를 알리는 장치가 필요하다. 드리프트가 방치되면 코드는 문서일 뿐 통제 수단이 아니게 된다.`,
+코드로 관리하더라도 콘솔에서 직접 바꾼 설정이 쌓인다. 실제 상태와 코드를 주기적으로 비교해 차이를 알리는 장치가 필요하다. 드리프트가 방치되면 코드는 문서일 뿐 통제 수단이 아니게 된다.
+
+## 바로 확인하기
+
+배포 전에 코드 단계에서 잡는다. 운영에서 발견하면 수정 비용이 훨씬 커진다.
+
+\`\`\`bash
+# 테라폼 설정 검사
+tfsec .
+checkov -d . --compact
+
+# 실제 상태와 코드의 차이 (드리프트)
+terraform plan -detailed-exitcode
+# 종료 코드 2 면 콘솔에서 직접 바꾼 설정이 있다는 뜻이다
+\`\`\`
+
+PR 에서 기준 위반이면 병합을 막는다. 다만 기존 코드의 발견 사항까지 한 번에 막으면 팀이 우회하게 되므로, 신규 변경분부터 적용한다.
+
+\`\`\`yaml
+- name: IaC 검사
+  run: checkov -d . --compact --quiet --soft-fail-on LOW
+\`\`\`
+
+## 참고
+
+- CIS Benchmark — 클라우드 구성
+- NIST SP 800-53 — CM-3 구성 변경 통제`,
     diagram: {
       type: 'steps',
       caption: '설정 오류를 왼쪽에서 잡기',
@@ -339,7 +566,7 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
   },
   {
     slug: 'multi-account',
-    title: '계정을 나누는 것이 가장 확실한 격리다',
+    title: '클라우드 계정 분리를 통한 권한 격리',
     body: `클라우드에서 권한 경계를 가장 확실하게 만드는 방법은 계정 자체를 분리하는 것이다.
 
 ## 왜 계정 단위인가
@@ -369,7 +596,35 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
 
 ## 샌드박스의 가치
 
-개발자가 마음대로 실험할 계정이 없으면 운영 계정에서 실험하게 된다. 통제된 샌드박스를 제공하는 것이 오히려 안전하다.`,
+개발자가 마음대로 실험할 계정이 없으면 운영 계정에서 실험하게 된다. 통제된 샌드박스를 제공하는 것이 오히려 안전하다.
+
+## 바로 확인하기
+
+조직 단위 정책으로 전 계정에 최소 기준을 강제한다. 계정마다 설정하면 반드시 빠지는 곳이 생긴다.
+
+\`\`\`bash
+# 조직에 적용된 서비스 제어 정책
+aws organizations list-policies --filter SERVICE_CONTROL_POLICY
+
+# 계정별 감사 로그 활성화 여부
+aws organizations list-accounts --query 'Accounts[].Id' --output text \\
+  | xargs -n1 -I{} echo '계정 {} 의 CloudTrail 확인 필요'
+\`\`\`
+
+계정 생성 자체를 자동화해 기본 설정이 항상 동일하게 들어가도록 한다. 수동 생성이 남아 있으면 표준이 무너진다.
+
+\`\`\`
+계정 생성 시 자동 적용
+  - 감사 로그 전달 (보안 계정으로)
+  - 기본 암호화 설정
+  - 루트 계정 MFA 및 연락처
+  - 예산 알림
+\`\`\`
+
+## 참고
+
+- AWS Organizations 모범 사례
+- CIS AWS Foundations Benchmark`,
     diagram: {
       type: 'layers',
       caption: '조직 정책은 위에서 아래로 강제된다',
@@ -382,7 +637,7 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
   },
   {
     slug: 'shared-responsibility',
-    title: '공동 책임 모델에서 내 몫이 어디까지인가',
+    title: '클라우드 공동 책임 모델의 경계 확인',
     body: `클라우드 제공자가 보안을 책임진다는 말은 절반만 맞다. 어디까지가 제공자 몫인지 정확히 아는 게 출발점이다.
 
 ## 경계가 서비스마다 다르다
@@ -408,7 +663,36 @@ RBAC 만으로는 부족하다. 특권 컨테이너, 호스트 네트워크, 호
 
 ## 오해가 만드는 사고
 
-관리형 서비스를 쓰면 백업도 알아서 될 거라 믿는 경우가 많다. 자동 백업이 켜져 있는지, 보관 기간이 얼마인지, 복구가 실제로 되는지는 확인해야 아는 사실이다.`,
+관리형 서비스를 쓰면 백업도 알아서 될 거라 믿는 경우가 많다. 자동 백업이 켜져 있는지, 보관 기간이 얼마인지, 복구가 실제로 되는지는 확인해야 아는 사실이다.
+
+## 바로 확인하기
+
+관리형 서비스라도 백업과 복구는 확인해야 아는 사실이다. 자동으로 될 거라는 가정이 사고를 만든다.
+
+\`\`\`bash
+# RDS 백업 보관 기간 (0 이면 백업이 없다)
+aws rds describe-db-instances --query \\
+  'DBInstances[].{Id:DBInstanceIdentifier,Days:BackupRetentionPeriod,Enc:StorageEncrypted}'
+
+# 실제 복원 테스트를 한 적이 있는지 스냅샷 이력으로 확인
+aws rds describe-db-snapshots --query 'DBSnapshots[-3:].[DBSnapshotIdentifier,SnapshotCreateTime]'
+\`\`\`
+
+서비스 형태와 무관하게 항상 고객 몫으로 남는 네 가지는 다음과 같다.
+
+\`\`\`
+- 계정과 권한 관리
+- 데이터 분류와 암호화 정책
+- 접근 통제 설정
+- 로그 수집과 모니터링
+\`\`\`
+
+실제 사고 대부분이 이 네 가지에서 난다.
+
+## 참고
+
+- AWS 공동 책임 모델 문서
+- ISO/IEC 27017 — 클라우드 보안 관리`,
     diagram: {
       type: 'matrix',
       caption: '책임 경계 오해가 만드는 공백',

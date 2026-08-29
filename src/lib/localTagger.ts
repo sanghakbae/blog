@@ -84,6 +84,12 @@ function isVerbFragment(token: string): boolean {
   if (!/[가-힣]$/.test(token)) return false
   // 과거·추측 선어말어미가 들어간 형태는 확실한 용언이다
   if (/[았었겠했]/.test(token)) return true
+  // 부정·존재 표현은 명사가 될 수 없다 ("않는", "없는", "있는")
+  if (/[않있없]/.test(token)) return true
+  // '~아/어지다' 활용형 ("사라지지", "만들어지는")
+  if (token.length >= 3 && /[아어여]지(지|는|고|만)?$/.test(token)) return true
+  // '~지지', '~기지' 같은 반복 활용형 ("사라지지", "잊혀지지")
+  if (token.length >= 3 && /지지$/.test(token)) return true
   // 종결형 — '다'로 끝나는 한국어 명사는 거의 없다
   if (token.length >= 2 && /다$/.test(token)) return true
   // 명사형·부사형 어미 (짧은 형태도 용언일 확률이 높다)
@@ -110,7 +116,7 @@ function isNoise(token: string): boolean {
 function tokenizeSentences(text: string): string[][] {
   const runs: string[][] = []
 
-  for (const clause of text.split(/[.!?\n·:;|()[\]{}"'“”‘’,—–]+/)) {
+  for (const clause of text.split(/[.!?\n·:;|()[\]{}"'“”‘’,—–\-_/\\]+/)) {
     let run: string[] = []
     for (const raw of clause.split(/\s+/)) {
       const token = stem(raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').toLowerCase())
@@ -213,12 +219,8 @@ export function analyzeContent(input: {
 
   for (const sec of sections(title, body)) {
     for (const sentence of tokenizeSentences(sec.text)) {
-      for (let i = 0; i < sentence.length; i++) {
-        bump(sentence[i], sec.weight, sec.where, 1)
-        // 붙어 나오는 말을 복합어로 — 더 구체적인 태그가 된다
-        if (i + 1 < sentence.length)
-          bump(`${sentence[i]} ${sentence[i + 1]}`, sec.weight * 1.1, sec.where, 2)
-      }
+      // 태그는 한 낱말이다. 두 낱말을 붙이면 재사용되지 않는 태그만 늘어난다.
+      for (const word of sentence) bump(word, sec.weight, sec.where, 1)
     }
   }
 
@@ -229,17 +231,13 @@ export function analyzeContent(input: {
 
   const scored: (TagCandidate & { raw: number; words: number })[] = []
   for (const [term, s] of stats) {
-    // 복합어는 실제로 되풀이되는 표현일 때만 태그가 된다.
-    // 낱말은 제목·소제목에 있으면 한 번만 나와도 후보로 본다.
-    if (s.words > 1 && s.raw < 2) continue
-    if (s.words === 1 && s.raw < 2 && !s.places.has('제목') && !s.places.has('소제목')) continue
+    // 제목·소제목에 있으면 한 번만 나와도 후보로 본다
+    if (s.raw < 2 && !s.places.has('제목') && !s.places.has('소제목')) continue
 
     // 이 글에서만 두드러지는 말일수록 높다. 다만 그대로 쓰면 딱 한 번만 등장하는
     // 말이 항상 이겨서 태그가 글 수만큼 늘어난다. 제곱근으로 눌러 여러 글에
     // 걸치는 말도 살아남게 한다.
     const idf = Math.sqrt(Math.log(1 + N / (1 + (df.get(term) ?? 0))))
-    // 복합어를 조금 우대해 "태그" 보다 "태그 자동생성" 이 뽑히게 한다
-    const specificity = 1 + (s.words - 1) * 0.25
     // 이미 쓰고 있는 태그면 강하게 밀어준다. 이 값이 낮으면 글마다 새 태그가
     // 생겨 사이드바가 한 번만 쓰인 태그로 가득 찬다.
     const reuse = existing.has(term) ? 3 : 1
@@ -247,7 +245,7 @@ export function analyzeContent(input: {
     // 제목에 한 번 스쳤을 뿐 본문이 받쳐주지 않는 말은 끌어내린다
     const support = s.raw === 1 ? 0.6 : 1
 
-    const score = Math.sqrt(s.tf) * (index.size ? idf : 1) * specificity * reuse * support
+    const score = Math.sqrt(s.tf) * (index.size ? idf : 1) * reuse * support
     const places = [...s.places.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([where, n]) => (where === '제목' ? '제목' : `${where} ${n}회`))
@@ -259,24 +257,11 @@ export function analyzeContent(input: {
       .filter(Boolean)
       .join(' · ')
 
-    scored.push({ tag: term.replace(/\s+/g, '-'), score, reason, raw: s.raw, words: s.words })
+    scored.push({ tag: term, score, reason, raw: s.raw, words: s.words })
   }
 
   scored.sort((a, b) => b.score - a.score)
 
   // 복합어가 이미 뽑혔으면 그 안에 들어있는 낱말은 뺀다 (태그 중복 방지)
-  const picked: typeof scored = []
-  for (const c of scored) {
-    const parts = c.tag.split('-')
-    // 이미 뽑은 태그와 낱말이 겹치면 뺀다. #코드-흐름 옆에 #흐름 이 같이 붙으면
-    // 태그 세 자리 중 두 자리를 같은 말이 차지하게 된다.
-    const redundant = picked.some((p) => {
-      const pp = p.tag.split('-')
-      return parts.some((w) => pp.includes(w))
-    })
-    if (!redundant) picked.push(c)
-    if (picked.length >= max) break
-  }
-
-  return picked.map(({ tag, score, reason }) => ({ tag, score, reason }))
+  return scored.slice(0, max).map(({ tag, score, reason }) => ({ tag, score, reason }))
 }

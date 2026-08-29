@@ -88,7 +88,7 @@ function computeTags() {
 
 // ── 본문 요약 ───────────────────────────────────────────────────────────────
 
-function excerpt(body: string, len = 140): string {
+function excerpt(body: string, len = 110): string {
   const text = body
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')

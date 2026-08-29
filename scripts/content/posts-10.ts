@@ -4,7 +4,7 @@ import type { SeedPost } from './types'
 export const posts10: SeedPost[] = [
   {
     slug: 'mobile-app-security',
-    title: '모바일 앱은 사용자 기기 위에서 돌아간다',
+    title: '모바일 앱 보안 점검 항목',
     body: `앱 코드는 사용자 손에 있다. 분석되지 않는다는 전제를 두면 안 된다.
 
 ## 흔한 오해
@@ -37,7 +37,36 @@ export const posts10: SeedPost[] = [
 
 ## 업데이트 강제
 
-취약점이 발견됐을 때 구버전 앱을 차단할 수 있는 장치를 미리 넣어둬야 한다.`,
+취약점이 발견됐을 때 구버전 앱을 차단할 수 있는 장치를 미리 넣어둬야 한다.
+
+## 바로 확인하기
+
+앱 코드는 사용자 손에 있다. 무엇이 들어 있는지 직접 꺼내 본다.
+
+\`\`\`bash
+# APK 에 하드코딩된 키·엔드포인트
+unzip -o app.apk -d out/ >/dev/null
+grep -rEo '(AIza[0-9A-Za-z_-]{35}|sk_live_[0-9A-Za-z]+|https://[a-z0-9.-]+internal[^"]*)' out/ | sort -u
+
+# 네트워크 보안 설정에 평문 허용이 남아 있는지
+grep -r 'cleartextTrafficPermitted="true"' out/res/xml/
+\`\`\`
+
+가격·권한·잔액은 서버에서 정하고 서버에서 검증한다. 클라이언트 검증은 사용자 편의를 위한 것이지 보안 통제가 아니다.
+
+\`\`\`
+저장    토큰은 Keychain / Keystore 에
+통신    TLS 강제, 필요 시 인증서 고정 (백업 핀 필수)
+로그    운영 빌드에서 민감 정보 출력 제거
+백업    민감 데이터를 백업 대상에서 제외
+\`\`\`
+
+취약점이 발견됐을 때 구버전을 차단할 수 있는 강제 업데이트 장치를 미리 넣어둔다.
+
+## 참고
+
+- OWASP MASVS (Mobile Application Security Verification Standard)
+- OWASP Mobile Top 10`,
     diagram: {
       type: 'matrix',
       caption: '검증을 어디서 하는가',
@@ -48,7 +77,7 @@ export const posts10: SeedPost[] = [
   },
   {
     slug: 'websocket-security',
-    title: '웹소켓은 HTTP 의 보안 장치를 그대로 물려받지 않는다',
+    title: '웹소켓 인증과 메시지 단위 인가',
     body: `연결을 한 번 맺으면 그다음부터는 일반 요청과 다른 규칙이 적용된다.
 
 ## 놓치기 쉬운 지점
@@ -82,7 +111,45 @@ wss 를 쓰는 것은 기본이다. ws 로 연결하면 중간에서 전부 읽�
 
 ## 자원 관리
 
-연결이 유지되는 프로토콜이므로 동시 연결 수 자체가 자원이다. 계정당 연결 수 제한이 없으면 서비스 거부에 취약해진다.`,
+연결이 유지되는 프로토콜이므로 동시 연결 수 자체가 자원이다. 계정당 연결 수 제한이 없으면 서비스 거부에 취약해진다.
+
+## 바로 확인하기
+
+연결 시점에만 인증하고 끝내는 구현이 흔하다. 출처 검사와 메시지 단위 인가를 확인한다.
+
+\`\`\`ts
+wss.on('connection', (socket, req) => {
+  // 1. 출처 검사 — 없으면 다른 사이트에서 연결할 수 있다
+  if (!ALLOWED_ORIGINS.includes(req.headers.origin ?? '')) {
+    return socket.close(1008, 'origin not allowed')
+  }
+
+  // 2. 연결 시 인증
+  const user = verifyToken(req.headers['sec-websocket-protocol'])
+  if (!user) return socket.close(1008, 'unauthorized')
+
+  // 3. 메시지마다 인가 — 구독 시점 검사만으로는 부족하다
+  socket.on('message', async (raw) => {
+    const msg = parse(raw)
+    if (!(await canAccess(user, msg.channel))) return
+    handle(msg)
+  })
+})
+\`\`\`
+
+권한이 회수됐는데 구독이 유지되면 계속 수신한다. 권한 변경 시 구독을 끊거나 발송 시점에 다시 확인한다.
+
+\`\`\`
+연결당 동시 연결 수 제한
+메시지 크기 상한
+초당 메시지 수 제한
+유휴 타임아웃
+\`\`\`
+
+## 참고
+
+- OWASP Cheat Sheet — HTML5 Security (WebSocket)
+- RFC 6455 — The WebSocket Protocol`,
     diagram: {
       type: 'flow',
       caption: '연결 이후에도 검사는 계속된다',
@@ -96,7 +163,7 @@ wss 를 쓰는 것은 기본이다. ws 로 연결하면 중간에서 전부 읽�
   },
   {
     slug: 'cache-poisoning',
-    title: '캐시가 남의 응답을 나에게 보여줄 때',
+    title: '캐시 오염과 캐시 기만 방지',
     body: `캐시는 성능을 위한 장치지만, 키 설계를 잘못하면 다른 사용자의 응답이 섞인다.
 
 ## 어떻게 생기나
@@ -128,7 +195,35 @@ wss 를 쓰는 것은 기본이다. ws 로 연결하면 중간에서 전부 읽�
 
 ## 점검
 
-캐시 계층이 여럿이면 각각 정책이 다를 수 있다. CDN, 리버스 프록시, 애플리케이션 캐시를 모두 확인해야 한다.`,
+캐시 계층이 여럿이면 각각 정책이 다를 수 있다. CDN, 리버스 프록시, 애플리케이션 캐시를 모두 확인해야 한다.
+
+## 바로 확인하기
+
+응답에 영향을 주는 요소가 캐시 키에 들어 있는지 확인한다. 빠지면 다른 사용자의 응답이 섞인다.
+
+\`\`\`bash
+# 커스텀 헤더가 응답에 반영되는지 (언키드 입력 탐지)
+curl -sI -H 'X-Forwarded-Host: evil.example' https://example.com/ | grep -i 'location\\|link'
+
+# 인증 응답이 캐시되는지
+curl -sI -H "Cookie: session=$S" https://example.com/me | grep -i 'cache-control\\|age'
+# public 또는 Age 헤더가 보이면 공용 캐시에 저장되고 있다는 뜻이다
+\`\`\`
+
+개인화된 응답은 캐시하지 않는다. 캐시한다면 Vary 를 정확히 지정한다.
+
+\`\`\`
+Cache-Control: private, no-store        개인화 응답
+Cache-Control: public, max-age=300      공개 응답
+Vary: Accept-Language, Accept-Encoding  응답에 영향을 주는 헤더를 모두 나열
+\`\`\`
+
+반대 방향의 캐시 기만도 있다. 정적 파일처럼 보이는 경로로 요청해 개인화된 응답을 공용 캐시에 넣는 방식이다. 확장자만 보고 캐시 여부를 정하는 설정에서 발생한다.
+
+## 참고
+
+- RFC 9111 — HTTP Caching
+- PortSwigger — Web Cache Poisoning, Web Cache Deception`,
     diagram: {
       type: 'matrix',
       caption: '무엇을 캐시할 것인가',
@@ -139,7 +234,7 @@ wss 를 쓰는 것은 기본이다. ws 로 연결하면 중간에서 전부 읽�
   },
   {
     slug: 'browser-extension',
-    title: '브라우저 확장 프로그램이 보는 것',
+    title: '브라우저 확장 프로그램 권한 위험',
     body: `확장 프로그램은 사용자가 보는 모든 페이지를 읽을 수 있다. 권한 요구를 확인하지 않고 설치하는 경우가 많다.
 
 ## 어떤 권한이 위험한가
@@ -171,7 +266,35 @@ wss 를 쓰는 것은 기본이다. ws 로 연결하면 중간에서 전부 읽�
 
 ## 사용자 안내
 
-업무용 계정으로 접속하는 브라우저에는 꼭 필요한 확장만 두도록 안내하는 것이 현실적인 조치다.`,
+업무용 계정으로 접속하는 브라우저에는 꼭 필요한 확장만 두도록 안내하는 것이 현실적인 조치다.
+
+## 바로 확인하기
+
+업무용 브라우저에 설치된 확장의 권한을 확인한다. 모든 사이트를 읽을 수 있는 확장은 입력값 전부를 볼 수 있다.
+
+\`\`\`
+위험한 권한
+  모든 사이트 읽기·변경   입력값·화면 내용 전부 수집 가능
+  쿠키 접근             세션 탈취
+  요청 가로채기          통신 내용 열람·변조
+  다운로드 관리          파일 조작
+\`\`\`
+
+처음에는 정상이던 확장이 개발자가 바뀌면서 악성 코드를 넣는 사례가 반복된다. 자동 업데이트로 배포되므로 탐지가 어렵다.
+
+\`\`\`
+조직 차원 관리
+  허용 목록 방식으로 설치 제한 (관리 콘솔 정책)
+  업무용 브라우저 프로필 분리
+  권한이 늘어나는 업데이트는 재검토
+\`\`\`
+
+개발자 입장에서는 확장이 화면에 개입할 수 있다는 전제로 설계한다. 중요한 값은 서버에서 검증하고, 결제 흐름은 화면 조작만으로 결과가 바뀌지 않게 한다.
+
+## 참고
+
+- Chrome Enterprise 확장 프로그램 정책 문서
+- OWASP Top 10 — A08 Software and Data Integrity Failures`,
     diagram: {
       type: 'layers',
       caption: '확장 위험 통제 단계',
@@ -184,7 +307,7 @@ wss 를 쓰는 것은 기본이다. ws 로 연결하면 중간에서 전부 읽�
   },
   {
     slug: 'llm-prompt-injection',
-    title: 'LLM 애플리케이션의 프롬프트 인젝션',
+    title: 'LLM 애플리케이션의 프롬프트 인젝션 대응',
     body: `모델에 전달되는 텍스트에 명령과 데이터가 섞여 있다는 점이 문제의 뿌리다.
 
 ## 왜 근본적인가
@@ -217,7 +340,31 @@ SQL 인젝션은 파라미터 바인딩으로 명령과 데이터를 분리할 �
 
 ## 현실적 목표
 
-인젝션을 완전히 막는 것이 아니라, **성공해도 피해가 제한되도록** 권한과 도구를 설계하는 것이 목표다.`,
+인젝션을 완전히 막는 것이 아니라, **성공해도 피해가 제한되도록** 권한과 도구를 설계하는 것이 목표다.
+
+## 바로 확인하기
+
+모델 출력을 그대로 실행하는 자리가 있는지 본다. 인젝션이 피해로 이어지는 지점은 대부분 거기다.
+
+\`\`\`bash
+grep -rnE '(exec|eval|spawn|query|fetch)\\(' src/ | grep -iE 'completion|response|llm|model|answer'
+\`\`\`
+
+완전히 막는 것을 목표로 삼지 말고, 성공해도 피해가 제한되도록 설계한다.
+
+\`\`\`
+모델에 주는 권한을 최소화한다 — 모델이 닿는 범위가 곧 유출 가능 범위다
+위험한 도구는 사람 승인을 거친다 (전송·삭제·결제)
+외부 통신 도구는 대상 도메인을 허용 목록으로 제한한다
+모델 출력이 다른 시스템의 입력이 될 때 그 시스템 기준으로 다시 검증한다
+\`\`\`
+
+간접 인젝션이 더 위험하다. 사용자가 직접 넣는 것보다, 모델이 읽어오는 문서·메일·검색 결과에 숨겨둔 지시가 통제하기 어렵다.
+
+## 참고
+
+- OWASP Top 10 for LLM Applications
+- NIST AI 100-2 — 적대적 머신러닝 분류`,
     diagram: {
       type: 'flow',
       caption: '간접 프롬프트 인젝션',
@@ -231,7 +378,7 @@ SQL 인젝션은 파라미터 바인딩으로 명령과 데이터를 분리할 �
   },
   {
     slug: 'payment-security',
-    title: '결제 시스템에서 절대 클라이언트를 믿지 않기',
+    title: '결제 시스템 검증 지점 설계',
     body: `결제는 실수가 곧 금전 손실이 되는 영역이다. 검증 위치 하나가 전부를 결정한다.
 
 ## 금액은 서버에서 정한다
@@ -261,7 +408,44 @@ SQL 인젝션은 파라미터 바인딩으로 명령과 데이터를 분리할 �
 
 ## 로그와 대사
 
-결제 로그는 회계 증적이기도 하다. 내부 기록과 대행사 기록을 정기적으로 대사해 차이를 찾아야 한다. 차이는 장애일 수도, 공격일 수도 있다.`,
+결제 로그는 회계 증적이기도 하다. 내부 기록과 대행사 기록을 정기적으로 대사해 차이를 찾아야 한다. 차이는 장애일 수도, 공격일 수도 있다.
+
+## 바로 확인하기
+
+클라이언트가 보낸 금액으로 결제를 요청하는지 확인한다. 요청을 조작하면 1원 결제가 가능해진다.
+
+\`\`\`ts
+// 위험: 금액이 요청에서 온다
+const { amount } = req.body
+await pg.approve({ orderId, amount })
+
+// 안전: 서버가 주문에서 금액을 다시 계산한다
+const order = await loadOrder(orderId, req.user.id)
+const amount = calcTotal(order)          // 상품가·할인·배송비 서버 계산
+await pg.approve({ orderId, amount })
+\`\`\`
+
+콜백만 믿고 주문을 완료 처리하면 무료 구매가 가능해진다. 받은 뒤 대행사에 **직접 조회**해 확인한다.
+
+\`\`\`ts
+app.post('/payments/callback', async (req, res) => {
+  if (!verifySignature(req.rawBody, req.header('x-signature'))) return res.sendStatus(400)
+
+  const paid = await pg.inquire(req.body.paymentId)   // 직접 조회로 재확인
+  if (paid.status !== 'PAID' || paid.amount !== (await expectedAmount(paid.orderId))) {
+    return res.sendStatus(409)
+  }
+  await completeOrder(paid.orderId, { idempotencyKey: paid.paymentId })
+  res.sendStatus(200)
+})
+\`\`\`
+
+멱등 키가 없으면 재전송으로 이중 결제나 이중 환불이 생긴다. 내부 기록과 대행사 기록의 정기 대사도 필요하다.
+
+## 참고
+
+- PCI DSS v4.0 — 요구사항 6, 8
+- OWASP Cheat Sheet — Transaction Authorization`,
     diagram: {
       type: 'steps',
       caption: '결제 흐름의 검증 지점',
@@ -275,7 +459,7 @@ SQL 인젝션은 파라미터 바인딩으로 명령과 데이터를 분리할 �
   },
   {
     slug: 'iot-security',
-    title: 'IoT 기기는 한 번 팔리면 고치기 어렵다',
+    title: 'IoT 기기 보안 최소 요건',
     body: `업데이트가 어렵고 수명이 길다는 특성이 보안 문제를 오래 남긴다.
 
 ## 반복되는 문제
@@ -309,7 +493,33 @@ SQL 인젝션은 파라미터 바인딩으로 명령과 데이터를 분리할 �
 
 ## 수명 종료 계획
 
-언제까지 보안 업데이트를 제공할지 미리 밝혀야 한다. 지원이 끝난 기기가 네트워크에 남아 있는 상황을 관리하는 것도 운영자의 몫이다.`,
+언제까지 보안 업데이트를 제공할지 미리 밝혀야 한다. 지원이 끝난 기기가 네트워크에 남아 있는 상황을 관리하는 것도 운영자의 몫이다.
+
+## 바로 확인하기
+
+같은 기본 비밀번호를 쓰는 기기는 대규모 봇넷의 재료가 된다. 기기별 고유 값과 최초 변경 강제가 최소 조건이다.
+
+\`\`\`
+제조    기기별 고유 자격 증명, 디버그 인터페이스 비활성화
+설치    최초 접속 시 비밀번호 변경 강제
+운영    서명 검증된 펌웨어 업데이트, 롤백 방지
+폐기    자격 증명 무효화, 저장 데이터 삭제
+\`\`\`
+
+업데이트 기능 자체가 공격 경로가 된다. 서명 검증 없이 펌웨어를 받으면 기기를 통째로 넘겨주는 셈이다.
+
+\`\`\`bash
+# 펌웨어 이미지에 남은 기본 계정·키 확인
+binwalk -e firmware.bin
+grep -rE '(root:|admin:|BEGIN (RSA|OPENSSH) PRIVATE KEY)' _firmware.bin.extracted/ | head
+\`\`\`
+
+언제까지 보안 업데이트를 제공할지 미리 밝혀야 한다. 지원이 끝난 기기가 네트워크에 남아 있는 상황을 관리하는 것도 운영자의 몫이다.
+
+## 참고
+
+- NIST IR 8259 — IoT 기기 제조자 활동
+- ETSI EN 303 645 — 소비자 IoT 보안 표준`,
     diagram: {
       type: 'steps',
       caption: '기기 수명 주기별 통제',
@@ -323,7 +533,7 @@ SQL 인젝션은 파라미터 바인딩으로 명령과 데이터를 분리할 �
   },
   {
     slug: 'email-security',
-    title: '메일 인증 설정 세 가지를 끝까지 적용하기',
+    title: 'SPF · DKIM · DMARC 단계적 적용',
     body: `SPF, DKIM, DMARC 를 설정했다고 하면서 실제로는 아무것도 막지 않는 상태인 경우가 많다.
 
 ## 각각의 역할
@@ -354,7 +564,37 @@ DMARC 가 없으면 SPF 와 DKIM 이 실패해도 수신 서버가 어떻게 처
 
 ## 표시 이름 사칭
 
-인증 설정은 도메인 사칭을 막는다. 표시 이름만 바꾸는 사칭은 막지 못한다. 외부 발신 메일에 경고 배너를 붙이는 조치가 함께 필요하다.`,
+인증 설정은 도메인 사칭을 막는다. 표시 이름만 바꾸는 사칭은 막지 못한다. 외부 발신 메일에 경고 배너를 붙이는 조치가 함께 필요하다.
+
+## 바로 확인하기
+
+세 가지가 다 설정돼 있어도 정책이 none 이면 아무것도 막지 않는다.
+
+\`\`\`bash
+dig +short TXT example.com | grep spf
+dig +short TXT selector1._domainkey.example.com
+dig +short TXT _dmarc.example.com
+# p=none 이면 보고만 받는 상태다
+\`\`\`
+
+순서를 지켜 올린다. 처음부터 거부로 두면 정상 메일이 차단된다.
+
+\`\`\`
+1. p=none 으로 보고 수집 (rua 지정)
+2. 보고서에서 정상 발송원을 모두 찾는다
+   — 마케팅 도구, 고객센터, 채용 시스템 등 잊고 있던 곳이 반드시 나온다
+3. 모든 발송원을 SPF·DKIM 에 정렬시킨다
+4. p=quarantine 으로 올린다
+5. 문제가 없으면 p=reject
+\`\`\`
+
+인증 설정은 도메인 사칭을 막는다. 표시 이름만 바꾸는 사칭은 막지 못하므로, 외부 발신 메일에 경고 배너를 붙이는 조치가 함께 필요하다.
+
+## 참고
+
+- RFC 7489 DMARC
+- RFC 7208 SPF, RFC 6376 DKIM
+- KISA 이메일 보안 안내서`,
     diagram: {
       type: 'steps',
       caption: 'DMARC 정책을 올리는 순서',
@@ -368,7 +608,7 @@ DMARC 가 없으면 SPF 와 DKIM 이 실패해도 수신 서버가 어떻게 처
   },
   {
     slug: 'security-roadmap',
-    title: '무엇부터 할지 정하는 기준',
+    title: '보안 과제 우선순위 정하는 기준',
     body: `할 일 목록은 끝이 없다. 순서를 정하는 기준이 없으면 가장 목소리 큰 요구부터 처리하게 된다.
 
 ## 효과가 큰 것부터
@@ -401,7 +641,39 @@ DMARC 가 없으면 SPF 와 DKIM 이 실패해도 수신 서버가 어떻게 처
 
 ## 완벽을 목표로 하지 않기
 
-모든 위험을 없앨 수는 없다. 감당할 수 없는 사고를 막고, 나머지는 빨리 알아채고 복구하는 능력을 갖추는 것이 현실적인 목표다.`,
+모든 위험을 없앨 수는 없다. 감당할 수 없는 사고를 막고, 나머지는 빨리 알아채고 복구하는 능력을 갖추는 것이 현실적인 목표다.
+
+## 바로 확인하기
+
+기본이 갖춰지지 않은 상태의 고급 도구는 효과가 나지 않는다. 자산 목록이 없으면 어디에 설치할지도 모른다.
+
+\`\`\`
+1단계  사고가 나도 복구할 수 있게
+       백업 격리와 복구 훈련, 자산 목록, 관리자 MFA
+2단계  사고를 알아챌 수 있게
+       로그 중앙 수집, 핵심 이벤트 알림, 대응 절차와 연락망
+3단계  사고를 줄일 수 있게
+       취약점 관리 기한, 권한 재검토, 개발 보안
+4단계  검증하고 개선
+       모의훈련, 모의침투, 지표 관리
+\`\`\`
+
+효과 대비 노력이 가장 좋은 항목은 정해져 있다.
+
+\`\`\`
+관리자 계정 MFA      노력 낮음 / 효과 매우 큼
+백업과 복구 검증      노력 중간 / 효과 매우 큼
+자산 목록 확보       노력 중간 / 효과 매우 큼
+노출된 관리 포트 정리  노력 낮음 / 효과 큼
+로그 중앙 수집       노력 중간 / 효과 큼
+\`\`\`
+
+모든 위험을 없앨 수는 없다. 감당할 수 없는 사고를 막고, 나머지는 빨리 알아채고 복구하는 능력을 갖추는 것이 현실적인 목표다.
+
+## 참고
+
+- CIS Controls v8 — 구현 그룹(IG1) 우선 적용
+- NIST Cybersecurity Framework 2.0`,
     diagram: {
       type: 'bars',
       caption: '투자 대비 위험 감소 효과 (상대값)',
@@ -418,7 +690,7 @@ DMARC 가 없으면 SPF 와 DKIM 이 실패해도 수신 서버가 어떻게 처
   },
   {
     slug: 'security-debt',
-    title: '보안 부채는 기술 부채와 같은 방식으로 쌓인다',
+    title: '보안 부채 축적 구조와 상환 계획',
     body: `당장 급해서 미룬 조치가 쌓이면, 어느 순간 손댈 수 없는 상태가 된다.
 
 ## 어떻게 쌓이나
@@ -453,7 +725,37 @@ DMARC 가 없으면 SPF 와 DKIM 이 실패해도 수신 서버가 어떻게 처
 
 ## 이자
 
-미뤄둔 조치는 시간이 지날수록 고치기 어려워진다. 데이터가 쌓이고, 연동이 늘고, 아는 사람이 떠난다. 이 이자가 복리로 붙는다는 점이 기술 부채와 같다.`,
+미뤄둔 조치는 시간이 지날수록 고치기 어려워진다. 데이터가 쌓이고, 연동이 늘고, 아는 사람이 떠난다. 이 이자가 복리로 붙는다는 점이 기술 부채와 같다.
+
+## 바로 확인하기
+
+부채는 보이지 않는 것이 가장 큰 문제다. 한곳에 모아 수치로 만든다.
+
+\`\`\`sql
+SELECT
+  COUNT(*) FILTER (WHERE due_date < CURRENT_DATE)              AS 기한초과,
+  MAX(CURRENT_DATE - due_date) FILTER (WHERE due_date < CURRENT_DATE) AS 최장경과일,
+  COUNT(*) FILTER (WHERE owner IS NULL)                        AS 소유자없음
+FROM security_findings WHERE status <> 'closed';
+\`\`\`
+
+전부 갚으려 하면 시작도 못 한다. 신규 부채 발생을 막는 것부터 한다. **모든 예외에 만료일을 붙이는 규칙** 하나가 증가를 멈춘다.
+
+\`\`\`
+측정 항목
+  기한 초과 취약점      건수와 최장 경과일
+  만료된 예외 승인      건수
+  지원 종료 소프트웨어   자산 수
+  소유자 없는 자산      건수
+  통제 미적용 비율      커버리지 미달
+\`\`\`
+
+의도적으로 미루는 결정은 정당하다. 다만 결정한 사람과 시점, 재검토 일정이 기록되어야 한다. 기록되지 않은 부채가 문제다.
+
+## 참고
+
+- NIST Cybersecurity Framework 2.0 — Govern
+- CIS Controls v8 — Measures and Metrics`,
     diagram: {
       type: 'flow',
       caption: '부채가 굳어지는 과정',

@@ -4,7 +4,7 @@ import type { SeedPost } from './types'
 export const posts2: SeedPost[] = [
   {
     slug: 'mfa-methods',
-    title: '다단계 인증, 어떤 방식을 고를 것인가',
+    title: '다단계 인증 방식 비교와 피싱 저항성',
     body: `비밀번호 하나로는 부족하다는 데는 이견이 없다. 문제는 두 번째 요소로 무엇을 쓰느냐다.
 
 ## 방식별 차이
@@ -33,7 +33,29 @@ TOTP 는 코드가 30초마다 바뀌지만, 가짜 사이트가 사용자에게
 - 관리자 계정과 결제 기능에는 최소한 TOTP 를 강제한다
 - 복구 코드를 발급하고 안전하게 보관하도록 안내한다
 - 백업 수단이 없으면 계정 잠김 사고가 대량으로 생긴다
-- 재설정 절차가 약하면 MFA 전체가 무력해진다. 고객센터를 통한 우회가 실제 공격 경로다`,
+- 재설정 절차가 약하면 MFA 전체가 무력해진다. 고객센터를 통한 우회가 실제 공격 경로다
+
+## 바로 확인하기
+
+관리자 계정에 MFA 가 실제로 걸려 있는지 조직 단위로 확인한다. 정책 문서가 아니라 시스템 값을 본다.
+
+\`\`\`bash
+# 구글 워크스페이스: 2단계 인증 미적용 계정
+gam print users query "isEnrolledIn2Sv=False isAdmin=True"
+
+# AWS: MFA 없는 IAM 사용자
+aws iam generate-credential-report >/dev/null
+aws iam get-credential-report --query Content --output text \\
+  | base64 -d | awk -F, 'NR>1 && $8=="false" {print $1}'
+\`\`\`
+
+복구 수단이 없으면 계정 잠김 사고가 몰려온다. 도입 전에 복구 코드 발급과 재설정 절차를 먼저 준비한다.
+
+## 참고
+
+- NIST SP 800-63B — Authenticator Assurance Level 2, 3
+- FIDO2 / WebAuthn Level 2
+- OWASP Cheat Sheet — Multifactor Authentication`,
     diagram: {
       type: 'layers',
       caption: '인증 강도는 위로 갈수록 약하다',
@@ -46,7 +68,7 @@ TOTP 는 코드가 30초마다 바뀌지만, 가짜 사이트가 사용자에게
   },
   {
     slug: 'session-management',
-    title: '세션 관리에서 자주 틀리는 다섯 가지',
+    title: '세션 관리에서 자주 나오는 다섯 가지 결함',
     body: `로그인 이후를 다루는 코드는 인증 코드만큼 중요한데, 관심은 훨씬 덜 받는다.
 
 ## 로그인 후 세션 ID 를 갱신하지 않는다
@@ -79,7 +101,37 @@ TOTP 는 코드가 30초마다 바뀌지만, 가짜 사이트가 사용자에게
 
 ## 권한 변경 후 갱신 없음
 
-관리자 권한이 회수됐는데 기존 세션이 그대로면 회수가 되지 않은 것이다. 권한이 바뀌면 세션을 다시 만들거나 최소한 권한 정보를 다시 읽어야 한다.`,
+관리자 권한이 회수됐는데 기존 세션이 그대로면 회수가 되지 않은 것이다. 권한이 바뀌면 세션을 다시 만들거나 최소한 권한 정보를 다시 읽어야 한다.
+
+## 바로 확인하기
+
+로그인 전후로 세션 식별자가 바뀌는지 직접 본다. 바뀌지 않으면 세션 고정에 취약하다.
+
+\`\`\`bash
+# 1. 로그인 전 세션 발급
+BEFORE=$(curl -s -c jar.txt https://example.com/ -o /dev/null; grep -i session jar.txt)
+
+# 2. 로그인 수행
+curl -s -b jar.txt -c jar.txt -d 'id=user&pw=...' https://example.com/login -o /dev/null
+
+# 3. 로그인 후 세션과 비교
+AFTER=$(grep -i session jar.txt)
+[ "$BEFORE" = "$AFTER" ] && echo '취약: 세션이 갱신되지 않았다'
+\`\`\`
+
+만료는 두 가지를 함께 둔다. 유휴 만료만 있으면 세션이 무한히 연장된다.
+
+\`\`\`
+유휴 만료  30분~2시간   마지막 활동 기준
+절대 만료  12~24시간    발급 시각 기준
+재인증     5~15분       민감 작업 직전
+\`\`\`
+
+## 참고
+
+- OWASP Cheat Sheet — Session Management
+- OWASP ASVS 4.0 — V3 세션 관리
+- CWE-384 Session Fixation`,
     diagram: {
       type: 'steps',
       caption: '세션 수명 주기에서 놓치기 쉬운 지점',
@@ -93,7 +145,7 @@ TOTP 는 코드가 30초마다 바뀌지만, 가짜 사이트가 사용자에게
   },
   {
     slug: 'rate-limiting',
-    title: '레이트 리밋 없이 열어둔 API 의 대가',
+    title: 'API 레이트 리밋 설계와 엔드포인트별 한도',
     body: `요청 수를 제한하지 않은 엔드포인트는 두 가지 문제를 동시에 만든다. 비용이 새고, 데이터가 새어 나간다.
 
 ## 크리덴셜 스터핑
@@ -123,7 +175,38 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
 
 ## 부작용 관리
 
-정상 사용자가 막히면 곧바로 문의가 들어온다. 차단 로그를 남기고 화이트리스트 절차를 준비해 두면 운영 부담이 줄어든다.`,
+정상 사용자가 막히면 곧바로 문의가 들어온다. 차단 로그를 남기고 화이트리스트 절차를 준비해 두면 운영 부담이 줄어든다.
+
+## 바로 확인하기
+
+로그인처럼 위험한 엔드포인트에 한도가 걸려 있는지 확인한다.
+
+\`\`\`bash
+for i in $(seq 1 20); do
+  curl -s -o /dev/null -w '%{http_code} ' \\
+    -d 'id=test&pw=wrong' https://example.com/login
+done; echo
+# 20번 내내 200/401 만 나오면 한도가 없는 것이다. 429 가 나와야 한다
+\`\`\`
+
+엔진엑스 앞단에서 한 겹 거는 것도 효과가 크다.
+
+\`\`\`nginx
+limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+
+location /login {
+    limit_req zone=login burst=3 nodelay;
+    limit_req_status 429;
+}
+\`\`\`
+
+초과 응답에는 재시도 시점을 함께 준다. Retry-After 가 없으면 정상 클라이언트가 더 빠르게 재시도한다.
+
+## 참고
+
+- OWASP Cheat Sheet — Denial of Service, Credential Stuffing Prevention
+- RFC 6585 — 429 Too Many Requests
+- RFC 9110 — Retry-After`,
     diagram: {
       type: 'bars',
       caption: '엔드포인트별 권장 한도 (분당 기준)',
@@ -139,7 +222,7 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
   },
   {
     slug: 'dependency-risk',
-    title: '의존성 취약점, 업데이트만이 답인가',
+    title: '의존성 취약점 우선순위 판단 기준',
     body: `요즘 애플리케이션에서 직접 쓴 코드는 전체의 일부다. 나머지는 전부 남이 쓴 코드다.
 
 ## 스캐너가 알려주는 것과 알려주지 않는 것
@@ -169,7 +252,35 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
 
 ## 업데이트 자체가 위험일 때
 
-새 버전이 악성 코드를 담고 배포된 사례가 반복해서 나온다. 최신을 무조건 따라가는 것도 정답이 아니다. 며칠 지연 후 적용하는 정책이 실제로 여러 사고를 걸러냈다.`,
+새 버전이 악성 코드를 담고 배포된 사례가 반복해서 나온다. 최신을 무조건 따라가는 것도 정답이 아니다. 며칠 지연 후 적용하는 정책이 실제로 여러 사고를 걸러냈다.
+
+## 바로 확인하기
+
+보고서 수백 건 중 실제로 손대야 할 것만 추린다. 심각도만 보지 말고 도달 가능성을 함께 본다.
+
+\`\`\`bash
+# npm: 심각도 높은 것만
+npm audit --audit-level=high --production
+
+# 실제로 그 코드를 쓰는지 확인 (의존 경로 추적)
+npm ls lodash
+
+# 파이썬
+pip-audit --strict
+\`\`\`
+
+무결성 검증과 설치 스크립트 차단은 공급망 사고를 실제로 여러 번 걸러냈다.
+
+\`\`\`bash
+npm ci --ignore-scripts        # 설치 스크립트 실행 안 함
+npm config set audit-level high
+\`\`\`
+
+## 참고
+
+- OWASP Top 10 — A06 Vulnerable and Outdated Components
+- NIST SP 800-161 — 공급망 위험 관리
+- CISA SBOM 최소 요소`,
     diagram: {
       type: 'matrix',
       caption: '의존성 취약점 처리 우선순위',
@@ -180,7 +291,7 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
   },
   {
     slug: 'secret-management',
-    title: '비밀값을 코드에 넣지 않는 실질적인 방법',
+    title: '비밀값 관리와 회전을 전제로 한 설계',
     body: `API 키가 저장소에 올라가는 사고는 계속 반복된다. 개발자가 게을러서가 아니라, 안 넣는 게 더 번거롭기 때문이다.
 
 ## 먼저 흘러나가는 것을 막는다
@@ -209,7 +320,34 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
 
 ## 로그에 새지 않게
 
-토큰과 비밀번호가 로그로 흘러나가는 사고가 유출의 상당수를 차지한다. 로깅 계층에서 민감 필드를 마스킹하는 처리를 공통으로 넣어야 한다.`,
+토큰과 비밀번호가 로그로 흘러나가는 사고가 유출의 상당수를 차지한다. 로깅 계층에서 민감 필드를 마스킹하는 처리를 공통으로 넣어야 한다.
+
+## 바로 확인하기
+
+저장소 이력에 남은 비밀값을 먼저 찾는다. 되돌린 커밋에도 그대로 남아 있다.
+
+\`\`\`bash
+# 이력 전체에서 비밀값 패턴 탐지
+gitleaks detect --source . --log-opts='--all'
+
+# 커밋 전 차단
+gitleaks protect --staged
+\`\`\`
+
+찾았다면 순서가 정해져 있다. **폐기가 먼저다.** 이력 정리는 그다음이다.
+
+\`\`\`
+1. 해당 키 즉시 폐기 (되돌리기보다 폐기가 먼저)
+2. 새 키 발급, 이중 유효 기간을 두고 교체
+3. 유출 시점부터의 접근 로그 조사
+4. 이력에서 제거
+\`\`\`
+
+## 참고
+
+- OWASP Cheat Sheet — Secrets Management
+- NIST SP 800-57 — 키 관리 권고
+- CWE-798 Use of Hard-coded Credentials`,
     diagram: {
       type: 'steps',
       caption: '비밀값이 유출됐을 때',
@@ -224,7 +362,7 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
   },
   {
     slug: 'error-disclosure',
-    title: '오류 메시지가 필요 이상으로 알려줄 때',
+    title: '오류 메시지를 통한 정보 노출 차단',
     body: `친절한 오류 메시지는 개발자에게도 축복이고 공격자에게도 축복이다.
 
 ## 스택 트레이스 노출
@@ -251,7 +389,33 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
 
 ## 실무 정리
 
-운영에서는 일반화된 메시지와 추적용 오류 ID 만 보여주고, 상세 내용은 서버 로그로 보낸다. 사용자는 ID 를 알려주면 되고, 담당자는 그 ID 로 전체 맥락을 볼 수 있다.`,
+운영에서는 일반화된 메시지와 추적용 오류 ID 만 보여주고, 상세 내용은 서버 로그로 보낸다. 사용자는 ID 를 알려주면 되고, 담당자는 그 ID 로 전체 맥락을 볼 수 있다.
+
+## 바로 확인하기
+
+운영 응답에 내부 정보가 섞여 나오는지 본다.
+
+\`\`\`bash
+curl -s https://example.com/api/does-not-exist \\
+  | grep -iE 'stack|trace|exception|at [a-z]+\\.[a-z]+\\(|/home/|/var/www'
+# 걸리는 게 있으면 운영 설정이 개발 상태로 배포된 것이다
+\`\`\`
+
+계정 존재 여부는 응답 시간으로도 새어 나간다. 계정이 없을 때 해시 검증을 건너뛰면 눈에 띄게 빨라진다.
+
+\`\`\`ts
+const user = await findUser(id)
+// 계정이 없어도 같은 비용을 치러 응답 시간을 맞춘다
+const hash = user?.passwordHash ?? DUMMY_HASH
+const ok = await verify(input, hash)
+if (!user || !ok) throw new AuthError('아이디 또는 비밀번호가 올바르지 않습니다')
+\`\`\`
+
+## 참고
+
+- OWASP Cheat Sheet — Error Handling
+- CWE-209 Generation of Error Message Containing Sensitive Information
+- CWE-208 Observable Timing Discrepancy`,
     diagram: {
       type: 'flow',
       caption: '오류를 사용자와 로그로 나눠 보내기',
@@ -265,7 +429,7 @@ IP 만으로는 부족하다. 공유 IP 뒤의 정상 사용자가 함께 막히
   },
   {
     slug: 'security-headers',
-    title: '보안 헤더 여덟 줄로 얻는 것',
+    title: '보안 헤더 일곱 가지와 CSP 도입 순서',
     body: `설정 몇 줄로 얻을 수 있는 방어가 있다. 비용 대비 효과가 가장 좋은 축에 든다.
 
 ## 무엇을 넣을 것인가
@@ -290,7 +454,35 @@ HSTS 는 되돌리기 어렵다. 브라우저가 정책을 기억하기 때문�
 
 ## 확인 방법
 
-배포 후 실제 응답 헤더를 자동으로 검사하는 테스트를 넣어두면, 설정이 조용히 사라지는 사고를 막을 수 있다. 리버스 프록시를 교체하면서 헤더가 통째로 빠지는 일이 실제로 자주 일어난다.`,
+배포 후 실제 응답 헤더를 자동으로 검사하는 테스트를 넣어두면, 설정이 조용히 사라지는 사고를 막을 수 있다. 리버스 프록시를 교체하면서 헤더가 통째로 빠지는 일이 실제로 자주 일어난다.
+
+## 바로 확인하기
+
+배포된 응답 헤더를 직접 확인한다. 리버스 프록시를 교체하면서 헤더가 통째로 빠지는 일이 자주 있다.
+
+\`\`\`bash
+curl -sI https://example.com | grep -iE \\
+  'content-security-policy|strict-transport|x-content-type|x-frame|referrer-policy|permissions-policy'
+\`\`\`
+
+빠지지 않게 배포 검증에 넣어둔다.
+
+\`\`\`bash
+#!/usr/bin/env bash
+REQUIRED=(content-security-policy strict-transport-security x-content-type-options)
+H=$(curl -sI "$1")
+for h in "\${REQUIRED[@]}"; do
+  grep -qi "^$h:" <<<"$H" || { echo "누락: $h"; exit 1; }
+done
+\`\`\`
+
+HSTS 는 되돌리기 어렵다. max-age 를 짧게 시작해 문제가 없는지 확인하고 늘린다.
+
+## 참고
+
+- OWASP Cheat Sheet — HTTP Security Response Headers
+- RFC 6797 HTTP Strict Transport Security
+- W3C Content Security Policy Level 3`,
     diagram: {
       type: 'steps',
       caption: 'CSP 를 깨지지 않게 도입하는 순서',
@@ -304,7 +496,7 @@ HSTS 는 되돌리기 어렵다. 브라우저가 정책을 기억하기 때문�
   },
   {
     slug: 'tls-config',
-    title: 'HTTPS 를 켰다고 통신이 안전해지지는 않는다',
+    title: 'TLS 설정 점검과 인증서 만료 관리',
     body: `인증서를 설치하고 자물쇠 아이콘이 보이면 끝났다고 생각하기 쉽다. 확인할 게 몇 가지 더 있다.
 
 ## 프로토콜과 암호 모음
@@ -334,7 +526,38 @@ HTTPS 페이지에서 HTTP 리소스를 불러오면 그 부분은 보호되지 
 
 ## 내부 통신도 대상이다
 
-외부 구간만 암호화하고 내부는 평문인 구성이 많다. 내부망이 안전하다는 전제가 이미 깨진 시대다. 서비스 간 통신에도 상호 TLS 를 적용하는 방향이 표준이 되어가고 있다.`,
+외부 구간만 암호화하고 내부는 평문인 구성이 많다. 내부망이 안전하다는 전제가 이미 깨진 시대다. 서비스 간 통신에도 상호 TLS 를 적용하는 방향이 표준이 되어가고 있다.
+
+## 바로 확인하기
+
+지원 중인 프로토콜과 암호 모음을 서버에서 직접 확인한다.
+
+\`\`\`bash
+# 구버전 프로토콜이 아직 열려 있는지
+for v in tls1 tls1_1 tls1_2 tls1_3; do
+  echo -n "$v: "
+  openssl s_client -connect example.com:443 -$v </dev/null 2>/dev/null \\
+    | grep -q 'Cipher.*: *[^ ]' && echo 허용 || echo 차단
+done
+
+# 인증서 만료일
+echo | openssl s_client -connect example.com:443 2>/dev/null \\
+  | openssl x509 -noout -enddate
+\`\`\`
+
+자동 갱신만 믿지 말고 **갱신 실패를 감지하는 알림**을 따로 둔다. 만료 사고 대부분이 여기서 난다.
+
+\`\`\`bash
+DAYS=$(( ($(date -d "$(echo | openssl s_client -connect example.com:443 2>/dev/null \\
+  | openssl x509 -noout -enddate | cut -d= -f2)" +%s) - $(date +%s)) / 86400 ))
+[ "$DAYS" -lt 21 ] && echo "인증서 만료 \${DAYS}일 전"
+\`\`\`
+
+## 참고
+
+- NIST SP 800-52 Rev.2 — TLS 구현 지침
+- RFC 8446 TLS 1.3
+- Mozilla TLS 설정 권고 (Intermediate)`,
     diagram: {
       type: 'flow',
       caption: '자동 갱신이 있어도 사고가 나는 이유',
@@ -348,7 +571,7 @@ HTTPS 페이지에서 HTTP 리소스를 불러오면 그 부분은 보호되지 
   },
   {
     slug: 'insecure-deserialization',
-    title: '역직렬화 취약점이 위험한 이유',
+    title: '역직렬화 취약점과 형식별 위험도',
     body: `신뢰할 수 없는 데이터를 객체로 되살리는 순간, 코드 실행 경로가 열릴 수 있다.
 
 ## 왜 코드 실행까지 가나
@@ -377,7 +600,40 @@ HTTPS 페이지에서 HTTP 리소스를 불러오면 그 부분은 보호되지 
 
 ## 대응
 
-신뢰할 수 없는 입력을 언어 고유의 직렬화 형식으로 받지 않는 것이 원칙이다. 데이터만 담는 형식을 쓰고 명시적으로 매핑한다. 꼭 필요하면 허용 클래스 목록을 지정하고, 무결성 서명을 붙여 변조된 데이터를 아예 처리하지 않는다.`,
+신뢰할 수 없는 입력을 언어 고유의 직렬화 형식으로 받지 않는 것이 원칙이다. 데이터만 담는 형식을 쓰고 명시적으로 매핑한다. 꼭 필요하면 허용 클래스 목록을 지정하고, 무결성 서명을 붙여 변조된 데이터를 아예 처리하지 않는다.
+
+## 바로 확인하기
+
+신뢰할 수 없는 입력이 언어 고유 직렬화로 들어오는 자리를 찾는다.
+
+\`\`\`bash
+# 자바
+grep -rn 'ObjectInputStream\\|readObject(' src/
+
+# 파이썬
+grep -rnE 'pickle\\.loads|yaml\\.load\\(' --include='*.py' .
+
+# PHP
+grep -rn 'unserialize(' --include='*.php' .
+\`\`\`
+
+YAML 은 기본 로더가 임의 객체를 만들 수 있다. 안전 로더로 바꾸는 것만으로 대부분 막힌다.
+
+\`\`\`python
+# 위험
+data = yaml.load(user_input)
+
+# 안전
+data = yaml.safe_load(user_input)
+\`\`\`
+
+꼭 필요하면 허용 클래스 목록을 지정하고, 데이터에 무결성 서명을 붙여 변조된 입력은 아예 처리하지 않는다.
+
+## 참고
+
+- OWASP Cheat Sheet — Deserialization
+- CWE-502 Deserialization of Untrusted Data
+- OWASP Top 10 — A08 Software and Data Integrity Failures`,
     diagram: {
       type: 'flow',
       caption: '신뢰 경계를 넘는 직렬화 데이터',
@@ -391,7 +647,7 @@ HTTPS 페이지에서 HTTP 리소스를 불러오면 그 부분은 보호되지 
   },
   {
     slug: 'template-injection',
-    title: '서버 사이드 템플릿 인젝션',
+    title: '서버 사이드 템플릿 인젝션의 원리와 대응',
     body: `사용자 입력을 템플릿 문자열 자체에 넣으면, 출력이 아니라 코드가 된다.
 
 ## 어떻게 생기나
@@ -418,7 +674,32 @@ XSS 와 헷갈리기 쉽지만 실행 위치가 다르다. 브라우저가 아�
 - 사용자 입력은 템플릿의 **데이터로만** 전달하고 템플릿 문자열에 넣지 않는다
 - 사용자가 서식을 편집해야 한다면 치환 변수만 허용하는 제한된 문법을 직접 만든다
 - 엔진의 샌드박스 모드를 켠다. 다만 우회 사례가 계속 나오므로 유일한 방어로 삼지 않는다
-- 템플릿 렌더링을 권한이 낮은 별도 프로세스로 분리하면 피해 범위가 줄어든다`,
+- 템플릿 렌더링을 권한이 낮은 별도 프로세스로 분리하면 피해 범위가 줄어든다
+
+## 바로 확인하기
+
+사용자 입력이 템플릿 문자열 자체로 들어가는 자리를 찾는다. 데이터로 넘기는 것과는 완전히 다르다.
+
+\`\`\`bash
+# 템플릿을 문자열에서 즉석으로 만드는 코드
+grep -rnE 'Template\\(|from_string\\(|compile\\(.*req\\.|render_template_string' src/
+\`\`\`
+
+\`\`\`python
+# 위험: 입력이 템플릿이 된다
+render_template_string(f"안녕하세요 {user.name} 님")
+
+# 안전: 입력은 데이터로만 전달된다
+render_template("greeting.html", name=user.name)
+\`\`\`
+
+판별은 간단하다. 입력란에 산술 표현을 넣어 계산된 값이 출력되면 템플릿이 입력을 코드로 해석하고 있다는 뜻이다.
+
+## 참고
+
+- OWASP Testing Guide — Server Side Template Injection
+- CWE-1336 Improper Neutralization of Special Elements Used in a Template Engine
+- PortSwigger Web Security Academy — SSTI`,
     diagram: {
       type: 'matrix',
       caption: '사용자 입력이 들어가는 위치에 따른 위험',

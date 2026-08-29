@@ -6,11 +6,15 @@ export const MAX_TAGS = 3
  * 이 값이 곧 URL 슬러그이자 tags 컬렉션의 문서 ID 다.
  */
 export function normalizeTag(raw: string): string {
-  return raw.trim().toLowerCase().replace(/^#/, '').replace(/\s+/g, '-').slice(0, 30)
+  // 태그는 기호 없는 한 낱말이다
+  return raw
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '')
+    .slice(0, 20)
 }
 
 /** 목록에 보여줄 짧은 요약 */
-export function makeExcerpt(body: string, len = 140): string {
+export function makeExcerpt(body: string, len = 110): string {
   const text = body
     .replace(/```[\s\S]*?```/g, ' ')
     // 표는 요약에 넣으면 구분자만 늘어놓게 된다
