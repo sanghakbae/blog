@@ -55,7 +55,7 @@ export default function AdminSeo() {
                 : 'border-[var(--line)] bg-[var(--bg-elev)] hover:border-[var(--accent)]'
             }`}
           >
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            <span className="text-[20px] font-bold uppercase tracking-[0.08em] text-[var(--muted)]">
               {a}
             </span>
             <span className="mt-1 block text-2xl font-semibold tabular-nums">{counts[a]}</span>
