@@ -58,7 +58,7 @@ export default function AdminSeo() {
             <span className="text-[20px] font-bold uppercase tracking-[0.08em] text-[var(--muted)]">
               {a}
             </span>
-            <span className="mt-1 block text-2xl font-semibold tabular-nums">{counts[a]}</span>
+            <span className="mt-1 block text-center text-2xl font-semibold tabular-nums">{counts[a]}</span>
             <span className="text-[11px] text-[var(--muted)]">해결해야 할 항목</span>
           </button>
         ))}
