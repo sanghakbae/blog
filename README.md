@@ -117,14 +117,25 @@ npx tsx scripts/seed.mts --dry     # 제목과 태그만 확인
 `main` 에 푸시하면 GitHub Actions 가 빌드하고 Pages 에 올립니다.
 빌드는 `vite build` 뒤에 정적 페이지 생성까지 포함합니다.
 
-새 글을 쓴 뒤 검색 포털에 알리려면 다음을 실행합니다.
+**글을 고쳐도 깃에는 커밋이 남지 않습니다.** 웹 에디터는 Firestore 에만 씁니다. 그런데
+크롤러가 읽는 정적 HTML 과 `sitemap.xml` 은 빌드할 때 Firestore 를 읽어 만들어지므로,
+푸시가 없으면 검색엔진이 보는 내용은 예전 그대로입니다. 사람이 브라우저로 보는 화면은
+Firestore 를 직접 읽으니 즉시 바뀝니다 — 이 둘이 갈립니다.
+
+그래서 배포 워크플로가 **매일 06:00(KST) 다시 빌드**합니다. 글을 쓰거나 고치면 늦어도
+하루 안에 검색엔진 쪽에도 반영됩니다. 급하면 Actions 에서 수동 실행하면 됩니다.
+
+빌드 뒤에는 최근 이틀 안에 바뀐 주소만 IndexNow 로 알립니다. 매번 전부 보내면 같은 내용을
+반복 제출하는 셈이라 포털이 과다 제출로 볼 수 있습니다.
 
 ```bash
-npm run build && npm run indexnow
+npm run build && npm run indexnow            # 사이트맵 전체
+npx tsx scripts/indexnow.mts --days=2        # 최근 이틀 변경분만 (CI 가 쓰는 방식)
 ```
 
-IndexNow 는 한 번 제출하면 Bing·Naver·Yandex·Seznam 이 함께 받습니다. 구글은 IndexNow 에
-참여하지 않으므로 Search Console 에 제출한 `sitemap.xml` 로 처리됩니다(등록·제출 완료).
+IndexNow 는 한 번 제출하면 Bing·Naver·Yandex·Seznam 이 함께 받습니다. 키 파일은 공개 주소로
+검증하는 방식이라 비밀값이 아니고 `public/` 에 그대로 있습니다. 구글은 IndexNow 에 참여하지
+않으므로 Search Console 에 제출한 `sitemap.xml` 로 처리됩니다(등록·제출 완료).
 
 ## 처음 설정하기
 

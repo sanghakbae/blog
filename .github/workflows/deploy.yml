@@ -3,6 +3,11 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # 글은 웹 에디터에서 Firestore 로 바로 저장되므로 깃에 커밋이 남지 않는다.
+  # 크롤러가 읽는 정적 HTML 과 sitemap 은 빌드할 때 만들어지므로,
+  # 하루 한 번 다시 빌드해 수정한 글이 검색엔진에 반영되게 한다. (06:00 KST)
+  schedule:
+    - cron: '0 21 * * *'
   workflow_dispatch:
 
 permissions:
@@ -45,6 +50,14 @@ jobs:
       # /tags/:tag 같은 클라이언트 경로가 새로고침에도 살아남게 한다.
       - name: SPA fallback
         run: cp dist/index.html dist/404.html
+
+      # 최근에 바뀐 주소만 알린다. 키 파일은 공개 주소로 검증하는 방식이라
+      # 비밀값이 아니고 public/ 에 그대로 들어 있다.
+      # 색인 통보가 실패해도 배포는 계속한다.
+      - name: IndexNow
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        run: npx tsx scripts/indexnow.mts --days=2
 
       - uses: actions/upload-pages-artifact@v4
         with:
