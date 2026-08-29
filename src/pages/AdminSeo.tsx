@@ -82,6 +82,26 @@ export default function AdminSeo() {
                 {a.title}
               </Link>
 
+              {/* 색인 여부는 각 포털에서만 확인할 수 있다. 해당 주소로 바로 조회한다. */}
+              <span className="flex items-center gap-1.5">
+                {[
+                  { name: '구글', href: `https://www.google.com/search?q=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
+                  { name: '네이버', href: `https://search.naver.com/search.naver?query=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
+                  { name: '빙', href: `https://www.bing.com/search?q=${encodeURIComponent(`site:blog.sanghak.kr/posts/${a.id}/`)}` },
+                ].map((s) => (
+                  <a
+                    key={s.name}
+                    href={s.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`${s.name}에 색인됐는지 확인`}
+                    className="rounded border border-[var(--line)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  >
+                    {s.name}
+                  </a>
+                ))}
+              </span>
+
               <span className="ml-auto flex items-center gap-2 font-mono text-[10px] text-[var(--muted)]">
                 <span>FAQ {a.faq}</span>
                 <span>· 인용 {a.citations}</span>

@@ -8,7 +8,8 @@
     "build": "vite build && tsx scripts/prerender.mts",
     "lint": "oxlint",
     "preview": "vite preview",
-    "build:spa": "vite build"
+    "build:spa": "vite build",
+    "indexnow": "tsx scripts/indexnow.mts"
   },
   "dependencies": {
     "dompurify": "^3.4.14",
