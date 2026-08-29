@@ -47,6 +47,21 @@
 
 html { scroll-behavior: smooth; }
 
+/* 상단 바는 화면 테마와 무관하게 짙은 회색이다.
+   안쪽 요소들이 토큰을 그대로 쓰므로 이 범위에서만 토큰을 덮어 대비를 맞춘다. */
+.appbar {
+  --ink: oklch(0.97 0.002 260);
+  --muted: oklch(0.73 0.006 260);
+  --line: oklch(0.42 0.008 260);
+  --bg: oklch(0.32 0.006 260);
+  --bg-elev: oklch(0.39 0.008 260);
+  --accent: oklch(0.8 0.14 268);
+  --accent-ink: oklch(0.2 0.01 268);
+  --accent-soft: oklch(0.4 0.06 268);
+  background: oklch(0.32 0.006 260);
+  color: var(--ink);
+}
+
 body {
   background: var(--bg);
   color: var(--ink);
