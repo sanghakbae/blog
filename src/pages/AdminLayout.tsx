@@ -4,6 +4,7 @@ import { useAuth } from '../lib/useAuth'
 const tabs = [
   { to: '/admin', label: '글', end: true },
   { to: '/admin/audit', label: '감사 로그', end: false },
+  { to: '/admin/seo', label: 'SEO / GEO', end: false },
   { to: '/admin/security', label: '보안', end: false },
 ]
 

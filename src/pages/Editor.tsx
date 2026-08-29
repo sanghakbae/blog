@@ -5,16 +5,24 @@ import {
   analyzeContent, buildCorpusIndex, type CorpusDoc, type TagCandidate,
 } from '../lib/localTagger'
 import { uploadImage } from '../lib/upload'
-import { MAX_TAGS } from '../lib/tags'
+import { MAX_TAGS, makeExcerpt } from '../lib/tags'
 import {
   insertBlock, insertLink, prefixLines, readingStats, surround, type Selection,
 } from '../lib/editorCommands'
 import EditorToolbar from '../components/EditorToolbar'
 import { DEFAULT_SETTINGS, needsReauth, subscribeSettings, type SecuritySettings } from '../lib/settings'
 import { logAudit } from '../lib/audit'
+import { auditPost, type IssueArea } from '../lib/seo'
 import { reauthenticate } from '../lib/useAuth'
 
 const draftKey = (id?: string) => `draft:${id ?? 'new'}`
+
+const AREA_TONE: Record<IssueArea, string> = {
+  SEO: 'bg-[var(--accent-soft)] text-[var(--accent)]',
+  GEO: 'bg-emerald-500/15 text-emerald-600',
+  이미지: 'bg-[var(--bg-elev)] text-[var(--muted)]',
+  에디토리얼: 'bg-amber-500/15 text-amber-600',
+}
 
 export default function Editor() {
   const { id } = useParams()
@@ -102,6 +110,12 @@ export default function Editor() {
 
   const tags = touched ? picked : candidates.slice(0, MAX_TAGS).map((c) => c.tag)
   const stats = useMemo(() => readingStats(body), [body])
+
+  // 쓰는 중에 무엇이 빠졌는지 바로 보이게 한다
+  const audit = useMemo(
+    () => auditPost({ id, title: analyzed.title, body: analyzed.body, excerpt: makeExcerpt(analyzed.body), tags }),
+    [id, analyzed, tags],
+  )
 
   const edit = useCallback((fn: (sel: Selection) => Selection) => {
     const el = bodyRef.current
@@ -382,6 +396,46 @@ export default function Editor() {
                 </li>
               )
             })}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-[var(--line)] p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-sm font-semibold">SEO / GEO</h2>
+          <span className="text-xs text-[var(--muted)]">
+            FAQ {audit.faq} · 인용 {audit.citations} · 키워드 {audit.keywords}
+          </span>
+          <span
+            className={`ml-auto rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums ${
+              audit.score >= 80
+                ? 'bg-emerald-500/15 text-emerald-600'
+                : audit.score >= 50
+                  ? 'bg-amber-500/15 text-amber-600'
+                  : 'bg-red-500/15 text-red-600'
+            }`}
+          >
+            {audit.score}
+          </span>
+        </div>
+
+        {audit.issues.length === 0 ? (
+          <p className="mt-2 text-xs text-emerald-600">모든 항목을 충족합니다.</p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {audit.issues.map((i) => (
+              <li key={i.field} className="flex flex-wrap items-baseline gap-2 text-[11px]">
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                    AREA_TONE[i.area]
+                  }`}
+                >
+                  {i.area}
+                </span>
+                <code className="shrink-0 font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
+                <span>— {i.message}</span>
+              </li>
+            ))}
           </ul>
         )}
       </section>

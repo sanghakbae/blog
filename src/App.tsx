@@ -11,6 +11,7 @@ const AdminLayout = lazy(() => import('./pages/AdminLayout'))
 const Admin = lazy(() => import('./pages/Admin'))
 const AdminAudit = lazy(() => import('./pages/AdminAudit'))
 const AdminSecurity = lazy(() => import('./pages/AdminSecurity'))
+const AdminSeo = lazy(() => import('./pages/AdminSeo'))
 const Editor = lazy(() => import('./pages/Editor'))
 const RequireAdmin = lazy(() => import('./components/RequireAdmin'))
 
@@ -35,6 +36,7 @@ export default function App() {
             <Route index element={<Admin />} />
             <Route path="audit" element={<AdminAudit />} />
             <Route path="security" element={<AdminSecurity />} />
+            <Route path="seo" element={<AdminSeo />} />
             <Route path="new" element={<Editor />} />
             <Route path="edit/:id" element={<Editor />} />
           </Route>
