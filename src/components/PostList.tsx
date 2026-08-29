@@ -33,7 +33,7 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
                   <h2 className="text-2xl font-semibold leading-snug tracking-[-0.03em] transition-colors group-hover:text-[var(--accent)] sm:text-[1.75rem]">
                     {post.title}
                   </h2>
-                  <p className="mt-2.5 line-clamp-2 max-w-2xl text-[15px] leading-relaxed text-[var(--muted)]">
+                  <p className="mt-2.5 line-clamp-2 text-[15px] leading-relaxed text-[var(--muted)]">
                     {post.excerpt}
                   </p>
                 </div>

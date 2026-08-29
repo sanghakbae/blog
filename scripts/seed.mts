@@ -33,6 +33,7 @@ const MAX_TAGS = 3
 const IMG_DIR = 'public/img/posts'
 const dry = process.argv.includes('--dry')
 const purge = process.argv.includes('--purge')
+const local = process.argv.includes('--local')
 
 // ── 검증 ────────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,38 @@ console.log(`글 ${ALL.length}편 · 검증 통과`)
 console.log(`도식 ${writeDiagrams()}개 생성 → ${IMG_DIR}/`)
 
 const { result, tagCount } = computeTags()
+
+// 개발용 로컬 데이터 — Firebase 없이 개발환경을 돌리기 위한 고정 데이터
+if (local) {
+  const start = new Date()
+  start.setDate(start.getDate() - ALL.length)
+
+  const posts = result.map(({ post, tags }, i) => {
+    const at = new Date(start)
+    at.setDate(at.getDate() + i)
+    return {
+      id: post.slug,
+      title: post.title,
+      body: post.body,
+      excerpt: excerpt(post.body),
+      tags,
+      published: true,
+      author: AUTHOR,
+      createdAt: at.toISOString(),
+      updatedAt: at.toISOString(),
+    }
+  })
+
+  const tags = [...tagCount.entries()]
+    .map(([id, count]) => ({ id, name: id, count }))
+    .sort((a, b) => b.count - a.count)
+
+  mkdirSync('src/dev', { recursive: true })
+  writeFileSync('src/dev/seed-data.json', JSON.stringify({ posts, tags }, null, 0))
+  console.log(`\n로컬 데이터 생성 → src/dev/seed-data.json (글 ${posts.length}편, 태그 ${tags.length}종)`)
+  console.log('.env.local 에 VITE_LOCAL_DATA=1 을 넣고 개발 서버를 다시 시작하세요.')
+  process.exit(0)
+}
 
 if (dry) {
   console.log('\n제목과 태그\n')

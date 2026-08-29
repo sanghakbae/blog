@@ -30,7 +30,7 @@ export default function PostView() {
         ← 전체 글
       </Link>
 
-      <h1 className="mt-5 max-w-3xl text-[clamp(2rem,4.5vw,3.25rem)] font-semibold leading-[1.15] tracking-[-0.035em]">
+      <h1 className="mt-5 text-[clamp(2rem,4.5vw,3.25rem)] font-semibold leading-[1.15] tracking-[-0.035em]">
         {post.title}
       </h1>
 
@@ -49,7 +49,7 @@ export default function PostView() {
         ))}
       </div>
       <div
-        className="prose mt-9 max-w-3xl"
+        className="prose mt-9 max-w-none"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </article>

@@ -6,10 +6,17 @@ import { subscribeTags, type Tag } from '../lib/posts'
  * 본문 분석으로 만들어진 태그 목록을 배지로 보여준다.
  * 배지를 누르면 /tags/:tag 로 이동해 해당 태그가 달린 글만 모아 보여준다.
  */
+/** 처음에 보여줄 태그 수. 나머지는 눌러서 펼친다. */
+const VISIBLE = 24
+
 export default function TagSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [tags, setTags] = useState<Tag[] | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => subscribeTags(setTags), [])
+
+  const shown = expanded ? tags : tags?.slice(0, VISIBLE)
+  const hidden = (tags?.length ?? 0) - VISIBLE
 
   return (
     <nav aria-label="태그">
@@ -32,7 +39,7 @@ export default function TagSidebar({ onNavigate }: { onNavigate?: () => void }) 
       {tags?.length === 0 && <p className="text-sm text-[var(--muted)]">아직 태그가 없습니다.</p>}
 
       <ul className="flex flex-wrap gap-2">
-        {tags?.map((tag) => (
+        {shown?.map((tag) => (
           <li key={tag.id}>
             <NavLink
               to={`/tags/${encodeURIComponent(tag.id)}`}
@@ -54,6 +61,16 @@ export default function TagSidebar({ onNavigate }: { onNavigate?: () => void }) 
           </li>
         ))}
       </ul>
+
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-3 text-[11px] text-[var(--muted)] underline underline-offset-4 transition-colors hover:text-[var(--ink)]"
+        >
+          {expanded ? '접기' : `+${hidden}개 더 보기`}
+        </button>
+      )}
     </nav>
   )
 }
