@@ -274,6 +274,13 @@ body {
   line-height: 1.7;
 }
 .prose pre code { background: none; color: inherit; padding: 0; }
+
+/* 자동으로 원문을 보존한 블록은 코드가 아니라 '쓴 그대로' 이므로 톤을 낮춘다 */
+.prose pre:has(code.language-text) {
+  background: var(--bg-elev);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
 .prose hr { border: 0; border-top: 1px solid var(--line); margin: 2.6em 0; }
 .prose table { width: 100%; border-collapse: collapse; font-size: 0.94em; }
 .prose th, .prose td { border-bottom: 1px solid var(--line); padding: 0.65em 0.85em; text-align: left; }
