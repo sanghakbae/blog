@@ -44,74 +44,66 @@ function toPost(id: string, d: any): Post {
   }
 }
 
-/** 발행된 글 목록 (최신순) */
-export async function listPosts(max = 50): Promise<Post[]> {
-  if (OFFLINE) return []
-  if (USE_LOCAL) return (await import('./localData')).localListPosts(max)
-  const snap = await getDocs(
-    query(postsCol, where('published', '==', true), orderBy('createdAt', 'desc'), limit(max)),
-  )
-  return snap.docs.map((d) => toPost(d.id, d.data()))
-}
+/**
+ * 발행글 캐시.
+ *
+ * 홈, 검색, 태그 목록, 이전·다음 글, 에디터의 코퍼스가 모두 같은 글 목록을 본다.
+ * 각자 조회하면 화면을 옮길 때마다 100건씩 읽게 되어 읽기 할당량이 금방 찬다.
+ * 한 번 읽어 공유하고, 글이 바뀌면 비운다.
+ */
+const CACHE_TTL = 5 * 60 * 1000
+const CACHE_LIMIT = 500
+let cache: { at: number; posts: Post[] } | null = null
 
-/** 특정 태그가 달린 글 목록 */
-export async function listPostsByTag(tag: string, max = 50): Promise<Post[]> {
+async function loadPublished(): Promise<Post[]> {
   if (OFFLINE) return []
-  if (USE_LOCAL) return (await import('./localData')).localListByTag(tag, max)
+  if (cache && Date.now() - cache.at < CACHE_TTL) return cache.posts
+
   const snap = await getDocs(
     query(
       postsCol,
       where('published', '==', true),
-      where('tags', 'array-contains', tag),
       orderBy('createdAt', 'desc'),
-      limit(max),
+      limit(CACHE_LIMIT),
     ),
   )
-  return snap.docs.map((d) => toPost(d.id, d.data()))
+  cache = { at: Date.now(), posts: snap.docs.map((d) => toPost(d.id, d.data())) }
+  return cache.posts
+}
+
+function invalidate() {
+  cache = null
+}
+
+/** 발행된 글 목록 (최신순) */
+export async function listPosts(max = 50): Promise<Post[]> {
+  if (USE_LOCAL) return (await import('./localData')).localListPosts(max)
+  return (await loadPublished()).slice(0, max)
+}
+
+/** 특정 태그가 달린 글 목록 */
+export async function listPostsByTag(tag: string, max = 50): Promise<Post[]> {
+  if (USE_LOCAL) return (await import('./localData')).localListByTag(tag, max)
+  return (await loadPublished()).filter((p) => p.tags.includes(tag)).slice(0, max)
 }
 
 /** 관리자용 — 임시저장 포함 전체 */
-export async function listAllPosts(max = 100): Promise<Post[]> {
+export async function listAllPosts(max = 300): Promise<Post[]> {
   if (OFFLINE) return []
   if (USE_LOCAL) return (await import('./localData')).localListPosts(max, true)
   const snap = await getDocs(query(postsCol, orderBy('updatedAt', 'desc'), limit(max)))
   return snap.docs.map((d) => toPost(d.id, d.data()))
 }
 
-/**
- * 이전·다음 글.
- * 목록 전체를 받아 위치를 찾으면 글이 늘어날수록 읽기 비용이 그대로 커진다.
- * 작성 시각을 기준으로 양쪽에서 한 건씩만 가져온다.
- */
+/** 이전·다음 글 — 이미 읽어둔 목록에서 계산한다 */
 export async function getAdjacentPosts(post: Post): Promise<{ prev?: Post; next?: Post }> {
   if (USE_LOCAL) return (await import('./localData')).localAdjacent(post.id)
-  if (!post.createdAt) return {}
 
-  const [older, newer] = await Promise.all([
-    getDocs(
-      query(
-        postsCol,
-        where('published', '==', true),
-        where('createdAt', '<', post.createdAt),
-        orderBy('createdAt', 'desc'),
-        limit(1),
-      ),
-    ),
-    getDocs(
-      query(
-        postsCol,
-        where('published', '==', true),
-        where('createdAt', '>', post.createdAt),
-        orderBy('createdAt', 'asc'),
-        limit(1),
-      ),
-    ),
-  ])
-
-  return {
-    prev: older.docs[0] ? toPost(older.docs[0].id, older.docs[0].data()) : undefined,
-    next: newer.docs[0] ? toPost(newer.docs[0].id, newer.docs[0].data()) : undefined,
-  }
+  const all = await loadPublished()
+  const i = all.findIndex((p) => p.id === post.id)
+  if (i < 0) return {}
+  // 목록은 최신순이므로 앞이 다음 글, 뒤가 이전 글이다
+  return { next: all[i - 1], prev: all[i + 1] }
 }
 
 export async function getPost(id: string): Promise<Post | null> {
@@ -122,14 +114,12 @@ export async function getPost(id: string): Promise<Post | null> {
 }
 
 /** 태그 분석의 기준이 되는 코퍼스 — 다른 글들의 제목·본문 */
-export async function fetchCorpus(max = 100): Promise<{ title: string; body: string }[]> {
-  if (OFFLINE) return []
+export async function fetchCorpus(max = 200): Promise<{ title: string; body: string }[]> {
   if (USE_LOCAL)
     return (await import('./localData')).localListPosts(max).then((ps) =>
       ps.map((p) => ({ title: p.title, body: p.body })),
     )
-  const snap = await getDocs(query(postsCol, orderBy('updatedAt', 'desc'), limit(max)))
-  return snap.docs.map((d) => ({ title: d.data().title ?? '', body: d.data().body ?? '' }))
+  return (await loadPublished()).slice(0, max).map((p) => ({ title: p.title, body: p.body }))
 }
 
 /** 태그 목록 1회 조회 — 태그 분석 시 재사용 힌트로 넘긴다 */
@@ -193,6 +183,7 @@ export async function savePost(
       published: input.published,
       tags: tagsInput,
     })
+    invalidate()
     await logAudit(
       !id ? 'post.create' : input.published !== input.wasPublished
         ? (input.published ? 'post.publish' : 'post.unpublish')
@@ -242,6 +233,7 @@ export async function savePost(
   addAuditToBatch(batch, action, postRef.id, `${input.title.trim()} · 태그 ${tags.join(', ') || '없음'}`)
 
   await batch.commit()
+  invalidate()
   return postRef.id
 }
 
@@ -263,6 +255,7 @@ export async function deletePost(id: string, title = ''): Promise<void> {
   batch.delete(postRef)
   addAuditToBatch(batch, 'post.delete', id, title || (data?.title ?? ''))
   await batch.commit()
+  invalidate()
 }
 
 export { deleteDoc, setDoc }

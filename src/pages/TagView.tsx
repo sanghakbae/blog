@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import PostList from '../components/PostList'
 import { listPostsByTag, type Post } from '../lib/posts'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export default function TagView() {
   const { tag = '' } = useParams()
   const [posts, setPosts] = useState<Post[] | null>(null)
+
+  useDocumentTitle(tag)
 
   useEffect(() => {
     setPosts(null)

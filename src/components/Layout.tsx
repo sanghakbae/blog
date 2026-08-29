@@ -76,7 +76,7 @@ export default function Layout() {
 
         {/* 사이드바를 오른쪽에 둬서 본문이 왼쪽 기준선에 붙는다.
             태그는 화면에 들어가는 만큼만 자동으로 보여준다. */}
-        <aside className="hidden shrink-0 overflow-hidden border-l border-[var(--line)] bg-[var(--bg-elev)] p-4 lg:block lg:w-56 xl:w-64">
+        <aside className="hidden shrink-0 overflow-hidden border-l border-[var(--line)] bg-[var(--bg-elev)] p-4 lg:block lg:w-[16.8rem] xl:w-[19.2rem]">
           <TagSidebar fit />
         </aside>
       </div>

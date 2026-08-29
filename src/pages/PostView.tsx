@@ -9,12 +9,15 @@ import TableOfContents from '../components/TableOfContents'
 import PostNav from '../components/PostNav'
 import { readingStats } from '../lib/editorCommands'
 import type { Heading } from '../lib/markdown'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export default function PostView() {
   const { id = '' } = useParams()
   const [post, setPost] = useState<Post | null | 'missing'>(null)
   const [html, setHtml] = useState('')
   const [headings, setHeadings] = useState<Heading[]>([])
+
+  useDocumentTitle(typeof post === 'object' ? post?.title : undefined)
 
   useEffect(() => {
     // 같은 화면에서 글만 바뀌므로 직접 비우지 않으면 이전 글이 잠시 남는다
