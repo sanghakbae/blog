@@ -14,7 +14,7 @@ export default function TagView() {
 
   return (
     <div>
-      <header className="mb-10">
+      <header className="mb-12">
         <Link
           to="/"
           className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
@@ -31,9 +31,11 @@ export default function TagView() {
       </header>
 
       {!posts ? (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="border-t border-[var(--line)]">
           {[...Array(3)].map((_, i) => (
-            <li key={i} className="h-44 animate-pulse rounded-2xl bg-[var(--bg-elev)]" />
+            <li key={i} className="border-b border-[var(--line)] py-8">
+              <div className="h-7 w-2/3 animate-pulse rounded bg-[var(--bg-elev)]" />
+            </li>
           ))}
         </ul>
       ) : (

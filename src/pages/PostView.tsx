@@ -30,7 +30,7 @@ export default function PostView() {
         ← 전체 글
       </Link>
 
-      <h1 className="mt-4 max-w-4xl text-3xl font-semibold leading-[1.15] tracking-[-0.03em] sm:text-[2.6rem]">
+      <h1 className="mt-5 max-w-3xl text-[clamp(2rem,4.5vw,3.25rem)] font-semibold leading-[1.15] tracking-[-0.035em]">
         {post.title}
       </h1>
 
@@ -42,7 +42,7 @@ export default function PostView() {
           <Link
             key={tag}
             to={`/tags/${encodeURIComponent(tag)}`}
-            className="rounded-full bg-[var(--bg-elev)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+            className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
           >
             #{tag}
           </Link>

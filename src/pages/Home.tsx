@@ -8,20 +8,25 @@ export default function Home() {
 
   return (
     <div>
-      <header className="mb-10">
-        <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+      <header className="mb-14 max-w-3xl">
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--accent)]">
+          Personal journal
+        </p>
+        <h1 className="display mt-5 text-[clamp(2.75rem,7vw,5rem)]">
           쓰고 싶은 걸 씁니다
         </h1>
-        <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-[var(--muted)]">
-          주제를 정해두지 않은 블로그입니다. 태그는 글을 쓰면 본문 분석으로 붙습니다 —
-          왼쪽에서 골라 보세요.
+        <p className="mt-6 max-w-lg text-[15px] leading-relaxed text-[var(--muted)]">
+          주제를 정해두지 않은 블로그입니다. 태그는 글을 쓰면 본문 분석으로 붙습니다.
         </p>
       </header>
 
       {!posts ? (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <li key={i} className="h-44 animate-pulse rounded-2xl bg-[var(--bg-elev)]" />
+        <ul className="border-t border-[var(--line)]">
+          {[...Array(4)].map((_, i) => (
+            <li key={i} className="border-b border-[var(--line)] py-8">
+              <div className="h-7 w-2/3 animate-pulse rounded bg-[var(--bg-elev)]" />
+              <div className="mt-3 h-4 w-full max-w-xl animate-pulse rounded bg-[var(--bg-elev)]" />
+            </li>
           ))}
         </ul>
       ) : (

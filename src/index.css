@@ -1,130 +1,133 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Pretendard Variable", "Pretendard", ui-sans-serif, system-ui, -apple-system,
+  --font-sans: "Pretendard Variable", Pretendard, ui-sans-serif, system-ui, -apple-system,
     "Apple SD Gothic Neo", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: "Instrument Serif", "Pretendard Variable", Pretendard, Georgia, serif;
 }
 
 :root {
-  --bg: oklch(0.995 0.002 265);
+  /* 종이 같은 따뜻한 흰색 — 순백은 화면에서 싸구려로 보인다 */
+  --bg: oklch(0.985 0.004 85);
   --bg-elev: oklch(1 0 0);
-  --ink: oklch(0.21 0.015 265);
-  --muted: oklch(0.55 0.014 265);
-  --line: oklch(0.92 0.005 265);
-  --accent: oklch(0.55 0.19 265);
-  --accent-soft: oklch(0.95 0.03 265);
-  --shadow: 0 1px 2px oklch(0.2 0.02 265 / 0.04), 0 8px 24px oklch(0.2 0.02 265 / 0.06);
-  --radius: 14px;
+  --ink: oklch(0.18 0.01 60);
+  --muted: oklch(0.52 0.012 60);
+  --line: oklch(0.9 0.006 70);
+  --accent: oklch(0.52 0.24 268);
+  --accent-ink: oklch(0.99 0 0);
+  --accent-soft: oklch(0.94 0.045 268);
+  --radius: 16px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: oklch(0.16 0.012 265);
-    --bg-elev: oklch(0.2 0.014 265);
-    --ink: oklch(0.95 0.005 265);
-    --muted: oklch(0.66 0.014 265);
-    --line: oklch(0.29 0.012 265);
-    --accent: oklch(0.78 0.14 265);
-    --accent-soft: oklch(0.3 0.05 265);
-    --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 12px 32px oklch(0 0 0 / 0.28);
+    --bg: oklch(0.15 0.008 270);
+    --bg-elev: oklch(0.19 0.011 270);
+    --ink: oklch(0.96 0.004 90);
+    --muted: oklch(0.64 0.014 270);
+    --line: oklch(0.28 0.014 270);
+    --accent: oklch(0.78 0.17 268);
+    --accent-ink: oklch(0.16 0.01 270);
+    --accent-soft: oklch(0.28 0.08 268);
   }
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
   background: var(--bg);
   color: var(--ink);
-  font-feature-settings: "ss01", "cv01", "tnum" 0;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-::selection {
-  background: var(--accent-soft);
-  color: var(--ink);
-}
+::selection { background: var(--accent); color: var(--accent-ink); }
 
-/* 포커스 링을 한 번에 통일 */
 :where(a, button, input, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 8px;
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
+/* 큰 제목 — 한글은 Pretendard, 라틴/숫자는 세리프로 떨어져 대비가 생긴다 */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+/* 목록 행 위에 얹히는 배경 — hover 시 왼쪽에서 채워진다 */
+.row-fill { position: relative; isolation: isolate; }
+.row-fill::before {
+  content: "";
+  position: absolute;
+  inset: -0.75rem -1rem;
+  z-index: -1;
+  border-radius: 12px;
+  background: var(--bg-elev);
+  opacity: 0;
+  transform: scaleX(0.98);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.row-fill:hover::before { opacity: 1; transform: none; }
+
 @media (prefers-reduced-motion: no-preference) {
-  .rise {
-    animation: rise 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
-  }
+  .rise { animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
   @keyframes rise {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }
   }
 }
 
-/* ── 본문(마크다운) 타이포그래피 ─────────────────────────────────────────── */
+/* ── 본문(마크다운) ──────────────────────────────────────────────────────── */
 
-.prose {
-  font-size: 1.0625rem;
-  line-height: 1.8;
-  letter-spacing: -0.003em;
-}
-.prose > * + * { margin-top: 1.15em; }
+.prose { font-size: 1.075rem; line-height: 1.85; letter-spacing: -0.004em; }
+.prose > * + * { margin-top: 1.2em; }
 .prose h2 {
-  margin-top: 2.2em;
-  font-size: 1.4rem;
-  font-weight: 680;
-  letter-spacing: -0.02em;
+  margin-top: 2.4em;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
-.prose h3 {
-  margin-top: 1.7em;
-  font-size: 1.15rem;
-  font-weight: 660;
-  letter-spacing: -0.015em;
-}
+.prose h3 { margin-top: 1.8em; font-size: 1.18rem; font-weight: 650; letter-spacing: -0.02em; }
 .prose a {
-  color: var(--accent);
+  color: var(--ink);
   text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  transition: opacity 0.15s;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  transition: color 0.15s;
 }
-.prose a:hover { opacity: 0.7; }
-.prose img {
-  border-radius: var(--radius);
-  max-width: 100%;
-  height: auto;
-  box-shadow: var(--shadow);
-}
+.prose a:hover { color: var(--accent); }
+.prose img { border-radius: var(--radius); max-width: 100%; height: auto; }
 .prose ul { list-style: disc; padding-left: 1.3rem; }
 .prose ol { list-style: decimal; padding-left: 1.3rem; }
-.prose li::marker { color: var(--muted); }
+.prose li::marker { color: var(--accent); }
 .prose blockquote {
-  border-left: 2px solid var(--accent);
-  padding: 0.1rem 0 0.1rem 1.1rem;
+  border-left: 3px solid var(--accent);
+  padding: 0.2rem 0 0.2rem 1.2rem;
   color: var(--muted);
-  font-style: italic;
 }
 .prose code {
   background: var(--accent-soft);
+  color: var(--ink);
   padding: 0.15em 0.42em;
   border-radius: 6px;
   font-family: var(--font-mono);
-  font-size: 0.87em;
+  font-size: 0.86em;
 }
 .prose pre {
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
-  padding: 1.1rem 1.25rem;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 1.2rem 1.35rem;
   border-radius: var(--radius);
   overflow-x: auto;
-  font-size: 0.875rem;
-  line-height: 1.65;
+  font-size: 0.86rem;
+  line-height: 1.7;
 }
-.prose pre code { background: none; padding: 0; font-size: inherit; }
-.prose hr { border: 0; border-top: 1px solid var(--line); margin: 2.5em 0; }
+.prose pre code { background: none; color: inherit; padding: 0; }
+.prose hr { border: 0; border-top: 1px solid var(--line); margin: 2.6em 0; }
 .prose table { width: 100%; border-collapse: collapse; font-size: 0.94em; }
-.prose th, .prose td { border-bottom: 1px solid var(--line); padding: 0.6em 0.8em; text-align: left; }
+.prose th, .prose td { border-bottom: 1px solid var(--line); padding: 0.65em 0.85em; text-align: left; }
