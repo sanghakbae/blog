@@ -3,7 +3,7 @@ import {
   type Timestamp, type WriteBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { auth } from './authClient'
+import { ADMIN_EMAILS, auth } from './authClient'
 
 export type AuditAction =
   | 'auth.signin'
@@ -62,6 +62,11 @@ function entryData(action: AuditAction, target = '', detail = '') {
  * 로그 실패가 본래 작업을 막으면 안 되므로 조용히 삼킨다.
  */
 export async function logAudit(action: AuditAction, target = '', detail = ''): Promise<void> {
+  // 감사 로그는 관리자 활동 기록이다. 규칙도 관리자만 쓰기를 허용하므로,
+  // 방문자가 댓글을 쓰려고 로그인할 때마다 권한 거부 쓰기가 발생하던 문제를 막는다.
+  const email = auth.currentUser?.email?.toLowerCase() ?? ''
+  if (!ADMIN_EMAILS.includes(email)) return
+
   if (USE_LOCAL) {
     const local = await import('./localData')
     const user = auth.currentUser

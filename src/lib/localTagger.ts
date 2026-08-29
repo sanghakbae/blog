@@ -106,8 +106,11 @@ export function analyzeContent(input: {
   for (const entry of VOCABULARY) {
     const { weighted, raw, places } = scoreEntry(entry, zs)
     if (!raw) continue
-    // 스쳐 지나간 한 번은 이 글의 주제가 아니다. 제목에 있으면 예외로 둔다.
-    if (raw < 2 && !places.has('제목') && !places.has('소제목')) continue
+
+    // 태그는 글의 핵심이어야 한다. 본문 어딘가에 두어 번 언급된 것으로는 부족하다.
+    // 제목이나 소제목에 있거나, 본문 전체에서 반복적으로 다뤄져야 후보가 된다.
+    const central = places.has('제목') || places.has('소제목') || raw >= 4
+    if (!central) continue
 
     // 모든 글에 나오는 용어는 분류에 도움이 되지 않는다
     const idf = index.size ? Math.sqrt(Math.log(1 + N / (1 + (index.df.get(entry.tag) ?? 0)))) : 1

@@ -153,7 +153,7 @@ export function subscribeTags(cb: (tags: Tag[]) => void) {
   }
   try {
     return onSnapshot(
-      query(tagsCol, orderBy('count', 'desc'), limit(100)),
+      query(tagsCol, orderBy('count', 'desc'), limit(300)),
       (snap) =>
         cb(
           snap.docs

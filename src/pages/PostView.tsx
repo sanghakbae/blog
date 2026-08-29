@@ -17,15 +17,31 @@ export default function PostView() {
   const [headings, setHeadings] = useState<Heading[]>([])
 
   useEffect(() => {
-    getPost(id).then((p) => setPost(p ?? 'missing')).catch(() => setPost('missing'))
+    // 같은 화면에서 글만 바뀌므로 직접 비우지 않으면 이전 글이 잠시 남는다
+    setPost(null)
+    setHtml('')
+    setHeadings([])
+
+    let alive = true
+    getPost(id)
+      .then((p) => alive && setPost(p ?? 'missing'))
+      .catch(() => alive && setPost('missing'))
+    return () => {
+      alive = false
+    }
   }, [id])
 
   useEffect(() => {
     if (typeof post !== 'object' || !post) return
+    let alive = true
     import('../lib/markdown').then((m) => {
+      if (!alive) return
       setHtml(m.renderMarkdown(post.body))
       setHeadings(m.extractHeadings(post.body))
     })
+    return () => {
+      alive = false
+    }
   }, [post])
 
   if (post === null) return <p className="text-sm text-[var(--muted)]">불러오는 중…</p>

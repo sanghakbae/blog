@@ -15,10 +15,8 @@
     "FIREBASE_PROJECT_ID": "tag-blog-8408e",
     // 글쓰기(업로드/태그분석) 권한을 가진 이메일, 쉼표 구분
     "ADMIN_EMAILS": "totoriverce@gmail.com",
-    // R2 공개 도메인 (예: https://img.sanghak.kr)
-    "PUBLIC_BASE_URL": "https://img.sanghak.kr",
     // 프론트 오리진 (CORS)
-    "ALLOWED_ORIGIN": "https://blog.sanghak.kr"
+    "ALLOWED_ORIGIN": "https://blog.sanghak.kr,http://localhost:5173"
   }
 
 }
