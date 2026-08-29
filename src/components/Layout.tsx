@@ -1,13 +1,10 @@
 import { useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import TagSidebar from './TagSidebar'
+import AuthButton from './AuthButton'
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
-  // 방문자에게 firebase/auth 를 내려보내지 않으려고 여기서는 로그인 상태를 보지 않는다.
-  // 관리 링크는 /admin 안에서만 노출하고, 실제 권한 확인은 RequireAdmin 이 한다.
-  const inAdmin = useLocation().pathname.startsWith('/admin')
-
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-xl">
@@ -21,14 +18,7 @@ export default function Layout() {
 
           <div className="flex-1" />
 
-          {inAdmin && (
-            <Link
-              to="/admin"
-              className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
-            >
-              관리
-            </Link>
-          )}
+          <AuthButton />
 
           <button
             type="button"
