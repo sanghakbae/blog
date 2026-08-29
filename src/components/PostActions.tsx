@@ -2,11 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Post } from '../lib/posts'
 import { subscribeViewer, type Viewer } from '../lib/authState'
-
-/** 파일 이름으로 쓸 수 없는 문자를 정리한다 */
-function safeName(title: string): string {
-  return title.replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 80) || 'post'
-}
+import { downloadPdf, safeName } from '../lib/pdf'
 
 function downloadMarkdown(post: Post) {
   const date = post.createdAt?.toDate?.().toISOString().slice(0, 10) ?? ''
@@ -39,7 +35,22 @@ function downloadMarkdown(post: Post) {
  */
 export default function PostActions({ post }: { post: Post }) {
   const [viewer, setViewer] = useState<Viewer>(null)
+  const [busy, setBusy] = useState(false)
   useEffect(() => subscribeViewer(setViewer), [])
+
+  async function savePdf() {
+    const article = document.querySelector('article')
+    if (!article) return
+    setBusy(true)
+    try {
+      await downloadPdf(post, article as HTMLElement)
+    } catch (err) {
+      console.error(err)
+      alert(`PDF 를 만들지 못했습니다 — ${(err as Error).message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="no-print flex shrink-0 items-center gap-1">
@@ -62,11 +73,12 @@ export default function PostActions({ post }: { post: Post }) {
       </button>
       <button
         type="button"
-        onClick={() => window.print()}
-        title="PDF 로 저장 (인쇄 대화상자에서 대상을 PDF 로 선택)"
-        className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+        onClick={savePdf}
+        disabled={busy}
+        title="PDF 파일로 저장"
+        className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-50"
       >
-        PDF
+        {busy ? '…' : 'PDF'}
       </button>
     </div>
   )
