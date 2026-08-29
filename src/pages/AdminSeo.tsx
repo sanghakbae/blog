@@ -62,36 +62,39 @@ export default function AdminSeo() {
         </p>
       </header>
 
-      {/* 지적 4종 + 포털 3종을 한 줄에 둔다 */}
-      <div className="mb-6 grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-7">
+      {/* 지적 4종 + 포털 3종. 넓은 화면은 한 줄, 좁은 화면은 네 개씩 두 줄. */}
+      <div className="mb-6 grid grid-cols-4 gap-1 sm:gap-1.5 lg:grid-cols-7">
         {AREAS.map((a) => (
           <button
             key={a}
             type="button"
             onClick={() => setArea(area === a ? null : a)}
-            className={`rounded-lg border p-2.5 text-left transition-colors ${
+            className={`rounded-lg border p-1.5 text-left transition-colors sm:p-2.5 ${
               area === a
                 ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
                 : 'border-[var(--line)] bg-[var(--bg-elev)] hover:border-[var(--accent)]'
             }`}
           >
-            <span className="block truncate text-[13px] font-bold tracking-tight text-[var(--muted)]">
+            <span className="block truncate text-[10px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
               {a}
             </span>
-            <span className="mt-0.5 block text-center text-xl font-semibold tabular-nums">
+            <span className="mt-0.5 block text-center text-base font-semibold tabular-nums sm:text-xl">
               {counts[a]}
             </span>
           </button>
         ))}
 
         {ENGINES.map((e) => (
-          <div key={e} className="rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] p-2.5">
-            <span className="block truncate text-[13px] font-bold tracking-tight text-[var(--muted)]">
+          <div key={e} className="rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] p-1.5 sm:p-2.5">
+            <span className="block truncate text-[10px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
               {ENGINE_LABEL[e]}
             </span>
-            <span className="mt-0.5 block text-center text-xl font-semibold tabular-nums">
+            <span className="mt-0.5 block text-center text-base font-semibold tabular-nums sm:text-xl">
               {indexed(e)}
-              <span className="text-xs font-normal text-[var(--muted)]"> / {posts?.length ?? 0}</span>
+              <span className="text-[10px] font-normal text-[var(--muted)] sm:text-xs">
+                {' / '}
+                {posts?.length ?? 0}
+              </span>
             </span>
           </div>
         ))}

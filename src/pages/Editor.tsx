@@ -65,14 +65,18 @@ export default function Editor() {
       }
       return
     }
-    getPost(id).then((p) => {
-      if (!p) return setStatus('글을 찾을 수 없습니다.')
-      setTitle(p.title)
-      setBody(p.body)
-      setPublished(p.published)
-      if (p.tags.length) { setPicked(p.tags); setTouched(true) }
-      setLoaded(true)
-    })
+    // 어느 쪽으로 끝나든 loaded 를 세워야 한다. 안 그러면 '불러오는 중…' 에서
+    // 영원히 멈추고, 아래 setStatus 로 남긴 이유도 화면에 나오지 않는다.
+    getPost(id)
+      .then((p) => {
+        if (!p) return setError('글을 찾을 수 없습니다.')
+        setTitle(p.title)
+        setBody(p.body)
+        setPublished(p.published)
+        if (p.tags.length) { setPicked(p.tags); setTouched(true) }
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : '글을 불러오지 못했습니다.'))
+      .finally(() => setLoaded(true))
   }, [id])
 
   // 브라우저가 닫혀도 잃지 않도록 초안을 로컬에 남긴다
@@ -284,7 +288,7 @@ export default function Editor() {
         value={title}
         onChange={(e) => { setTitle(e.target.value); setDirty(true) }}
         placeholder="제목"
-        className="w-full bg-transparent pb-2 text-3xl font-semibold tracking-[-0.03em] outline-none placeholder:text-[var(--muted)]"
+        className="w-full bg-transparent pb-2 text-xl font-semibold tracking-[-0.03em] outline-none placeholder:text-[var(--muted)] sm:text-3xl"
       />
 
       <div>
@@ -316,13 +320,13 @@ export default function Editor() {
               if (file?.type.startsWith('image/')) { e.preventDefault(); insertImage(file) }
             }}
             placeholder="마크다운으로 자유롭게 쓰세요. 이미지는 붙여넣거나 끌어다 놓으면 됩니다."
-            className={`min-h-[55vh] w-full resize-y border border-[var(--line)] bg-transparent p-4 font-mono text-sm leading-relaxed outline-none focus:border-[var(--accent)] ${
+            className={`min-h-[55vh] w-full resize-y border border-[var(--line)] bg-transparent p-2.5 font-mono text-xs leading-relaxed outline-none focus:border-[var(--accent)] sm:p-4 sm:text-sm ${
               preview ? 'rounded-bl-xl lg:border-r-0' : 'rounded-b-xl'
             }`}
           />
 
           {preview && (
-            <div className="prose max-h-[70vh] overflow-y-auto rounded-br-xl border border-[var(--line)] bg-[var(--bg-elev)] p-6 text-[15px]">
+            <div className="prose max-h-[70vh] overflow-y-auto rounded-br-xl border border-[var(--line)] bg-[var(--bg-elev)] p-3 sm:p-6 sm:text-[15px]">
               {body.trim() ? (
                 <div dangerouslySetInnerHTML={{ __html: html }} />
               ) : (
@@ -347,7 +351,7 @@ export default function Editor() {
         </div>
       </div>
 
-      <section className="rounded-xl border border-[var(--line)] p-4">
+      <section className="rounded-xl border border-[var(--line)] p-3 sm:p-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-sm font-semibold">태그</h2>
           <span className="text-xs text-[var(--muted)]">
@@ -400,7 +404,7 @@ export default function Editor() {
         )}
       </section>
 
-      <section className="rounded-xl border border-[var(--line)] p-4">
+      <section className="rounded-xl border border-[var(--line)] p-3 sm:p-4">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-sm font-semibold">SEO / GEO</h2>
           <span className="text-xs text-[var(--muted)]">
@@ -424,16 +428,16 @@ export default function Editor() {
         ) : (
           <ul className="mt-3 space-y-1.5">
             {audit.issues.map((i) => (
-              <li key={i.field} className="flex flex-wrap items-baseline gap-2 text-[11px]">
-                <span
-                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                    AREA_TONE[i.area]
-                  }`}
-                >
-                  {i.area}
+              <li key={i.field} className="flex items-baseline gap-2 text-[11px]">
+                {/* 배지와 항목 이름은 한 덩어리로 묶는다. 따로 두면 좁은 화면에서
+                    설명만 다음 줄로 밀려나 빈 줄처럼 보인다. */}
+                <span className="flex shrink-0 items-baseline gap-2">
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${AREA_TONE[i.area]}`}>
+                    {i.area}
+                  </span>
+                  <code className="font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
                 </span>
-                <code className="shrink-0 font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
-                <span>— {i.message}</span>
+                <span className="min-w-0 flex-1">— {i.message}</span>
               </li>
             ))}
           </ul>
