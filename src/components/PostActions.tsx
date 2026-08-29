@@ -41,7 +41,7 @@ export default function PostActions({ post }: { post: Post }) {
         type="button"
         onClick={() => downloadMarkdown(post)}
         title="마크다운 파일로 저장"
-        className="rounded-full border border-[var(--line)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        className="rounded-full border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
       >
         MD
       </button>
@@ -49,7 +49,7 @@ export default function PostActions({ post }: { post: Post }) {
         type="button"
         onClick={() => window.print()}
         title="PDF 로 저장 (인쇄 대화상자에서 대상을 PDF 로 선택)"
-        className="rounded-full border border-[var(--line)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        className="rounded-full border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
       >
         PDF
       </button>
