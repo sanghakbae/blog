@@ -42,6 +42,8 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
 
 const auditCol = collection(db, 'audit')
 
+const USE_LOCAL = import.meta.env.DEV && import.meta.env.VITE_LOCAL_DATA === '1'
+
 function entryData(action: AuditAction, target = '', detail = '') {
   const user = auth.currentUser
   return {
@@ -60,6 +62,17 @@ function entryData(action: AuditAction, target = '', detail = '') {
  * 로그 실패가 본래 작업을 막으면 안 되므로 조용히 삼킨다.
  */
 export async function logAudit(action: AuditAction, target = '', detail = ''): Promise<void> {
+  if (USE_LOCAL) {
+    const local = await import('./localData')
+    const user = auth.currentUser
+    return local.localAddAudit(
+      action,
+      { uid: user?.uid ?? 'local', email: user?.email ?? 'local@dev' },
+      target,
+      detail,
+    )
+  }
+
   try {
     await setDoc(doc(auditCol), entryData(action, target, detail))
   } catch (err) {
@@ -78,6 +91,7 @@ export function addAuditToBatch(
 }
 
 export async function listAudit(max = 200): Promise<AuditEntry[]> {
+  if (USE_LOCAL) return (await import('./localData')).localListAudit(max)
   const snap = await getDocs(query(auditCol, orderBy('at', 'desc'), limit(max)))
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AuditEntry, 'id'>) }))
 }

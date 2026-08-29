@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { MAX_TAGS, makeExcerpt, normalizeTag } from './tags'
-import { addAuditToBatch } from './audit'
+import { addAuditToBatch, logAudit } from './audit'
 
 export type Post = {
   id: string
@@ -67,7 +67,7 @@ export async function listPostsByTag(tag: string, max = 50): Promise<Post[]> {
 
 /** 관리자용 — 임시저장 포함 전체 */
 export async function listAllPosts(max = 100): Promise<Post[]> {
-  if (USE_LOCAL) return (await import('./localData')).localListPosts(max)
+  if (USE_LOCAL) return (await import('./localData')).localListPosts(max, true)
   const snap = await getDocs(query(postsCol, orderBy('updatedAt', 'desc'), limit(max)))
   return snap.docs.map((d) => toPost(d.id, d.data()))
 }
@@ -90,7 +90,7 @@ export async function fetchCorpus(max = 100): Promise<{ title: string; body: str
 
 /** 태그 목록 1회 조회 — 태그 분석 시 재사용 힌트로 넘긴다 */
 export async function fetchTagNames(): Promise<string[]> {
-  if (USE_LOCAL) return (await import('./localData')).localTags().then((ts) => ts.map((t) => t.id))
+  if (USE_LOCAL) return (await import('./localData')).localTagNames()
   const snap = await getDocs(query(tagsCol, orderBy('count', 'desc'), limit(200)))
   return snap.docs.map((d) => d.id)
 }
@@ -98,8 +98,9 @@ export async function fetchTagNames(): Promise<string[]> {
 /** 사이드바용 태그 목록 구독 (글 수 많은 순) */
 export function subscribeTags(cb: (tags: Tag[]) => void) {
   if (USE_LOCAL) {
-    import('./localData').then((m) => m.localTags().then(cb))
-    return () => {}
+    let stop: (() => void) | undefined
+    import('./localData').then((m) => m.localSubscribeTags(cb).then((fn) => (stop = fn)))
+    return () => stop?.()
   }
   return onSnapshot(query(tagsCol, orderBy('count', 'desc'), limit(100)), (snap) => {
     cb(
@@ -119,12 +120,33 @@ export async function savePost(
   id: string | null,
   input: { title: string; body: string; published: boolean; tags: string[]; wasPublished?: boolean },
 ): Promise<string> {
+  const tagsInput = [...new Set(input.tags.map(normalizeTag).filter(Boolean))].slice(0, MAX_TAGS)
+
+  if (USE_LOCAL) {
+    const local = await import('./localData')
+    const savedId = await local.localSavePost(id, {
+      title: input.title.trim(),
+      body: input.body,
+      excerpt: makeExcerpt(input.body),
+      published: input.published,
+      tags: tagsInput,
+    })
+    await logAudit(
+      !id ? 'post.create' : input.published !== input.wasPublished
+        ? (input.published ? 'post.publish' : 'post.unpublish')
+        : 'post.update',
+      savedId,
+      `${input.title.trim()} · 태그 ${tagsInput.join(', ') || '없음'}`,
+    )
+    return savedId
+  }
+
   const postRef = id ? doc(postsCol, id) : doc(postsCol)
   const prev = id ? await getDoc(postRef) : null
   const prevData = prev?.exists() ? prev.data() : null
   const prevTags: string[] = prevData?.published ? (prevData.tags ?? []) : []
 
-  const tags = [...new Set(input.tags.map(normalizeTag).filter(Boolean))].slice(0, MAX_TAGS)
+  const tags = tagsInput
   const nextTags = input.published ? tags : []
 
   const batch = writeBatch(db)
@@ -162,6 +184,12 @@ export async function savePost(
 }
 
 export async function deletePost(id: string, title = ''): Promise<void> {
+  if (USE_LOCAL) {
+    const local = await import('./localData')
+    await local.localDeletePost(id)
+    return logAudit('post.delete', id, title)
+  }
+
   const postRef = doc(postsCol, id)
   const snap = await getDoc(postRef)
   const data = snap.data()

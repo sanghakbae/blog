@@ -24,18 +24,35 @@ export const DEFAULT_SETTINGS: SecuritySettings = {
 
 const ref = doc(db, 'settings', 'security')
 
+const USE_LOCAL = import.meta.env.DEV && import.meta.env.VITE_LOCAL_DATA === '1'
+
 export async function getSettings(): Promise<SecuritySettings> {
+  if (USE_LOCAL) return (await import('./localData')).localGetSettings()
   const snap = await getDoc(ref)
   return { ...DEFAULT_SETTINGS, ...(snap.data() as Partial<SecuritySettings> | undefined) }
 }
 
 export function subscribeSettings(cb: (s: SecuritySettings) => void) {
+  if (USE_LOCAL) {
+    let stop: (() => void) | undefined
+    import('./localData').then((m) => m.localSubscribeSettings(cb).then((fn) => (stop = fn)))
+    return () => stop?.()
+  }
   return onSnapshot(ref, (snap) =>
     cb({ ...DEFAULT_SETTINGS, ...(snap.data() as Partial<SecuritySettings> | undefined) }),
   )
 }
 
 export async function updateSettings(patch: Partial<SecuritySettings>): Promise<void> {
+  if (USE_LOCAL) {
+    await (await import('./localData')).localUpdateSettings(patch)
+    return logAudit(
+      'settings.update',
+      'settings/security',
+      Object.entries(patch).map(([k, v]) => `${k}=${v}`).join(', '),
+    )
+  }
+
   await setDoc(
     ref,
     { ...patch, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email ?? '' },
