@@ -70,7 +70,7 @@ export default function Layout() {
 
       <div className="flex min-h-0 w-full flex-1">
         {/* 본문만 스크롤한다. 헤더와 푸터는 자리에 남는다. */}
-        <main className="min-w-0 flex-1 overflow-y-auto px-2 py-3 sm:px-3 lg:px-4 lg:py-5">
+        <main className="min-w-0 flex-1 overflow-y-auto px-2 py-3 sm:px-3 lg:px-4">
           <Outlet />
         </main>
 

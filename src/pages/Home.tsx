@@ -8,7 +8,7 @@ export default function Home() {
 
   return (
     <div>
-      <header className="mb-7 sm:mb-12">
+      <header className="mb-3">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--accent)]">
           Personal journal
         </p>
