@@ -184,7 +184,11 @@ export default function Editor() {
       setPublished(nextPublished)
       setDirty(false)
       localStorage.removeItem(draftKey(id))
-      setStatus(`저장했습니다 · ${new Date().toLocaleTimeString('ko-KR')}`)
+
+      // 발행했으면 결과를 바로 확인하는 게 자연스럽다. 임시저장은 계속 쓰는 중이므로 남는다.
+      if (nextPublished) return navigate(`/posts/${savedId}`)
+
+      setStatus(`임시저장했습니다 · ${new Date().toLocaleTimeString('ko-KR')}`)
       if (!id) navigate(`/admin/edit/${savedId}`, { replace: true })
     } catch (err) {
       setStatus((err as Error).message)
