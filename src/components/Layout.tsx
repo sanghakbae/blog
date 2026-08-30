@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import TagSidebar from './TagSidebar'
 import AuthButton from './AuthButton'
 import ThemeToggle from './ThemeToggle'
+import InstallGuide from './InstallGuide'
 import { subscribeViewer, type Viewer } from '../lib/authState'
 
 /** 좁은 화면의 메뉴 패널에서만 쓰는 관리 링크 */
@@ -140,6 +141,8 @@ export default function Layout() {
           <PrivacyModal onClose={() => setPrivacyOpen(false)} />
         </Suspense>
       )}
+
+      <InstallGuide />
     </div>
   )
 }
