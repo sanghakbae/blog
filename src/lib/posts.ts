@@ -91,23 +91,27 @@ async function loadPublished(): Promise<Post[]> {
   if (OFFLINE) return []
   if (cache && Date.now() - cache.at < CACHE_TTL) return cache.posts
 
+  const firestorePosts = getDocs(
+    query(
+      postsCol,
+      where('published', '==', true),
+      orderBy('createdAt', 'desc'),
+      limit(CACHE_LIMIT),
+    ),
+  ).then((snap) => snap.docs.map((d) => toPost(d.id, d.data())))
+
   try {
-    const snap = await getDocs(
-      query(
-        postsCol,
-        where('published', '==', true),
-        orderBy('createdAt', 'desc'),
-        limit(CACHE_LIMIT),
-      ),
-    )
-    const posts = snap.docs.map((d) => toPost(d.id, d.data()))
-    cache = {
-      at: Date.now(),
-      posts: posts.length > 0 ? posts : await loadPublishedSnapshot(),
-    }
+    // 정적 스냅샷을 먼저 그려 초기 화면에서 Firestore 왕복을 기다리지 않는다.
+    const posts = await loadPublishedSnapshot()
+    cache = { at: Date.now(), posts }
+    void firestorePosts
+      .then((fresh) => {
+        if (fresh.length > 0) cache = { at: Date.now(), posts: fresh }
+      })
+      .catch((error) => console.warn('Firestore 글 갱신에 실패했습니다.', error))
   } catch (error) {
-    console.warn('Firestore 글 조회에 실패해 배포 스냅샷을 사용합니다.', error)
-    cache = { at: Date.now(), posts: await loadPublishedSnapshot() }
+    console.warn('글 스냅샷 조회에 실패해 Firestore를 사용합니다.', error)
+    cache = { at: Date.now(), posts: await firestorePosts }
   }
   return cache.posts
 }
@@ -187,6 +191,8 @@ export function subscribeTags(cb: (tags: Tag[]) => void) {
     return () => stop?.()
   }
   try {
+    // 실시간 구독 연결 전에 스냅샷 태그를 먼저 표시한다.
+    loadPublishedSnapshot().then((posts) => cb(tagsFromPosts(posts))).catch(() => {})
     return onSnapshot(
       query(tagsCol, orderBy('count', 'desc'), limit(300)),
       (snap) => {
