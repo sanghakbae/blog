@@ -173,6 +173,10 @@ if (posts.length === 0) {
   process.exit(0)
 }
 
+// 앱이 Firestore에 연결하지 못하거나 오프라인일 때 사용할 읽기 전용 스냅샷.
+// 서비스 워커가 이 파일을 저장하므로 설치 앱에서도 마지막 배포 시점의 글을 읽는다.
+writeFileSync(`${DIST}/posts.json`, JSON.stringify(posts))
+
 const shell = readFileSync(`${DIST}/index.html`, 'utf8')
 marked.setOptions({ breaks: true, gfm: true })
 

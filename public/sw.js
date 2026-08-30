@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'sanghak-v2'
+const CACHE_VERSION = 'tag-blog-v3'
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   '/apple-touch-icon.png',
   '/icon-192.png',
   '/icon-512.png',
+  '/posts.json',
 ]
 
 self.addEventListener('install', (event) => {

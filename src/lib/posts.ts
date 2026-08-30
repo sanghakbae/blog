@@ -58,19 +58,44 @@ const CACHE_TTL = 5 * 60 * 1000
 const CACHE_LIMIT = 500
 let cache: { at: number; posts: Post[] } | null = null
 
+type SnapshotPost = Omit<Post, 'createdAt' | 'updatedAt'> & {
+  createdAt?: string
+  updatedAt?: string
+}
+
+const snapshotTimestamp = (value?: string) =>
+  value ? ({ toDate: () => new Date(value) } as Timestamp) : undefined
+
+async function loadPublishedSnapshot(): Promise<Post[]> {
+  const response = await fetch('/posts.json')
+  if (!response.ok) throw new Error(`글 스냅샷 조회 실패: ${response.status}`)
+  const posts = (await response.json()) as SnapshotPost[]
+  return posts.map((post) => ({
+    ...post,
+    published: true,
+    createdAt: snapshotTimestamp(post.createdAt),
+    updatedAt: snapshotTimestamp(post.updatedAt),
+  }))
+}
+
 async function loadPublished(): Promise<Post[]> {
   if (OFFLINE) return []
   if (cache && Date.now() - cache.at < CACHE_TTL) return cache.posts
 
-  const snap = await getDocs(
-    query(
-      postsCol,
-      where('published', '==', true),
-      orderBy('createdAt', 'desc'),
-      limit(CACHE_LIMIT),
-    ),
-  )
-  cache = { at: Date.now(), posts: snap.docs.map((d) => toPost(d.id, d.data())) }
+  try {
+    const snap = await getDocs(
+      query(
+        postsCol,
+        where('published', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(CACHE_LIMIT),
+      ),
+    )
+    cache = { at: Date.now(), posts: snap.docs.map((d) => toPost(d.id, d.data())) }
+  } catch (error) {
+    console.warn('Firestore 글 조회에 실패해 배포 스냅샷을 사용합니다.', error)
+    cache = { at: Date.now(), posts: await loadPublishedSnapshot() }
+  }
   return cache.posts
 }
 
@@ -112,8 +137,12 @@ export async function getAdjacentPosts(post: Post): Promise<{ prev?: Post; next?
 export async function getPost(id: string): Promise<Post | null> {
   if (OFFLINE) return null
   if (USE_LOCAL) return (await import('./localData')).localGetPost(id)
-  const snap = await getDoc(doc(postsCol, id))
-  return snap.exists() ? toPost(snap.id, snap.data()) : null
+  try {
+    const snap = await getDoc(doc(postsCol, id))
+    return snap.exists() ? toPost(snap.id, snap.data()) : null
+  } catch {
+    return (await loadPublished()).find((post) => post.id === id) ?? null
+  }
 }
 
 /** 태그 분석의 기준이 되는 코퍼스 — 다른 글들의 제목·본문 */
