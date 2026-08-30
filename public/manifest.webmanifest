@@ -3,6 +3,7 @@
   "short_name": "sanghak",
   "description": "웹 취약점부터 클라우드, 컴플라이언스까지 다루는 보안 실무 기록",
   "lang": "ko",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

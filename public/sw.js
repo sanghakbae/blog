@@ -1,9 +1,10 @@
-const CACHE_VERSION = 'sanghak-v1'
+const CACHE_VERSION = 'sanghak-v2'
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
   '/favicon.svg',
   '/apple-touch-icon.svg',
+  '/apple-touch-icon.png',
   '/icon-192.png',
   '/icon-512.png',
 ]
