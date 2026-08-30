@@ -78,6 +78,15 @@ async function loadPublishedSnapshot(): Promise<Post[]> {
   }))
 }
 
+function tagsFromPosts(posts: Post[]): Tag[] {
+  const counts = new Map<string, number>()
+  for (const post of posts)
+    for (const tag of post.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  return [...counts.entries()]
+    .map(([id, count]) => ({ id, name: id, count }))
+    .sort((a, b) => b.count - a.count)
+}
+
 async function loadPublished(): Promise<Post[]> {
   if (OFFLINE) return []
   if (cache && Date.now() - cache.at < CACHE_TTL) return cache.posts
@@ -91,7 +100,11 @@ async function loadPublished(): Promise<Post[]> {
         limit(CACHE_LIMIT),
       ),
     )
-    cache = { at: Date.now(), posts: snap.docs.map((d) => toPost(d.id, d.data())) }
+    const posts = snap.docs.map((d) => toPost(d.id, d.data()))
+    cache = {
+      at: Date.now(),
+      posts: posts.length > 0 ? posts : await loadPublishedSnapshot(),
+    }
   } catch (error) {
     console.warn('Firestore 글 조회에 실패해 배포 스냅샷을 사용합니다.', error)
     cache = { at: Date.now(), posts: await loadPublishedSnapshot() }
@@ -176,16 +189,17 @@ export function subscribeTags(cb: (tags: Tag[]) => void) {
   try {
     return onSnapshot(
       query(tagsCol, orderBy('count', 'desc'), limit(300)),
-      (snap) =>
-        cb(
-          snap.docs
-            .map((d) => ({ id: d.id, name: d.data().name ?? d.id, count: d.data().count ?? 0 }))
-            .filter((t) => t.count > 0),
-        ),
+      (snap) => {
+        const tags = snap.docs
+          .map((d) => ({ id: d.id, name: d.data().name ?? d.id, count: d.data().count ?? 0 }))
+          .filter((t) => t.count > 0)
+        if (tags.length > 0) cb(tags)
+        else loadPublishedSnapshot().then((posts) => cb(tagsFromPosts(posts))).catch(() => cb([]))
+      },
       // 권한이 없거나 네트워크가 막혀도 화면은 떠야 한다
       (err) => {
         console.warn('태그를 불러오지 못했습니다', err)
-        cb([])
+        loadPublishedSnapshot().then((posts) => cb(tagsFromPosts(posts))).catch(() => cb([]))
       },
     )
   } catch (err) {

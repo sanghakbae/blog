@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'tag-blog-v3'
+const CACHE_VERSION = 'tag-blog-v4'
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
