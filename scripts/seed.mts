@@ -4,6 +4,7 @@
  *   npx tsx scripts/seed.mts --dry        내용과 태그만 확인 (쓰기 없음)
  *   npx tsx scripts/seed.mts              실제 입력
  *   npx tsx scripts/seed.mts --only=new   나중에 추가한 50편만 입력
+ *   npx tsx scripts/seed.mts --refresh    이미 올라간 글의 본문·요약·태그만 갱신 (주소 유지)
  *   npx tsx scripts/seed.mts --purge      시드로 넣은 글만 삭제
  *
  * 쓰기에는 서비스 계정 키가 필요하다.
@@ -47,6 +48,7 @@ const MAX_TAGS = 3
 const IMG_DIR = 'public/img/posts'
 const dry = process.argv.includes('--dry')
 const onlyNew = process.argv.includes('--only=new')
+const refresh = process.argv.includes('--refresh')
 const purge = process.argv.includes('--purge')
 const local = process.argv.includes('--local')
 
@@ -69,9 +71,9 @@ function validate() {
 /**
  * 저장될 모습(요약문·태그·주소) 그대로 SEO / GEO 점검을 돌린다.
  * 관리 콘솔의 SEO 탭과 같은 함수를 쓰므로 화면에 뜨는 점수와 일치한다.
- * 추가한 50편은 100점이 아니면 시드를 중단한다.
+ * 100점이 아닌 글이 하나라도 있으면 시드를 중단한다.
  */
-function auditAdded(scored: { post: SeedPost; tags: string[] }[]) {
+function auditScores(scored: { post: SeedPost; tags: string[] }[]) {
   const problems: string[] = []
   const scores: number[] = []
 
@@ -83,7 +85,6 @@ function auditAdded(scored: { post: SeedPost; tags: string[] }[]) {
       excerpt: excerpt(post.body),
       tags,
     })
-    if (!isAdded(post)) continue
     scores.push(audit.score)
     if (audit.score < 100)
       problems.push(
@@ -155,7 +156,7 @@ if (problems.length) {
 
 const { result, tagCount } = computeTags()
 
-const audit = auditAdded(result)
+const audit = auditScores(result)
 if (audit.problems.length) {
   console.error('SEO / GEO 점검 실패:')
   audit.problems.forEach((p) => console.error('  - ' + p))
@@ -163,7 +164,7 @@ if (audit.problems.length) {
 }
 
 console.log(`글 ${ALL.length}편 · 검증 통과`)
-console.log(`추가한 ${audit.scores.length}편 SEO/GEO ${Math.min(...audit.scores)}~${Math.max(...audit.scores)}점`)
+console.log(`SEO/GEO ${Math.min(...audit.scores)}~${Math.max(...audit.scores)}점 (${audit.scores.length}편)`)
 console.log(`도식 ${writeDiagrams()}개 생성 → ${IMG_DIR}/`)
 
 // 개발용 로컬 데이터 — Firebase 없이 개발환경을 돌리기 위한 고정 데이터
@@ -230,6 +231,52 @@ if (purge) {
   tags.docs.forEach((d) => tb.delete(d.ref))
   await tb.commit()
   console.log('태그 집계도 초기화했습니다.')
+  process.exit(0)
+}
+
+/**
+ * 이미 올라간 글의 본문·요약·태그만 갱신한다.
+ *
+ * 처음 올린 100편은 임의 문서 ID 로 색인돼 있어 주소를 바꿀 수 없다.
+ * 그래서 제목으로 문서를 찾아 내용만 덮어쓴다. createdAt 과 문서 ID 는 건드리지 않으므로
+ * 검색엔진이 알고 있는 주소와 목록 순서가 그대로 유지된다.
+ */
+if (refresh) {
+  const snap = await db.collection('posts').get()
+  const byTitle = new Map<string, string[]>()
+  snap.docs.forEach((d) => {
+    const t = (d.data().title ?? '').trim()
+    byTitle.set(t, [...(byTitle.get(t) ?? []), d.id])
+  })
+
+  let updated = 0
+  const missing: string[] = []
+  const ambiguous: string[] = []
+
+  for (let i = 0; i < result.length; i += 200) {
+    const batch = db.batch()
+    let queued = 0
+
+    for (const { post, tags } of result.slice(i, i + 200)) {
+      const ids = byTitle.get(post.title.trim()) ?? []
+      if (ids.length === 0) { missing.push(post.title); continue }
+      if (ids.length > 1) { ambiguous.push(post.title); continue }
+      batch.update(db.collection('posts').doc(ids[0]), {
+        body: post.body,
+        excerpt: excerpt(post.body),
+        tags,
+        updatedAt: Timestamp.fromDate(new Date()),
+      })
+      queued++
+      updated++
+    }
+
+    if (queued) await batch.commit()
+  }
+
+  console.log(`\n갱신 ${updated}편`)
+  if (missing.length) console.log(`Firestore 에 없는 글 ${missing.length}편 — seed 로 새로 넣어야 합니다:\n  ` + missing.join('\n  '))
+  if (ambiguous.length) console.log(`제목이 중복돼 건너뛴 글 ${ambiguous.length}편:\n  ` + ambiguous.join('\n  '))
   process.exit(0)
 }
 
