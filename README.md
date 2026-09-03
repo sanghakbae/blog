@@ -1,7 +1,7 @@
 # blog.sanghak.kr
 
 자유 주제 개인 블로그. 글을 쓰면 **본문을 분석해 태그가 붙고**, 사이드바의 태그를 누르면
-그 태그가 달린 글이 모입니다. 현재 보안 실무 글 100편이 올라가 있습니다.
+그 태그가 달린 글이 모입니다. 현재 보안 실무 글 150편이 올라가 있습니다.
 
 - 프론트: Vite + React + TypeScript + Tailwind (SPA)
 - 데이터: Firebase Firestore (글·태그·댓글·감사 로그·보안 설정)
@@ -83,7 +83,7 @@ audit/{id}          at, action, actorEmail, actorUid, target, detail   (추가 �
 settings/security   postingLocked, reauthAfterMinutes, allowImageUpload
 ```
 
-글·태그·댓글·감사 로그·보안 설정은 모두 Firestore 에 있습니다. 게시글 도식 100개는 저장소의
+글·태그·댓글·감사 로그·보안 설정은 모두 Firestore 에 있습니다. 게시글 도식 150개는 저장소의
 정적 파일(`public/img/posts/*.svg`)이고, 에디터에서 올리는 이미지만 R2 에 저장됩니다.
 
 ## 보안 설정

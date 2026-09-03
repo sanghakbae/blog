@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 186" width="880" height="186" role="img" aria-label="요청마다 이루어지는 접근 판단">
+<rect width="880" height="186" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="185" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">요청마다 이루어지는 접근 판단</text>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#71717a"/></marker></defs>
+<rect x="24" y="58" width="194.5" height="96" rx="10" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="121.25" y="94" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">사용자 인증</text>
+<text x="121.25" y="118" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" font-weight="400" fill="#71717a" text-anchor="middle">피싱 저항 수단 권장</text>
+<path d="M222.5 106 L232.5 106" stroke="#71717a" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="236.5" y="58" width="194.5" height="96" rx="10" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="333.75" y="94" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">기기 상태 확인</text>
+<text x="333.75" y="118" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" font-weight="400" fill="#71717a" text-anchor="middle">암호화·패치·보호 도구</text>
+<path d="M435 106 L445 106" stroke="#71717a" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="449" y="58" width="194.5" height="96" rx="10" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="546.25" y="94" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">자원별 인가</text>
+<text x="546.25" y="118" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" font-weight="400" fill="#71717a" text-anchor="middle">대역이 아니라 자원 단위</text>
+<path d="M647.5 106 L657.5 106" stroke="#71717a" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="661.5" y="58" width="194.5" height="96" rx="10" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="758.75" y="94" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b" text-anchor="middle">접근 기록</text>
+<text x="758.75" y="118" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" font-weight="400" fill="#71717a" text-anchor="middle">자원별 감사 로그</text>
+
+</svg>

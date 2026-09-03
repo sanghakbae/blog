@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 326" width="880" height="326" role="img" aria-label="만료 사고를 없애는 절차">
+<rect width="880" height="326" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="325" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">만료 사고를 없애는 절차</text>
+<path d="M42 92 L42 124" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="76" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="81" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">1</text>
+<text x="72" y="73" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">인증서 목록화</text>
+<text x="72" y="93" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">외부·내부·클라이언트 모두</text>
+<path d="M42 154 L42 186" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="138" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="143" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">2</text>
+<text x="72" y="135" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">발급 자동화</text>
+<text x="72" y="155" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">짧은 수명으로 강제</text>
+<path d="M42 216 L42 248" stroke="#e4e4e7" stroke-width="2"/>
+<circle cx="42" cy="200" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="205" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">3</text>
+<text x="72" y="197" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">갱신 실패 경보</text>
+<text x="72" y="217" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">만료 경보보다 앞선 신호</text>
+
+<circle cx="42" cy="262" r="15" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="42" y="267" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="700" fill="#4f46e5" text-anchor="middle">4</text>
+<text x="72" y="259" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="14" font-weight="600" fill="#18181b">외부 감시</text>
+<text x="72" y="279" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" fill="#71717a">자동화 밖 자산 확인</text>
+</svg>

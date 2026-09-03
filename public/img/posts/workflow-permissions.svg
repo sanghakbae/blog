@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 292" width="880" height="292" role="img" aria-label="파이프라인 권한 축소 계층">
+<rect width="880" height="292" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="291" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">파이프라인 권한 축소 계층</text>
+<rect x="24" y="60" width="832" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="40" y="86" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">기본 권한 읽기 전용</text>
+<text x="840" y="86" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">작업별 최소 부여</text>
+<rect x="58" y="112" width="764" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="74" y="138" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">외부 입력 격리</text>
+<text x="806" y="138" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">환경 변수로 전달</text>
+<rect x="92" y="164" width="696" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="108" y="190" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">외부 액션 고정</text>
+<text x="772" y="190" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">커밋 해시 참조</text>
+<rect x="126" y="216" width="628" height="42" rx="9" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="142" y="242" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#4f46e5">단기 배포 토큰</text>
+<text x="738" y="242" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">장기 키 제거</text>
+</svg>

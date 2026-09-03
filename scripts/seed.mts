@@ -1,9 +1,10 @@
 /**
- * 보안 포스팅 100편을 Firestore 에 넣는다.
+ * 보안 포스팅 150편을 Firestore 에 넣는다.
  *
- *   npx tsx scripts/seed.mts --dry     내용과 태그만 확인 (쓰기 없음)
- *   npx tsx scripts/seed.mts           실제 입력
- *   npx tsx scripts/seed.mts --purge   시드로 넣은 글만 삭제
+ *   npx tsx scripts/seed.mts --dry        내용과 태그만 확인 (쓰기 없음)
+ *   npx tsx scripts/seed.mts              실제 입력
+ *   npx tsx scripts/seed.mts --only=new   나중에 추가한 50편만 입력
+ *   npx tsx scripts/seed.mts --purge      시드로 넣은 글만 삭제
  *
  * 쓰기에는 서비스 계정 키가 필요하다.
  *   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
@@ -11,6 +12,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { renderDiagram } from './diagram.mjs'
 import { analyzeContent } from '../src/lib/localTagger.js'
+import { auditPost } from '../src/lib/seo.js'
 import type { SeedPost } from './content/types.js'
 import { posts1 } from './content/posts-1.js'
 import { posts2 } from './content/posts-2.js'
@@ -22,16 +24,29 @@ import { posts7 } from './content/posts-7.js'
 import { posts8 } from './content/posts-8.js'
 import { posts9 } from './content/posts-9.js'
 import { posts10 } from './content/posts-10.js'
+import { posts11 } from './content/posts-11.js'
+import { posts12 } from './content/posts-12.js'
+import { posts13 } from './content/posts-13.js'
+import { posts14 } from './content/posts-14.js'
+import { posts15 } from './content/posts-15.js'
 
-const ALL: SeedPost[] = [
+/** 처음 올린 100편. 이미 임의 ID 로 색인돼 있어 주소를 바꾸지 않는다. */
+const LEGACY: SeedPost[] = [
   ...posts1, ...posts2, ...posts3, ...posts4, ...posts5,
   ...posts6, ...posts7, ...posts8, ...posts9, ...posts10,
 ]
+
+/** 나중에 추가한 50편. 주소를 slug 로 고정하고 SEO·GEO 만점을 강제한다. */
+const ADDED: SeedPost[] = [...posts11, ...posts12, ...posts13, ...posts14, ...posts15]
+
+const ALL: SeedPost[] = [...LEGACY, ...ADDED]
+const isAdded = (p: SeedPost) => ADDED.includes(p)
 
 const AUTHOR = 'totoriverce@gmail.com'
 const MAX_TAGS = 3
 const IMG_DIR = 'public/img/posts'
 const dry = process.argv.includes('--dry')
+const onlyNew = process.argv.includes('--only=new')
 const purge = process.argv.includes('--purge')
 const local = process.argv.includes('--local')
 
@@ -49,6 +64,34 @@ function validate() {
     if (p.body.length < 600) problems.push(`${p.slug}: 본문이 너무 짧음 (${p.body.length}자)`)
   }
   return problems
+}
+
+/**
+ * 저장될 모습(요약문·태그·주소) 그대로 SEO / GEO 점검을 돌린다.
+ * 관리 콘솔의 SEO 탭과 같은 함수를 쓰므로 화면에 뜨는 점수와 일치한다.
+ * 추가한 50편은 100점이 아니면 시드를 중단한다.
+ */
+function auditAdded(scored: { post: SeedPost; tags: string[] }[]) {
+  const problems: string[] = []
+  const scores: number[] = []
+
+  for (const { post, tags } of scored) {
+    const audit = auditPost({
+      id: post.slug,
+      title: post.title,
+      body: post.body,
+      excerpt: excerpt(post.body),
+      tags,
+    })
+    if (!isAdded(post)) continue
+    scores.push(audit.score)
+    if (audit.score < 100)
+      problems.push(
+        `${post.slug}: SEO/GEO ${audit.score}점 — ` +
+          audit.issues.map((i) => `${i.field}(${i.message})`).join(', '),
+      )
+  }
+  return { problems, scores }
 }
 
 // ── 도식 생성 ───────────────────────────────────────────────────────────────
@@ -110,10 +153,18 @@ if (problems.length) {
   process.exit(1)
 }
 
-console.log(`글 ${ALL.length}편 · 검증 통과`)
-console.log(`도식 ${writeDiagrams()}개 생성 → ${IMG_DIR}/`)
-
 const { result, tagCount } = computeTags()
+
+const audit = auditAdded(result)
+if (audit.problems.length) {
+  console.error('SEO / GEO 점검 실패:')
+  audit.problems.forEach((p) => console.error('  - ' + p))
+  process.exit(1)
+}
+
+console.log(`글 ${ALL.length}편 · 검증 통과`)
+console.log(`추가한 ${audit.scores.length}편 SEO/GEO ${Math.min(...audit.scores)}~${Math.max(...audit.scores)}점`)
+console.log(`도식 ${writeDiagrams()}개 생성 → ${IMG_DIR}/`)
 
 // 개발용 로컬 데이터 — Firebase 없이 개발환경을 돌리기 위한 고정 데이터
 if (local) {
@@ -190,11 +241,17 @@ let written = 0
 for (let i = 0; i < result.length; i += 100) {
   const batch = db.batch()
   const chunk = result.slice(i, i + 100)
+  let queued = 0
 
   chunk.forEach(({ post, tags }, j) => {
+    if (onlyNew && !isAdded(post)) return
     const at = new Date(start)
     at.setDate(at.getDate() + i + j)
-    batch.set(db.collection('posts').doc(), {
+    // 추가한 글은 주소를 slug 로 고정한다 — 검색에 유리하고 재실행이 덮어쓰기가 된다.
+    // 기존 100편은 이미 임의 ID 로 색인돼 있어 그대로 둔다.
+    const ref = isAdded(post) ? db.collection('posts').doc(post.slug) : db.collection('posts').doc()
+    queued++
+    batch.set(ref, {
       title: post.title,
       body: post.body,
       excerpt: excerpt(post.body),
@@ -208,12 +265,20 @@ for (let i = 0; i < result.length; i += 100) {
     written++
   })
 
+  if (!queued) continue
   await batch.commit()
-  console.log(`  ${written}/${ALL.length} 저장`)
+  console.log(`  ${written}/${onlyNew ? ADDED.length : ALL.length} 저장`)
 }
 
 const tagBatch = db.batch()
-for (const [tag, count] of tagCount)
+const writtenTags = onlyNew
+  ? result.filter(({ post }) => isAdded(post)).reduce((m, { tags }) => {
+      tags.forEach((t) => m.set(t, (m.get(t) ?? 0) + 1))
+      return m
+    }, new Map<string, number>())
+  : tagCount
+
+for (const [tag, count] of writtenTags)
   tagBatch.set(db.collection('tags').doc(tag), { name: tag, count: FieldValue.increment(count) }, { merge: true })
 tagBatch.set(db.collection('audit').doc(), {
   at: FieldValue.serverTimestamp(),
@@ -221,10 +286,10 @@ tagBatch.set(db.collection('audit').doc(), {
   actorEmail: AUTHOR,
   actorUid: 'seed-script',
   target: 'posts',
-  detail: `보안 포스팅 ${ALL.length}편 일괄 등록 · 태그 ${tagCount.size}종`,
+  detail: `보안 포스팅 ${written}편 일괄 등록 · 태그 ${writtenTags.size}종`,
   userAgent: 'seed-script',
 })
 await tagBatch.commit()
 
-console.log(`\n완료. 글 ${written}편, 태그 ${tagCount.size}종.`)
+console.log(`\n완료. 글 ${written}편, 태그 ${writtenTags.size}종.`)
 process.exit(0)
