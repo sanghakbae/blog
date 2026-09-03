@@ -56,9 +56,32 @@ function toPost(id: string, d: any): Post {
  */
 const CACHE_TTL = 5 * 60 * 1000
 const CACHE_LIMIT = 500
-let cache: { at: number; posts: Post[] } | null = null
 
-type SnapshotPost = Omit<Post, 'createdAt' | 'updatedAt'> & {
+/**
+ * hasBodies 는 캐시에 본문이 들어 있는지를 뜻한다.
+ *
+ * 첫 화면은 본문 없는 작은 스냅샷으로 그린다. 목록·태그·이전다음글은 제목과 태그만
+ * 쓰는데, 본문까지 담은 스냅샷은 글이 늘어날수록 커져서(150편에 500KB) 첫 화면이
+ * 그만큼 늦어진다. 본문이 필요한 화면은 loadPublishedWithBodies 로 따로 받는다.
+ */
+let cache: { at: number; posts: Post[]; hasBodies: boolean } | null = null
+
+/** 진행 중인 Firestore 조회 — 본문이 필요할 때 이것을 먼저 기다린다 */
+let pendingFresh: Promise<Post[]> | null = null
+
+/**
+ * 진행 중인 목록 조회.
+ *
+ * 홈 목록과 태그 사이드바가 같은 순간에 시작한다. 이것이 없으면 둘이 각자
+ * 스냅샷을 내려받고 Firestore 쿼리도 두 번 나간다.
+ */
+let inflight: Promise<Post[]> | null = null
+
+/** invalidate 이후에 끝난 조회가 낡은 결과로 캐시를 되살리지 않게 하는 세대 번호 */
+let generation = 0
+
+type SnapshotPost = Omit<Post, 'createdAt' | 'updatedAt' | 'body'> & {
+  body?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -66,12 +89,13 @@ type SnapshotPost = Omit<Post, 'createdAt' | 'updatedAt'> & {
 const snapshotTimestamp = (value?: string) =>
   value ? ({ toDate: () => new Date(value) } as Timestamp) : undefined
 
-async function loadPublishedSnapshot(): Promise<Post[]> {
-  const response = await fetch('/posts.json')
+async function loadPublishedSnapshot(path: string): Promise<Post[]> {
+  const response = await fetch(path)
   if (!response.ok) throw new Error(`글 스냅샷 조회 실패: ${response.status}`)
   const posts = (await response.json()) as SnapshotPost[]
   return posts.map((post) => ({
     ...post,
+    body: post.body ?? '',
     published: true,
     createdAt: snapshotTimestamp(post.createdAt),
     updatedAt: snapshotTimestamp(post.updatedAt),
@@ -87,9 +111,15 @@ function tagsFromPosts(posts: Post[]): Tag[] {
     .sort((a, b) => b.count - a.count)
 }
 
-async function loadPublished(): Promise<Post[]> {
-  if (OFFLINE) return []
-  if (cache && Date.now() - cache.at < CACHE_TTL) return cache.posts
+function loadPublished(): Promise<Post[]> {
+  if (OFFLINE) return Promise.resolve([])
+  if (cache && Date.now() - cache.at < CACHE_TTL) return Promise.resolve(cache.posts)
+  if (inflight) return inflight
+
+  const gen = generation
+  const store = (posts: Post[], hasBodies: boolean) => {
+    if (gen === generation) cache = { at: Date.now(), posts, hasBodies }
+  }
 
   const firestorePosts = getDocs(
     query(
@@ -99,25 +129,67 @@ async function loadPublished(): Promise<Post[]> {
       limit(CACHE_LIMIT),
     ),
   ).then((snap) => snap.docs.map((d) => toPost(d.id, d.data())))
+  pendingFresh = firestorePosts
+
+  inflight = (async () => {
+    try {
+      // 본문 없는 목록 스냅샷을 먼저 그려 초기 화면에서 Firestore 왕복을 기다리지 않는다.
+      const posts = await loadPublishedSnapshot('/posts-list.json')
+      store(posts, false)
+      void firestorePosts
+        .then((fresh) => {
+          if (fresh.length > 0) store(fresh, true)
+        })
+        .catch((error) => console.warn('Firestore 글 갱신에 실패했습니다.', error))
+      return posts
+    } catch (error) {
+      console.warn('글 스냅샷 조회에 실패해 Firestore를 사용합니다.', error)
+      const posts = await firestorePosts
+      store(posts, true)
+      return posts
+    }
+  })()
+
+  return inflight.finally(() => {
+    inflight = null
+  })
+}
+
+/**
+ * 본문까지 필요한 화면(검색, 오프라인 글 보기, 태그 분석 코퍼스)용.
+ *
+ * Firestore 응답을 먼저 기다린다. 그것이 실패했을 때만 본문을 담은 전체 스냅샷을
+ * 받는다 — 평소에는 큰 파일을 내려받지 않는다.
+ */
+async function loadPublishedWithBodies(): Promise<Post[]> {
+  const posts = await loadPublished()
+  if (cache?.hasBodies) return cache.posts
+
+  if (pendingFresh) {
+    try {
+      const fresh = await pendingFresh
+      if (fresh.length > 0) return cache?.posts ?? fresh
+    } catch {
+      // 아래에서 전체 스냅샷으로 대체한다
+    }
+  }
+  if (cache?.hasBodies) return cache.posts
 
   try {
-    // 정적 스냅샷을 먼저 그려 초기 화면에서 Firestore 왕복을 기다리지 않는다.
-    const posts = await loadPublishedSnapshot()
-    cache = { at: Date.now(), posts }
-    void firestorePosts
-      .then((fresh) => {
-        if (fresh.length > 0) cache = { at: Date.now(), posts: fresh }
-      })
-      .catch((error) => console.warn('Firestore 글 갱신에 실패했습니다.', error))
+    const full = await loadPublishedSnapshot('/posts.json')
+    cache = { at: Date.now(), posts: full, hasBodies: true }
+    return full
   } catch (error) {
-    console.warn('글 스냅샷 조회에 실패해 Firestore를 사용합니다.', error)
-    cache = { at: Date.now(), posts: await firestorePosts }
+    console.warn('본문 스냅샷 조회에 실패했습니다.', error)
+    return posts
   }
-  return cache.posts
 }
 
 function invalidate() {
   cache = null
+  pendingFresh = null
+  inflight = null
+  generation++
 }
 
 /** 발행된 글 목록 (최신순) */
@@ -130,6 +202,12 @@ export async function listPosts(max = 50): Promise<Post[]> {
 export async function listPostsByTag(tag: string, max = 50): Promise<Post[]> {
   if (USE_LOCAL) return (await import('./localData')).localListByTag(tag, max)
   return (await loadPublished()).filter((p) => p.tags.includes(tag)).slice(0, max)
+}
+
+/** 검색용 — 본문까지 있어야 본문 일치와 발췌를 만들 수 있다 */
+export async function listPostsForSearch(max = 500): Promise<Post[]> {
+  if (USE_LOCAL) return (await import('./localData')).localListPosts(max)
+  return (await loadPublishedWithBodies()).slice(0, max)
 }
 
 /** 관리자용 — 임시저장 포함 전체 */
@@ -158,7 +236,8 @@ export async function getPost(id: string): Promise<Post | null> {
     const snap = await getDoc(doc(postsCol, id))
     return snap.exists() ? toPost(snap.id, snap.data()) : null
   } catch {
-    return (await loadPublished()).find((post) => post.id === id) ?? null
+    // 본문을 보여줘야 하므로 본문이 있는 목록에서 찾는다
+    return (await loadPublishedWithBodies()).find((post) => post.id === id) ?? null
   }
 }
 
@@ -168,7 +247,7 @@ export async function fetchCorpus(max = 200): Promise<{ title: string; body: str
     return (await import('./localData')).localListPosts(max).then((ps) =>
       ps.map((p) => ({ title: p.title, body: p.body })),
     )
-  return (await loadPublished()).slice(0, max).map((p) => ({ title: p.title, body: p.body }))
+  return (await loadPublishedWithBodies()).slice(0, max).map((p) => ({ title: p.title, body: p.body }))
 }
 
 /** 태그 목록 1회 조회 — 태그 분석 시 재사용 힌트로 넘긴다 */
@@ -192,7 +271,8 @@ export function subscribeTags(cb: (tags: Tag[]) => void) {
   }
   try {
     // 실시간 구독 연결 전에 스냅샷 태그를 먼저 표시한다.
-    loadPublishedSnapshot().then((posts) => cb(tagsFromPosts(posts))).catch(() => {})
+    // loadPublished 를 쓰므로 목록과 같은 캐시를 공유한다 — 같은 파일을 두 번 받지 않는다.
+    loadPublished().then((posts) => cb(tagsFromPosts(posts))).catch(() => {})
     return onSnapshot(
       query(tagsCol, orderBy('count', 'desc'), limit(300)),
       (snap) => {
@@ -200,12 +280,12 @@ export function subscribeTags(cb: (tags: Tag[]) => void) {
           .map((d) => ({ id: d.id, name: d.data().name ?? d.id, count: d.data().count ?? 0 }))
           .filter((t) => t.count > 0)
         if (tags.length > 0) cb(tags)
-        else loadPublishedSnapshot().then((posts) => cb(tagsFromPosts(posts))).catch(() => cb([]))
+        else loadPublished().then((posts) => cb(tagsFromPosts(posts))).catch(() => cb([]))
       },
       // 권한이 없거나 네트워크가 막혀도 화면은 떠야 한다
       (err) => {
         console.warn('태그를 불러오지 못했습니다', err)
-        loadPublishedSnapshot().then((posts) => cb(tagsFromPosts(posts))).catch(() => cb([]))
+        loadPublished().then((posts) => cb(tagsFromPosts(posts))).catch(() => cb([]))
       },
     )
   } catch (err) {

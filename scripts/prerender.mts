@@ -173,7 +173,14 @@ if (posts.length === 0) {
   process.exit(0)
 }
 
-// 앱이 Firestore에 연결하지 못하거나 오프라인일 때 사용할 읽기 전용 스냅샷.
+// 목록 스냅샷 — 첫 화면이 기다리는 파일이라 본문을 넣지 않는다.
+// 본문까지 담으면 글이 늘어날수록 커져서(150편에 500KB) 첫 화면이 그만큼 늦어진다.
+writeFileSync(
+  `${DIST}/posts-list.json`,
+  JSON.stringify(posts.map(({ body: _body, ...rest }) => rest)),
+)
+
+// 본문까지 담은 전체 스냅샷 — Firestore 에 연결하지 못하거나 오프라인일 때만 쓴다.
 // 서비스 워커가 이 파일을 저장하므로 설치 앱에서도 마지막 배포 시점의 글을 읽는다.
 writeFileSync(`${DIST}/posts.json`, JSON.stringify(posts))
 

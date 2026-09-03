@@ -9,13 +9,14 @@ let jwkCache: { keys: Jwk[]; expiresAt: number } | null = null
 async function getKey(kid: string): Promise<CryptoKey | null> {
   if (!jwkCache || jwkCache.expiresAt < Date.now()) {
     const res = await fetch(JWKS_URL)
+    if (!res.ok) throw new Error(`서명 키 조회 실패: ${res.status}`)
+    const body = (await res.json()) as { keys?: Jwk[] }
+    // 형식이 이상한 응답을 캐시에 넣으면 만료될 때까지 모든 검증이 깨진다.
+    if (!Array.isArray(body.keys)) throw new Error('서명 키 응답 형식이 올바르지 않습니다')
     const maxAge = Number(
       /max-age=(\d+)/.exec(res.headers.get('cache-control') ?? '')?.[1] ?? 3600,
     )
-    jwkCache = {
-      keys: ((await res.json()) as { keys: Jwk[] }).keys,
-      expiresAt: Date.now() + maxAge * 1000,
-    }
+    jwkCache = { keys: body.keys, expiresAt: Date.now() + maxAge * 1000 }
   }
   const jwk = jwkCache.keys.find((k) => k.kid === kid)
   if (!jwk) return null
@@ -74,7 +75,9 @@ export async function requireAdmin(
   if (!token) return null
 
   const claims = await verifyIdToken(token, env.FIREBASE_PROJECT_ID)
-  if (!claims?.email) return null
+  // firestore.rules 도 email_verified 를 요구한다. 두 곳의 기준이 달라지면
+  // 규칙은 막는데 업로드는 되는 상태가 된다.
+  if (!claims?.email || claims.email_verified !== true) return null
 
   const admins = env.ADMIN_EMAILS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
   return admins.includes(claims.email.toLowerCase()) ? claims : null

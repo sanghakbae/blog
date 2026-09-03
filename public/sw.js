@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'tag-blog-v6'
+const CACHE_VERSION = 'tag-blog-v7'
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   '/apple-touch-icon.png',
   '/icon-192.png',
   '/icon-512.png',
+  '/posts-list.json',
   '/posts.json',
 ]
 

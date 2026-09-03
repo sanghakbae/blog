@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listPosts, type Post } from '../lib/posts'
+import { listPostsForSearch, type Post } from '../lib/posts'
 
 /** 제목·요약·태그·본문 순으로 가중치를 줘 점수를 매긴다 */
 function score(post: Post, terms: string[]): number {
@@ -54,7 +54,7 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
 
   useEffect(() => {
-    listPosts(500).then(setPosts).catch(() => setPosts([]))
+    listPostsForSearch(500).then(setPosts).catch(() => setPosts([]))
   }, [])
 
   useEffect(() => {
