@@ -31,13 +31,13 @@ import { posts13 } from './content/posts-13.js'
 import { posts14 } from './content/posts-14.js'
 import { posts15 } from './content/posts-15.js'
 
-/** 처음 올린 100편. 이미 임의 ID 로 색인돼 있어 주소를 바꾸지 않는다. */
+/** 처음 올린 100편. */
 const LEGACY: SeedPost[] = [
   ...posts1, ...posts2, ...posts3, ...posts4, ...posts5,
   ...posts6, ...posts7, ...posts8, ...posts9, ...posts10,
 ]
 
-/** 나중에 추가한 50편. 주소를 slug 로 고정하고 SEO·GEO 만점을 강제한다. */
+/** 나중에 추가한 50편. --only=new 로 이것만 넣을 수 있다. */
 const ADDED: SeedPost[] = [...posts11, ...posts12, ...posts13, ...posts14, ...posts15]
 
 const ALL: SeedPost[] = [...LEGACY, ...ADDED]
@@ -235,33 +235,25 @@ if (purge) {
 }
 
 /**
- * 이미 올라간 글의 본문·요약·태그만 갱신한다.
+ * 이미 올라간 글의 제목·본문·요약·태그만 갱신한다.
  *
- * 처음 올린 100편은 임의 문서 ID 로 색인돼 있어 주소를 바꿀 수 없다.
- * 그래서 제목으로 문서를 찾아 내용만 덮어쓴다. createdAt 과 문서 ID 는 건드리지 않으므로
+ * 문서 ID 가 slug 이므로 그것으로 대조한다. createdAt 과 문서 ID 를 건드리지 않으므로
  * 검색엔진이 알고 있는 주소와 목록 순서가 그대로 유지된다.
  */
 if (refresh) {
-  const snap = await db.collection('posts').get()
-  const byTitle = new Map<string, string[]>()
-  snap.docs.forEach((d) => {
-    const t = (d.data().title ?? '').trim()
-    byTitle.set(t, [...(byTitle.get(t) ?? []), d.id])
-  })
+  const existing = new Set((await db.collection('posts').select().get()).docs.map((d) => d.id))
 
   let updated = 0
   const missing: string[] = []
-  const ambiguous: string[] = []
 
   for (let i = 0; i < result.length; i += 200) {
     const batch = db.batch()
     let queued = 0
 
     for (const { post, tags } of result.slice(i, i + 200)) {
-      const ids = byTitle.get(post.title.trim()) ?? []
-      if (ids.length === 0) { missing.push(post.title); continue }
-      if (ids.length > 1) { ambiguous.push(post.title); continue }
-      batch.update(db.collection('posts').doc(ids[0]), {
+      if (!existing.has(post.slug)) { missing.push(post.slug); continue }
+      batch.update(db.collection('posts').doc(post.slug), {
+        title: post.title,
         body: post.body,
         excerpt: excerpt(post.body),
         tags,
@@ -275,8 +267,8 @@ if (refresh) {
   }
 
   console.log(`\n갱신 ${updated}편`)
-  if (missing.length) console.log(`Firestore 에 없는 글 ${missing.length}편 — seed 로 새로 넣어야 합니다:\n  ` + missing.join('\n  '))
-  if (ambiguous.length) console.log(`제목이 중복돼 건너뛴 글 ${ambiguous.length}편:\n  ` + ambiguous.join('\n  '))
+  if (missing.length)
+    console.log(`Firestore 에 없는 글 ${missing.length}편 — --only=new 또는 전체 시드로 넣어야 합니다:\n  ` + missing.join('\n  '))
   process.exit(0)
 }
 
@@ -294,11 +286,9 @@ for (let i = 0; i < result.length; i += 100) {
     if (onlyNew && !isAdded(post)) return
     const at = new Date(start)
     at.setDate(at.getDate() + i + j)
-    // 추가한 글은 주소를 slug 로 고정한다 — 검색에 유리하고 재실행이 덮어쓰기가 된다.
-    // 기존 100편은 이미 임의 ID 로 색인돼 있어 그대로 둔다.
-    const ref = isAdded(post) ? db.collection('posts').doc(post.slug) : db.collection('posts').doc()
+    // 문서 ID 는 slug 다. 검색에 유리하고, 재실행이 새 문서 생성이 아니라 덮어쓰기가 된다.
     queued++
-    batch.set(ref, {
+    batch.set(db.collection('posts').doc(post.slug), {
       title: post.title,
       body: post.body,
       excerpt: excerpt(post.body),
