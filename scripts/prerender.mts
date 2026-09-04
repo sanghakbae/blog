@@ -223,7 +223,26 @@ for (const post of posts) {
     })
   }
 
-  const content = `<article><h1>${esc(post.title)}</h1>${marked.parse(preserveLayout(post.body))}</article>`
+  // 크롤러가 링크를 타고 다른 글로 갈 수 있어야 한다. 자바스크립트가 붙기 전의
+  // HTML 에 링크가 하나도 없으면 사이트맵 말고는 발견 경로가 없다.
+  const idx = posts.indexOf(post)
+  const nav: string[] = []
+  if (posts[idx + 1]) nav.push(`<a href="/posts/${posts[idx + 1].id}/" rel="prev">${esc(posts[idx + 1].title)}</a>`)
+  if (posts[idx - 1]) nav.push(`<a href="/posts/${posts[idx - 1].id}/" rel="next">${esc(posts[idx - 1].title)}</a>`)
+  const related = posts
+    .filter((p) => p.id !== post.id && p.tags.some((t) => post.tags.includes(t)))
+    .slice(0, 5)
+    .map((p) => `<li><a href="/posts/${p.id}/">${esc(p.title)}</a></li>`)
+    .join('')
+  const tagLinks = post.tags
+    .map((t) => `<a href="/tags/${encodeURIComponent(t)}/" rel="tag">${esc(t)}</a>`)
+    .join(' ')
+
+  const content =
+    `<article><h1>${esc(post.title)}</h1>${marked.parse(preserveLayout(post.body))}</article>` +
+    `<nav>${tagLinks ? `<p>${tagLinks}</p>` : ''}${nav.length ? `<p>${nav.join(' · ')}</p>` : ''}` +
+    `${related ? `<h2>같은 태그의 글</h2><ul>${related}</ul>` : ''}` +
+    `<p><a href="/">글 목록</a></p></nav>`
   mkdirSync(`${DIST}/posts/${post.id}`, { recursive: true })
   writeFileSync(
     `${DIST}/posts/${post.id}/index.html`,
@@ -253,6 +272,45 @@ for (const [tag, list] of tags) {
     }),
   )
 }
+
+// 홈 — 크롤러가 가장 먼저 보는 페이지다. 비어 있으면 사이트의 링크 그래프가
+// 시작되지 않아 새 글이 발견되기까지 오래 걸린다.
+const RECENT_ON_HOME = 40
+const homeContent =
+  `<h1>sanghak</h1>` +
+  `<p>보안 실무 기록. 웹 취약점부터 클라우드·컴플라이언스까지 ${posts.length}편.</p>` +
+  `<h2>최근 글</h2><ul>${posts
+    .slice(0, RECENT_ON_HOME)
+    .map(
+      (p) =>
+        `<li><a href="/posts/${p.id}/">${esc(p.title)}</a> — ${esc(
+          p.excerpt.replace(/\s+/g, ' ').slice(0, 100),
+        )}</li>`,
+    )
+    .join('')}</ul>` +
+  `<h2>태그</h2><p>${[...tags.keys()]
+    .map((t) => `<a href="/tags/${encodeURIComponent(t)}/" rel="tag">${esc(t)}</a>`)
+    .join(' ')}</p>`
+
+writeFileSync(
+  `${DIST}/index.html`,
+  buildPage(shell, {
+    title: 'sanghak · 보안 실무 기록',
+    description: `웹 취약점, 클라우드, 컴플라이언스까지 보안 실무 기록 ${posts.length}편.`,
+    url: `${SITE}/`,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Blog',
+        name: 'sanghak',
+        url: `${SITE}/`,
+        author: { '@type': 'Person', name: '배상학' },
+        inLanguage: 'ko',
+      },
+    ],
+    content: homeContent,
+  }),
+)
 
 // sitemap.xml
 const urls = [
