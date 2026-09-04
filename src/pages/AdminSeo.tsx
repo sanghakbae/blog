@@ -3,9 +3,32 @@ import { Link } from 'react-router-dom'
 import { listAllPosts, type Post } from '../lib/posts'
 import { auditAll, summarize, type IssueArea, type PostAudit } from '../lib/seo'
 import {
-  ENGINES, ENGINE_LABEL, confirmedOn, searchUrl, toggleIndexed,
+  ENGINES, ENGINE_LABEL, confirmedOn, searchUrl,
   type Engine, type IndexStatus,
 } from '../lib/indexStatus'
+
+/**
+ * 포털 검색을 팝업 창으로 연다.
+ *
+ * iframe 으로 감싸면 구글·네이버·빙 모두 결과 화면을 띄우지 못하게 막아 흰 칸만
+ * 남는다. 별도 창은 그 제약을 받지 않으므로 결과가 그대로 보인다.
+ * 창 이름을 고정해 여러 번 눌러도 창이 계속 늘어나지 않는다.
+ * 팝업이 막혀 있으면 창이 열리지 않으므로 새 탭으로 대신 연다.
+ */
+function openSearch(engine: Engine, postId: string) {
+  const url = searchUrl(engine, postId)
+  const width = Math.min(1100, Math.round(window.screen.availWidth * 0.8))
+  const height = Math.min(900, Math.round(window.screen.availHeight * 0.85))
+  const left = Math.round((window.screen.availWidth - width) / 2)
+  const top = Math.round((window.screen.availHeight - height) / 2)
+  const win = window.open(
+    url,
+    'index-check',
+    `popup=yes,width=${width},height=${height},left=${left},top=${top},noopener,noreferrer`,
+  )
+  if (!win) window.open(url, '_blank', 'noopener,noreferrer')
+  else win.focus()
+}
 
 const AREAS: IssueArea[] = ['SEO', 'GEO', '이미지', '에디토리얼']
 
@@ -25,9 +48,8 @@ function scoreStyle(score: number): string {
 export default function AdminSeo() {
   const [posts, setPosts] = useState<Post[] | null>(null)
   const [area, setArea] = useState<IssueArea | null>(null)
-  // 색인 확인 기록은 화면에서 바로 갱신한다
+  // 색인 상태는 CI 가 Search Console API 로 채운 값을 그대로 보여준다
   const [status, setStatus] = useState<Record<string, IndexStatus>>({})
-  const [error, setError] = useState('')
 
   useEffect(() => {
     listAllPosts(300)
@@ -40,18 +62,6 @@ export default function AdminSeo() {
 
   const indexed = (engine: Engine) =>
     Object.values(status).filter((s) => s[engine]).length
-
-  async function mark(postId: string, engine: Engine) {
-    // 규칙에 막히거나 연결이 끊기면 조용히 실패한다. 눌렀는데 아무 일도
-    // 일어나지 않으면 눌리지 않은 것으로 오해하므로 이유를 보여준다.
-    try {
-      const next = await toggleIndexed(postId, engine, status[postId] ?? {})
-      setStatus((prev) => ({ ...prev, [postId]: next }))
-      setError('')
-    } catch (err) {
-      setError(`색인 기록을 저장하지 못했습니다 — ${(err as Error).message}`)
-    }
-  }
 
   const audits = useMemo(() => (posts ? auditAll(posts) : []), [posts])
   const counts = useMemo(() => summarize(audits), [audits])
@@ -69,12 +79,6 @@ export default function AdminSeo() {
           점수가 낮은 글이 위에 옵니다.
         </p>
       </header>
-
-      {error && (
-        <p className="mb-3 rounded-lg border border-red-400/50 bg-red-500/10 px-3 py-2 text-[11px] text-red-500">
-          {error}
-        </p>
-      )}
 
       {/* 지적 4종 + 포털 3종. 넓은 화면은 한 줄, 좁은 화면은 네 개씩 두 줄. */}
       <div className="mb-6 grid grid-cols-4 gap-1 sm:gap-1.5 lg:grid-cols-7">
@@ -132,45 +136,28 @@ export default function AdminSeo() {
                 {a.title}
               </Link>
 
-              {/* 포털을 누르면 site: 검색이 새 탭에서 열리고 확인 기록이 함께 남는다.
-                  색인 여부를 사이트가 스스로 알아낼 방법이 없어(검색 결과 수집은 각 사
-                  약관 위반) 사람이 확인한 사실을 기록하는 방식이다. 잘못 눌렀으면
-                  켜진 배지의 ✕ 로 되돌린다. */}
+              {/* 누르면 site: 검색이 팝업 창으로 열린다. 누르는 것으로 상태가 바뀌지는
+                  않는다. 노란 배지와 날짜는 scripts/index-status.mts 가 Search Console
+                  API 로 확인해 기록한 것이다. */}
               <span className="flex items-center gap-1.5">
                 <span className="text-[10px] text-[var(--muted)]">색인</span>
                 {ENGINES.map((e) => {
                   const on = !!status[a.id]?.[e]
                   return (
-                    <span
+                    <button
                       key={e}
-                      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
+                      type="button"
+                      onClick={() => openSearch(e, a.id)}
+                      title={`${ENGINE_LABEL[e]}에서 site: 검색을 팝업으로 엽니다`}
+                      className={`rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
                         on
                           ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
                           : 'border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
                       }`}
                     >
-                      <a
-                        href={searchUrl(e, a.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => { if (!on) void mark(a.id, e) }}
-                        title={`${ENGINE_LABEL[e]}에서 site: 검색을 열고 확인 기록을 남깁니다`}
-                      >
-                        {ENGINE_LABEL[e]}
-                        {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`}
-                      </a>
-                      {on && (
-                        <button
-                          type="button"
-                          onClick={() => void mark(a.id, e)}
-                          aria-label={`${ENGINE_LABEL[e]} 확인 기록 해제`}
-                          title="확인 기록 해제"
-                          className="text-amber-900/60 transition-colors hover:text-amber-900"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </span>
+                      {ENGINE_LABEL[e]}
+                      {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`}
+                    </button>
                   )
                 })}
               </span>

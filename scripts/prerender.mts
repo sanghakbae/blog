@@ -312,6 +312,22 @@ writeFileSync(
   }),
 )
 
+// 404 — GitHub Pages 는 서버 라우팅이 없어 없는 경로에 이 파일을 돌려준다.
+// 클라이언트 라우팅이 살아남으려면 앱 셸이어야 하지만, 홈 내용을 그대로 복사하면
+// 없는 주소마다 홈 본문과 홈을 가리키는 canonical 이 따라붙는다. 셸만 쓰고
+// noindex 를 달아 검색엔진이 이 응답을 무엇으로도 취급하지 않게 한다.
+writeFileSync(
+  `${DIST}/404.html`,
+  shell
+    .replace(/<title>[^<]*<\/title>/, '<title>페이지를 찾을 수 없습니다 · sanghak</title>')
+    .replace('</head>', '  <meta name="robots" content="noindex, follow" />\n  </head>')
+    .replace(
+      '<div id="root"></div>',
+      '<div id="root"><h1>페이지를 찾을 수 없습니다</h1>' +
+        '<p><a href="/">글 목록으로</a></p></div>',
+    ),
+)
+
 // sitemap.xml
 const urls = [
   { loc: SITE + '/', lastmod: posts[0]?.updatedAt },

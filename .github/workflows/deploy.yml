@@ -5,9 +5,11 @@ on:
     branches: [main]
   # 글은 웹 에디터에서 Firestore 로 바로 저장되므로 깃에 커밋이 남지 않는다.
   # 크롤러가 읽는 정적 HTML 과 sitemap 은 빌드할 때 만들어지므로,
-  # 하루 한 번 다시 빌드해 수정한 글이 검색엔진에 반영되게 한다. (06:00 KST)
+  # 하루 두 번 다시 빌드해 수정한 글이 검색엔진에 반영되게 한다.
+  # 06:00 · 18:00 KST (UTC 로 21:00 · 09:00)
   schedule:
     - cron: '0 21 * * *'
+    - cron: '0 9 * * *'
   workflow_dispatch:
 
 permissions:
@@ -46,10 +48,12 @@ jobs:
           VITE_ADMIN_EMAILS: ${{ vars.VITE_ADMIN_EMAILS }}
           VITE_UPLOAD_ENDPOINT: ${{ vars.VITE_UPLOAD_ENDPOINT }}
 
-      # GitHub Pages 는 서버 라우팅이 없다. 404 를 index 로 돌려
-      # /tags/:tag 같은 클라이언트 경로가 새로고침에도 살아남게 한다.
+      # GitHub Pages 는 서버 라우팅이 없다. 404 응답에도 앱 셸이 실려야
+      # /tags/:tag 같은 클라이언트 경로가 새로고침에도 살아남는다.
+      # 정상 빌드에서는 prerender 가 noindex 를 단 404 를 이미 만들어 둔다.
+      # 여기서는 그것이 없을 때만 채운다 — 홈 내용을 없는 주소에 복사하지 않는다.
       - name: SPA fallback
-        run: cp dist/index.html dist/404.html
+        run: '[ -f dist/404.html ] || cp dist/index.html dist/404.html'
 
       # 최근에 바뀐 주소만 알린다. 키 파일은 공개 주소로 검증하는 방식이라
       # 비밀값이 아니고 public/ 에 그대로 들어 있다.
@@ -58,6 +62,21 @@ jobs:
         if: github.event_name != 'pull_request'
         continue-on-error: true
         run: npx tsx scripts/indexnow.mts --days=2
+
+      # 색인됐는지는 Search Console URL 검사 API 로 확인해 Firestore 에 기록한다.
+      # 관리 콘솔의 색인 배지가 이 값으로 자동으로 바뀐다.
+      # 서비스 계정 키가 없으면 건너뛴다 — 설정 전에도 배포는 되어야 한다.
+      - name: 색인 상태 갱신
+        if: github.event_name != 'pull_request' && env.SA_KEY != ''
+        continue-on-error: true
+        env:
+          SA_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          GSC_PROPERTY: ${{ vars.GSC_PROPERTY }}
+        run: |
+          printf '%s' "$SA_KEY" > /tmp/sa.json
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx tsx scripts/index-status.mts
+          rm -f /tmp/sa.json
 
       - uses: actions/upload-pages-artifact@v4
         with:
