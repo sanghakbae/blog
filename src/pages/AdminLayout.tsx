@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/useAuth'
 
 const tabs = [
@@ -10,6 +10,8 @@ const tabs = [
 
 export default function AdminLayout() {
   const { signOut, user } = useAuth()
+  // 새 글 버튼은 글 목록에서만 뜻이 있다
+  const onPostList = useLocation().pathname.replace(/\/$/, '') === '/admin'
 
   return (
     <div>
@@ -25,24 +27,35 @@ export default function AdminLayout() {
         </button>
       </header>
 
-      <nav className="mb-8 flex gap-1 overflow-x-auto border-b border-[var(--line)]">
-        {tabs.map((t) => (
-          <NavLink
-            key={t.to}
-            to={t.to}
-            end={t.end}
-            className={({ isActive }) =>
-              `-mb-px shrink-0 border-b-2 px-2.5 py-2 text-sm whitespace-nowrap transition-colors sm:px-3 ${
-                isActive
-                  ? 'border-[var(--accent)] font-medium text-[var(--accent)]'
-                  : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
-              }`
-            }
+      <div className="mb-8 flex items-end gap-3 border-b border-[var(--line)]">
+        <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+          {tabs.map((t) => (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              end={t.end}
+              className={({ isActive }) =>
+                `-mb-px shrink-0 border-b-2 px-2.5 py-2 text-sm whitespace-nowrap transition-colors sm:px-3 ${
+                  isActive
+                    ? 'border-[var(--accent)] font-medium text-[var(--accent)]'
+                    : 'border-transparent text-[var(--muted)] hover:text-[var(--ink)]'
+                }`
+              }
+            >
+              {t.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        {onPostList && (
+          <Link
+            to="/admin/new"
+            className="mb-1.5 shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white"
           >
-            {t.label}
-          </NavLink>
-        ))}
-      </nav>
+            새 글
+          </Link>
+        )}
+      </div>
 
       <Outlet />
     </div>

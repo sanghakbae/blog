@@ -9,15 +9,6 @@ export default function Admin() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center">
-        <Link
-          to="/admin/new"
-          className="ml-auto rounded-lg bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white"
-        >
-          새 글
-        </Link>
-      </div>
-
       {!posts ? (
         <p className="text-sm text-[var(--muted)]">불러오는 중…</p>
       ) : (
