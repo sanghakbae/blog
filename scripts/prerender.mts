@@ -15,7 +15,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { marked } from 'marked'
 import { preserveLayout } from '../src/lib/markdown.js'
 
-const PROJECT = process.env.VITE_FIREBASE_PROJECT_ID ?? 'tag-blog-8408e'
+// 정의되지 않은 GitHub Actions 변수는 빈 문자열로 들어오므로 ?? 가 아니라 || 를 쓴다
+const PROJECT = process.env.VITE_FIREBASE_PROJECT_ID || 'tag-blog-8408e'
 const KEY = process.env.VITE_FIREBASE_API_KEY ?? ''
 const SITE = 'https://blog.sanghak.kr'
 const DIST = 'dist'
@@ -185,6 +186,19 @@ writeFileSync(
 writeFileSync(`${DIST}/posts.json`, JSON.stringify(posts))
 
 const shell = readFileSync(`${DIST}/index.html`, 'utf8')
+
+// 이 스크립트는 dist/index.html 을 셸로 읽고, 마지막에 홈 내용을 채워 같은 파일에
+// 덮어쓴다. 그래서 vite build 없이 두 번 돌리면 이미 채워진 파일을 셸로 삼게 되고,
+// #root 자리를 찾지 못해 글 페이지가 본문 없이 만들어진다. canonical 과 JSON-LD 도
+// 겹쳐 붙는다. 조용히 망가지므로 시작할 때 막는다.
+if (!shell.includes('<div id="root"></div>')) {
+  console.error(
+    'dist/index.html 이 이미 프리렌더된 상태입니다.\n' +
+      '  → vite build 를 먼저 실행하세요 (npm run build 가 둘을 함께 합니다).',
+  )
+  process.exit(1)
+}
+
 marked.setOptions({ breaks: true, gfm: true })
 
 // 글 페이지

@@ -22,8 +22,10 @@ import { GoogleAuth } from 'google-auth-library'
 
 const SITE = 'https://blog.sanghak.kr'
 /** Search Console 에 등록된 속성. 도메인 속성이면 sc-domain:blog.sanghak.kr */
-const PROPERTY = process.env.GSC_PROPERTY ?? `${SITE}/`
-const PROJECT = process.env.VITE_FIREBASE_PROJECT_ID ?? 'tag-blog-8408e'
+// 정의되지 않은 GitHub Actions 변수는 빈 문자열로 들어온다.
+// ?? 는 빈 문자열을 그대로 두므로 || 를 써야 기본값으로 떨어진다.
+const PROPERTY = process.env.GSC_PROPERTY || `${SITE}/`
+const PROJECT = process.env.VITE_FIREBASE_PROJECT_ID || 'tag-blog-8408e'
 const CONCURRENCY = 4
 
 const dry = process.argv.includes('--dry')

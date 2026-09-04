@@ -67,16 +67,22 @@ jobs:
       # 관리 콘솔의 색인 배지가 이 값으로 자동으로 바뀐다.
       # 서비스 계정 키가 없으면 건너뛴다 — 설정 전에도 배포는 되어야 한다.
       - name: 색인 상태 갱신
-        if: github.event_name != 'pull_request' && env.SA_KEY != ''
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         env:
           SA_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
           GSC_PROPERTY: ${{ vars.GSC_PROPERTY }}
         run: |
+          if [ -z "$SA_KEY" ]; then
+            echo 'GCP_SERVICE_ACCOUNT 시크릿이 없어 건너뜁니다.'
+            exit 0
+          fi
+          # 스크립트가 실패해도 키 파일은 지운다
+          trap 'rm -f /tmp/sa.json' EXIT
           printf '%s' "$SA_KEY" > /tmp/sa.json
+          chmod 600 /tmp/sa.json
           GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx tsx scripts/index-status.mts
-          rm -f /tmp/sa.json
 
       - uses: actions/upload-pages-artifact@v4
         with:
