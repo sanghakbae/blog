@@ -17,6 +17,7 @@
  * 할당량은 하루 2,000건, 분당 600건이다. 글 151편을 하루 두 번 확인해도
  * 302건이라 여유가 있다.
  */
+import { existsSync } from 'node:fs'
 import { GoogleAuth } from 'google-auth-library'
 
 const SITE = 'https://blog.sanghak.kr'
@@ -44,7 +45,31 @@ type Inspection = {
 const auth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
 })
-const client = await auth.getClient()
+
+/** 자격 증명 문제는 여기서 끝난다. 스택 트레이스 대신 무엇을 해야 하는지 알린다. */
+async function authorize() {
+  const path = process.env.GOOGLE_APPLICATION_CREDENTIALS
+  if (path && !existsSync(path)) {
+    console.error(
+      `서비스 계정 키를 찾을 수 없습니다: ${path}\n` +
+        '  → GOOGLE_APPLICATION_CREDENTIALS 에 실제 키 파일 경로를 넣으세요.\n' +
+        '     지금 값이 예시 문구라면 셸에 남아 있는 것입니다: unset GOOGLE_APPLICATION_CREDENTIALS',
+    )
+    process.exit(1)
+  }
+  try {
+    return await auth.getClient()
+  } catch (err) {
+    const message = (err as { message?: string }).message ?? String(err)
+    console.error(
+      `자격 증명을 읽지 못했습니다 — ${message.split('\n')[0].slice(0, 160)}\n` +
+        '  → 서비스 계정 키 경로를 GOOGLE_APPLICATION_CREDENTIALS 에 지정하세요.',
+    )
+    process.exit(1)
+  }
+}
+
+const client = await authorize()
 
 async function inspect(url: string): Promise<Inspection['inspectionResult']> {
   const res = await client.request<Inspection>({
