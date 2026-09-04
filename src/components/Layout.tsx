@@ -111,8 +111,13 @@ export default function Layout() {
         </main>
 
         {/* 사이드바를 오른쪽에 둬서 본문이 왼쪽 기준선에 붙는다.
-            태그는 화면에 들어가는 만큼만 자동으로 보여준다. */}
-        <aside className="hidden shrink-0 overflow-hidden border-l border-[var(--line)] bg-[var(--bg-elev)] p-4 lg:block lg:w-[16.8rem] xl:w-[19.2rem]">
+            태그는 화면에 들어가는 만큼만 자동으로 보여준다.
+
+            폭을 고정하면 화면이 넓어질수록 본문만 늘어나 비율이 무너진다.
+            1920px 에서 사이드바가 16% 까지 좁아져 태그가 잘게 접혔다.
+            xl 부터는 화면에 비례해 늘리되 위아래로 묶어, 좁은 화면의 폭은
+            그대로 두고 초광폭에서만 넓어지게 한다. */}
+        <aside className="hidden shrink-0 overflow-hidden border-l border-[var(--line)] bg-[var(--bg-elev)] p-4 lg:block lg:w-[16.8rem] xl:w-[clamp(19.2rem,20vw,26rem)]">
           <TagSidebar fit />
         </aside>
       </div>
