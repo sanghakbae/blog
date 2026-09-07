@@ -52,7 +52,7 @@ export default function AdminSeo() {
   const [status, setStatus] = useState<Record<string, IndexStatus>>({})
 
   useEffect(() => {
-    listAllPosts(300)
+    listAllPosts()
       .then((list) => {
         setPosts(list)
         setStatus(Object.fromEntries(list.map((p) => [p.id, p.indexStatus ?? {}])))

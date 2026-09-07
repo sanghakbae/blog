@@ -55,7 +55,15 @@ function toPost(id: string, d: any): Post {
  * 한 번 읽어 공유하고, 글이 바뀌면 비운다.
  */
 const CACHE_TTL = 5 * 60 * 1000
-const CACHE_LIMIT = 500
+
+/**
+ * 한 번에 다루는 글 수의 상한.
+ *
+ * 화면마다 다른 숫자를 하드코딩해 두면 글이 늘 때 조용히 잘린다. 실제로 251편이
+ * 된 뒤 홈이 200편만 그리고 있었다. 목록 함수의 기본값을 여기로 모아 둔다.
+ */
+export const LIST_LIMIT = 500
+const CACHE_LIMIT = LIST_LIMIT
 
 /**
  * hasBodies 는 캐시에 본문이 들어 있는지를 뜻한다.
@@ -193,25 +201,25 @@ function invalidate() {
 }
 
 /** 발행된 글 목록 (최신순) */
-export async function listPosts(max = 50): Promise<Post[]> {
+export async function listPosts(max = LIST_LIMIT): Promise<Post[]> {
   if (USE_LOCAL) return (await import('./localData')).localListPosts(max)
   return (await loadPublished()).slice(0, max)
 }
 
 /** 특정 태그가 달린 글 목록 */
-export async function listPostsByTag(tag: string, max = 50): Promise<Post[]> {
+export async function listPostsByTag(tag: string, max = LIST_LIMIT): Promise<Post[]> {
   if (USE_LOCAL) return (await import('./localData')).localListByTag(tag, max)
   return (await loadPublished()).filter((p) => p.tags.includes(tag)).slice(0, max)
 }
 
 /** 검색용 — 본문까지 있어야 본문 일치와 발췌를 만들 수 있다 */
-export async function listPostsForSearch(max = 500): Promise<Post[]> {
+export async function listPostsForSearch(max = LIST_LIMIT): Promise<Post[]> {
   if (USE_LOCAL) return (await import('./localData')).localListPosts(max)
   return (await loadPublishedWithBodies()).slice(0, max)
 }
 
 /** 관리자용 — 임시저장 포함 전체 */
-export async function listAllPosts(max = 300): Promise<Post[]> {
+export async function listAllPosts(max = LIST_LIMIT): Promise<Post[]> {
   if (OFFLINE) return []
   if (USE_LOCAL) return (await import('./localData')).localListPosts(max, true)
   const snap = await getDocs(query(postsCol, orderBy('updatedAt', 'desc'), limit(max)))
@@ -242,7 +250,7 @@ export async function getPost(id: string): Promise<Post | null> {
 }
 
 /** 태그 분석의 기준이 되는 코퍼스 — 다른 글들의 제목·본문 */
-export async function fetchCorpus(max = 200): Promise<{ title: string; body: string }[]> {
+export async function fetchCorpus(max = LIST_LIMIT): Promise<{ title: string; body: string }[]> {
   if (USE_LOCAL)
     return (await import('./localData')).localListPosts(max).then((ps) =>
       ps.map((p) => ({ title: p.title, body: p.body })),

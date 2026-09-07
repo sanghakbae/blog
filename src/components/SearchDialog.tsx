@@ -54,7 +54,7 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
 
   useEffect(() => {
-    listPostsForSearch(500).then(setPosts).catch(() => setPosts([]))
+    listPostsForSearch().then(setPosts).catch(() => setPosts([]))
   }, [])
 
   useEffect(() => {
