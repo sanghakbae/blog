@@ -364,9 +364,26 @@ writeFileSync(
 )
 
 // robots.txt
+// Yeti(네이버)·Daum 은 와일드카드만으로도 따르지만, 서치어드바이저의
+// robots.txt 검증은 해당 UA 항목을 직접 찾는다. 그래서 따로 적어 둔다.
 writeFileSync(
   `${DIST}/robots.txt`,
-  ['User-agent: *', 'Allow: /', 'Disallow: /admin', '', `Sitemap: ${SITE}/sitemap.xml`, ''].join('\n'),
+  [
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /admin',
+    '',
+    'User-agent: Yeti',
+    'Allow: /',
+    'Disallow: /admin',
+    '',
+    'User-agent: Daumoa',
+    'Allow: /',
+    'Disallow: /admin',
+    '',
+    `Sitemap: ${SITE}/sitemap.xml`,
+    '',
+  ].join('\n'),
 )
 
 // llms.txt — 답변 엔진을 위한 안내문
