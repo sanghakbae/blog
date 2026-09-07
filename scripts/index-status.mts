@@ -105,13 +105,36 @@ initializeApp({ credential: applicationDefault(), projectId: PROJECT })
 const db = getFirestore()
 
 const snap = await db.collection('posts').where('published', '==', true).get()
-const posts = snap.docs.map((d) => ({
+const all = snap.docs.map((d) => ({
   id: d.id,
   title: (d.data().title ?? '') as string,
   status: (d.data().indexStatus ?? {}) as Record<string, string>,
 }))
 
-console.log(`발행글 ${posts.length}편 · 속성 ${PROPERTY}`)
+/**
+ * 이미 색인된 글은 매번 다시 물어볼 필요가 없다.
+ *
+ * 글 한 편이 API 호출 한 번이고 하루 한도는 2,000건이다. 색인된 글을 12시간마다
+ * 계속 확인하면 아직 색인되지 않은 글을 볼 여유가 그만큼 줄어든다. 그래서 색인
+ * 확인 후 RECHECK_DAYS 동안은 건너뛴다. 아주 안 보지는 않는다 — 글이 색인에서
+ * 빠지는 일도 있어서, 그때는 늦게라도 배지가 풀려야 한다.
+ */
+const RECHECK_DAYS = 7
+const staleAfter = Date.now() - RECHECK_DAYS * 24 * 60 * 60 * 1000
+
+const posts = all.filter((p) => {
+  const seen = p.status.google
+  if (!seen) return true
+  const at = Date.parse(seen)
+  return Number.isNaN(at) || at < staleAfter
+})
+
+const skipped = all.length - posts.length
+console.log(
+  `발행글 ${all.length}편 · 조회 대상 ${posts.length}편` +
+    (skipped ? ` · 색인 확인된 글 ${skipped}편은 ${RECHECK_DAYS}일간 건너뜀` : '') +
+    ` · 속성 ${PROPERTY}`,
+)
 
 // ── 조회 ────────────────────────────────────────────────────────────────────
 
@@ -192,7 +215,11 @@ try {
 }
 
 const indexed = rows.filter((r) => r.indexed)
-console.log(`\n글 ${rows.length}편 중 색인됨 ${indexed.length}편${failed ? ` · 조회 실패 ${failed}` : ''}`)
+console.log(
+  `\n조회한 ${rows.length}편 중 색인됨 ${indexed.length}편` +
+    (skipped ? ` · 건너뛴 ${skipped}편은 이미 색인됨` : '') +
+    (failed ? ` · 조회 실패 ${failed}` : ''),
+)
 
 const byState = new Map<string, number>()
 rows.forEach((r) => byState.set(r.state, (byState.get(r.state) ?? 0) + 1))

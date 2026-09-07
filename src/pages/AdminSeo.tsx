@@ -32,6 +32,9 @@ function openSearch(engine: Engine, postId: string) {
 
 const AREAS: IssueArea[] = ['SEO', 'GEO', '이미지', '에디토리얼']
 
+/** 좁은 화면에서 7칸을 한 줄에 넣으면 칸당 45px 정도라 다섯 글자가 잘린다. */
+const AREA_SHORT: Partial<Record<IssueArea, string>> = { 에디토리얼: '에디터' }
+
 const AREA_STYLE: Record<IssueArea, string> = {
   SEO: 'bg-[var(--accent-soft)] text-[var(--accent)]',
   GEO: 'bg-emerald-500/15 text-emerald-600',
@@ -99,7 +102,8 @@ export default function AdminSeo() {
             }`}
           >
             <span className="block truncate text-[9px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
-              {a}
+              <span className={AREA_SHORT[a] ? 'sm:hidden' : ''}>{AREA_SHORT[a] ?? a}</span>
+              {AREA_SHORT[a] && <span className="hidden sm:inline">{a}</span>}
             </span>
             <span className="mt-0.5 block text-center text-[13px] font-semibold tabular-nums sm:text-xl">
               {counts[a]}
