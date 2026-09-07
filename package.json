@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsx scripts/prerender.mts",
+    "build": "vite build && tsx scripts/precache.mts && tsx scripts/prerender.mts",
     "lint": "oxlint",
     "preview": "vite preview",
     "build:spa": "vite build",

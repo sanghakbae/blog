@@ -17,6 +17,13 @@ export type Post = {
   updatedAt?: Timestamp
   /** 검색 포털별 색인 확인 기록 */
   indexStatus?: Record<string, string>
+  /**
+   * 예상 읽기 시간(분).
+   *
+   * 목록 스냅샷에는 본문을 담지 않는다. 그래서 목록에서 본문으로 시간을 계산하면
+   * 모든 글이 1분으로 보였다. 스냅샷을 만들 때 미리 계산해 함께 싣는다.
+   */
+  minutes?: number
 }
 
 export type Tag = { id: string; name: string; count: number }
@@ -120,9 +127,28 @@ function tagsFromPosts(posts: Post[]): Tag[] {
 }
 
 function loadPublished(): Promise<Post[]> {
-  if (OFFLINE) return Promise.resolve([])
   if (cache && Date.now() - cache.at < CACHE_TTL) return Promise.resolve(cache.posts)
   if (inflight) return inflight
+
+  // Firebase 설정이 빌드에 들어오지 않은 경우.
+  //
+  // 빈 배열을 돌려주면 화면에 "아직 글이 없습니다" 가 뜬다. 글은 없어진 게
+  // 아니고 설정만 빠진 것이며, 배포에 마지막 스냅샷이 함께 올라가 있다.
+  // 읽기만 하는 화면은 그 스냅샷으로 그대로 돌아간다.
+  if (OFFLINE) {
+    inflight = loadPublishedSnapshot('/posts-list.json')
+      .then((posts) => {
+        cache = { at: Date.now(), posts, hasBodies: false }
+        return posts
+      })
+      .catch((error) => {
+        console.warn('글 스냅샷 조회에 실패했습니다.', error)
+        return []
+      })
+    return inflight.finally(() => {
+      inflight = null
+    })
+  }
 
   const gen = generation
   const store = (posts: Post[], hasBodies: boolean) => {
@@ -172,6 +198,17 @@ function loadPublished(): Promise<Post[]> {
 async function loadPublishedWithBodies(): Promise<Post[]> {
   const posts = await loadPublished()
   if (cache?.hasBodies) return cache.posts
+
+  // 설정이 없으면 기다릴 Firestore 응답도 없다. 본문 스냅샷으로 바로 간다.
+  if (OFFLINE) {
+    try {
+      const full = await loadPublishedSnapshot('/posts.json')
+      cache = { at: Date.now(), posts: full, hasBodies: true }
+      return full
+    } catch {
+      return posts
+    }
+  }
 
   if (pendingFresh) {
     try {
@@ -238,7 +275,7 @@ export async function getAdjacentPosts(post: Post): Promise<{ prev?: Post; next?
 }
 
 export async function getPost(id: string): Promise<Post | null> {
-  if (OFFLINE) return null
+  if (OFFLINE) return (await loadPublishedWithBodies()).find((post) => post.id === id) ?? null
   if (USE_LOCAL) return (await import('./localData')).localGetPost(id)
   try {
     const snap = await getDoc(doc(postsCol, id))
@@ -269,7 +306,9 @@ export async function fetchTagNames(): Promise<string[]> {
 /** 사이드바용 태그 목록 구독 (글 수 많은 순) */
 export function subscribeTags(cb: (tags: Tag[]) => void) {
   if (OFFLINE) {
-    cb([])
+    loadPublished()
+      .then((posts) => cb(tagsFromPosts(posts)))
+      .catch(() => cb([]))
     return () => {}
   }
   if (USE_LOCAL) {

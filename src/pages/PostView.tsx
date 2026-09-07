@@ -37,11 +37,26 @@ export default function PostView() {
   useEffect(() => {
     if (typeof post !== 'object' || !post) return
     let alive = true
-    import('../lib/markdown').then((m) => {
-      if (!alive) return
-      setHtml(m.renderMarkdown(post.body))
-      setHeadings(m.extractHeadings(post.body))
-    })
+    import('../lib/markdown')
+      .then((m) => {
+        if (!alive) return
+        setHtml(m.renderMarkdown(post.body))
+        setHeadings(m.extractHeadings(post.body))
+      })
+      .catch(() => {
+        // 오프라인에서 아직 받지 않은 조각이면 이 import 가 실패한다.
+        // 본문은 이미 손에 있으므로, 서식 없이라도 읽을 수 있게 그대로 보여준다.
+        if (!alive) return
+        const escaped = post.body.replace(
+          /[&<>]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c] ?? c,
+        )
+        setHtml(
+          `<p><em>서식을 불러오지 못해 원문을 그대로 표시합니다.</em></p>` +
+            `<pre style="white-space:pre-wrap">${escaped}</pre>`,
+        )
+        setHeadings([])
+      })
     return () => {
       alive = false
     }

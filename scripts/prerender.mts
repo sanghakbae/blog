@@ -178,7 +178,17 @@ if (posts.length === 0) {
 // 본문까지 담으면 글이 늘어날수록 커져서(150편에 500KB) 첫 화면이 그만큼 늦어진다.
 writeFileSync(
   `${DIST}/posts-list.json`,
-  JSON.stringify(posts.map(({ body: _body, ...rest }) => rest)),
+  JSON.stringify(
+    posts.map(({ body, ...rest }) => ({
+      ...rest,
+      // 본문을 빼는 대신 본문으로만 알 수 있는 값을 미리 계산해 싣는다.
+      // 한국어는 분당 500자로 잡는다 (src/lib/editorCommands.ts 와 같은 기준).
+      minutes: Math.max(
+        1,
+        Math.round(body.replace(/```[\s\S]*?```/g, ' ').replace(/\s/g, '').length / 500),
+      ),
+    })),
+  ),
 )
 
 // 본문까지 담은 전체 스냅샷 — Firestore 에 연결하지 못하거나 오프라인일 때만 쓴다.

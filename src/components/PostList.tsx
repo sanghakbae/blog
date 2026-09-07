@@ -54,7 +54,7 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
                 {formatDate(post.createdAt)}
               </time>
               <span className="font-mono text-[10px] text-[var(--muted)]">
-                {readingStats(post.body).minutes}분
+                {post.minutes ?? readingStats(post.body).minutes}분
               </span>
               {post.tags.map((tag) => (
                 <Link

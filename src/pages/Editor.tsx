@@ -94,7 +94,9 @@ export default function Editor() {
   useEffect(() => {
     if (!preview) return
     const t = setTimeout(() => {
-      import('../lib/markdown').then((m) => setHtml(m.renderMarkdown(body)))
+      import('../lib/markdown')
+        .then((m) => setHtml(m.renderMarkdown(body)))
+        .catch(() => setHtml('<p>미리보기를 불러오지 못했습니다.</p>'))
     }, 200)
     return () => clearTimeout(t)
   }, [body, preview])

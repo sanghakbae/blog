@@ -73,12 +73,24 @@ function showUpdateBanner(onApply: () => void) {
   document.body.appendChild(bar)
 }
 
+/** 사용자가 적용을 눌렀을 때만, 그리고 한 번만 새로고침한다 */
+let applied = false
+
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || import.meta.env.DEV) return
 
-  // 첫 설치에서도 activate 의 clients.claim() 이 controllerchange 를 일으킨다.
-  // 이 값을 보지 않으면 새 방문자가 첫 화면에서 한 번 새로고침된다.
-  const hadController = !!navigator.serviceWorker.controller
+  // 새로고침은 사용자가 배너를 눌렀을 때만 한다.
+  //
+  // 처음에는 "페이지를 열 때 controller 가 있었는가" 로 판단했는데 틀렸다.
+  // 첫 방문에서 워커를 설치한 탭은 그 값이 false 라서, 그 탭에서 새 버전을
+  // 적용하면 배너가 "적용 중…" 에서 멈춘 채 화면이 바뀌지 않았다.
+  // 새로고침해야 하는 시점은 controller 의 과거가 아니라 사용자의 요청이다.
+  let applying = false
+  const reload = () => {
+    if (!applying || applied) return
+    applied = true
+    window.location.reload()
+  }
 
   window.addEventListener('load', () => {
     void navigator.serviceWorker
@@ -86,7 +98,14 @@ export function registerServiceWorker() {
       .then((registration) => {
         // 새 워커가 대기 상태가 되면 알린다.
         const notify = (worker: ServiceWorker) =>
-          showUpdateBanner(() => worker.postMessage('SKIP_WAITING'))
+          showUpdateBanner(() => {
+            applying = true
+            worker.postMessage('SKIP_WAITING')
+            // controllerchange 가 오지 않는 경우에도 화면은 넘어가야 한다.
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'activated') reload()
+            })
+          })
 
         if (registration.waiting && navigator.serviceWorker.controller) {
           notify(registration.waiting)
@@ -102,13 +121,7 @@ export function registerServiceWorker() {
           })
         })
 
-        // 적용이 끝나면 한 번만 새로고침한다. 첫 설치는 새로고침할 이유가 없다.
-        let reloading = false
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!hadController || reloading) return
-          reloading = true
-          window.location.reload()
-        })
+        navigator.serviceWorker.addEventListener('controllerchange', () => reload())
 
         // 오래 열어 둔 화면도 새 배포를 알아채도록 주기적으로 확인한다.
         const HOUR = 60 * 60 * 1000
