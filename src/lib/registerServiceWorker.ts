@@ -76,6 +76,10 @@ function showUpdateBanner(onApply: () => void) {
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || import.meta.env.DEV) return
 
+  // 첫 설치에서도 activate 의 clients.claim() 이 controllerchange 를 일으킨다.
+  // 이 값을 보지 않으면 새 방문자가 첫 화면에서 한 번 새로고침된다.
+  const hadController = !!navigator.serviceWorker.controller
+
   window.addEventListener('load', () => {
     void navigator.serviceWorker
       .register('/sw.js')
@@ -98,10 +102,10 @@ export function registerServiceWorker() {
           })
         })
 
-        // 적용이 끝나면 한 번만 새로고침한다.
+        // 적용이 끝나면 한 번만 새로고침한다. 첫 설치는 새로고침할 이유가 없다.
         let reloading = false
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (reloading) return
+          if (!hadController || reloading) return
           reloading = true
           window.location.reload()
         })

@@ -78,6 +78,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 그 밖의 것은 네트워크를 먼저 쓰고, 실패했을 때만 캐시로 돌아간다.
+  // 캐시에도 없으면 respondWith 에 undefined 가 들어가 TypeError 로 터지므로
+  // 응답을 하나 만들어 돌려준다.
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -87,7 +89,17 @@ self.addEventListener('fetch', (event) => {
         }
         return response
       })
-      .catch(() => caches.match(request)),
+      .catch(async () => {
+        const cached = await caches.match(request)
+        return (
+          cached ||
+          new Response('오프라인이고 저장된 사본이 없습니다.', {
+            status: 504,
+            statusText: 'Offline',
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          })
+        )
+      }),
   )
 })
 
