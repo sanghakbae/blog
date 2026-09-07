@@ -82,6 +82,8 @@ jobs:
           trap 'rm -f /tmp/sa.json' EXIT
           printf '%s' "$SA_KEY" > /tmp/sa.json
           chmod 600 /tmp/sa.json
+          # 구글이 사이트맵을 다시 읽게 한다. 이것이 없으면 새 글이 며칠씩 밀린다.
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx tsx scripts/gsc-verify.mts sitemap
           GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx tsx scripts/index-status.mts
 
       - uses: actions/upload-pages-artifact@v4

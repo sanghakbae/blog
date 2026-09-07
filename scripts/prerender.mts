@@ -292,7 +292,8 @@ for (const [tag, list] of tags) {
 const RECENT_ON_HOME = 40
 const homeContent =
   `<h1>sanghak</h1>` +
-  `<p>보안 실무 기록. 웹 취약점부터 클라우드·컴플라이언스까지 ${posts.length}편.</p>` +
+  `<p>웹 취약점부터 클라우드·컴플라이언스까지 ${posts.length}편. 글마다 바로 실행할 수 있는 ` +
+  `점검 명령과 근거 표준을 함께 싣습니다.</p>` +
   `<h2>전체 글</h2><ul>${posts
     .slice(0, RECENT_ON_HOME)
     .map(
@@ -309,8 +310,12 @@ const homeContent =
 writeFileSync(
   `${DIST}/index.html`,
   buildPage(shell, {
-    title: 'sanghak · 보안 실무 기록',
-    description: `웹 취약점, 클라우드, 컴플라이언스까지 보안 실무 기록 ${posts.length}편.`,
+    // 검색 결과에 뜨는 문구다. 사이트 이름은 구글이 주소 위에 따로 보여주므로
+    // 제목에는 무엇을 다루는 곳인지와 왜 눌러야 하는지를 넣는다.
+    title: `보안 실무 블로그 — 바로 쓰는 점검 명령 ${posts.length}편`,
+    description:
+      `웹 취약점부터 클라우드·컴플라이언스까지 ${posts.length}편. 글마다 복사해서 바로 실행할 수 있는 ` +
+      '점검 명령과 근거 표준(OWASP·NIST·CWE)을 함께 싣습니다.',
     url: `${SITE}/`,
     jsonLd: [
       {

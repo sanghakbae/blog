@@ -8,6 +8,7 @@
  *   npx tsx scripts/gsc-verify.mts token     확인 파일 생성 (배포 전)
  *   npx tsx scripts/gsc-verify.mts verify    소유권 확인 (배포 후)
  *   npx tsx scripts/gsc-verify.mts add       Search Console 속성 등록
+ *   npx tsx scripts/gsc-verify.mts sitemap   사이트맵 제출·상태 조회
  *   npx tsx scripts/gsc-verify.mts status    소유 상태와 등록된 속성 조회
  *
  * 선행 조건 — GCP 콘솔에서 아래 두 API 사용 설정 (프로젝트 소유자만 가능)
@@ -18,6 +19,7 @@ import { existsSync, writeFileSync } from 'node:fs'
 import { GoogleAuth } from 'google-auth-library'
 
 const SITE = 'https://blog.sanghak.kr/'
+const SITEMAP = `${SITE}sitemap.xml`
 const PUBLIC_DIR = 'public'
 const cmd = process.argv[2] ?? 'status'
 
@@ -131,6 +133,52 @@ if (cmd === 'add') {
     for (const s of res.data.siteEntry ?? []) console.log('  ', s.siteUrl, '·', s.permissionLevel)
   } catch {
     // 목록 조회는 부가 정보라 실패해도 넘어간다
+  }
+  process.exit(0)
+}
+
+if (cmd === 'sitemap') {
+  // 구글이 사이트맵을 다시 읽게 만드는 유일한 자동 수단이다.
+  // "색인 생성 요청" 버튼은 API 가 없다 — Indexing API 는 채용공고·방송일정
+  // 두 유형만 받는다. 그래서 배포마다 이 제출을 걸어 두어야 새 글이 밀리지 않는다.
+  const enc = encodeURIComponent
+  try {
+    await client.request({
+      url: `https://www.googleapis.com/webmasters/v3/sites/${enc(SITE)}/sitemaps/${enc(SITEMAP)}`,
+      method: 'PUT',
+    })
+    console.log('사이트맵 제출 완료 —', SITEMAP)
+  } catch (err) {
+    console.error('사이트맵 제출 실패 —', explain(err))
+    process.exit(1)
+  }
+
+  try {
+    const res = await client.request<{
+      sitemap?: {
+        path: string
+        lastSubmitted?: string
+        lastDownloaded?: string
+        isPending?: boolean
+        errors?: string
+        warnings?: string
+        contents?: { type: string; submitted?: string; indexed?: string }[]
+      }[]
+    }>({ url: `https://www.googleapis.com/webmasters/v3/sites/${enc(SITE)}/sitemaps` })
+
+    for (const sm of res.data.sitemap ?? []) {
+      console.log(`  ${sm.path}`)
+      console.log(
+        `    제출 ${sm.lastSubmitted?.slice(0, 19) ?? '-'}` +
+          ` · 구글이 읽은 시각 ${sm.lastDownloaded?.slice(0, 19) ?? '아직 없음'}` +
+          ` · 대기 ${sm.isPending ?? false}`,
+      )
+      console.log(`    오류 ${sm.errors ?? 0} · 경고 ${sm.warnings ?? 0}`)
+      for (const c of sm.contents ?? [])
+        console.log(`    ${c.type}: 구글이 아는 주소 ${c.submitted} · 색인 ${c.indexed ?? '미집계'}`)
+    }
+  } catch {
+    // 상태 조회는 부가 정보라 실패해도 제출 자체는 끝났다
   }
   process.exit(0)
 }
