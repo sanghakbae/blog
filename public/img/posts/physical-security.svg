@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 292" width="880" height="292" role="img" aria-label="물리 통제가 받치는 것">
+<rect width="880" height="292" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="291" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">물리 통제가 받치는 것</text>
+<rect x="24" y="60" width="832" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="40" y="86" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">출입 통제</text>
+<text x="840" y="86" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">동행·출입증</text>
+<rect x="58" y="112" width="764" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="74" y="138" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">기기 보호</text>
+<text x="806" y="138" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">암호화·화면 잠금</text>
+<rect x="92" y="164" width="696" height="42" rx="9" fill="#fafafa" stroke="#e4e4e7"/>
+<text x="108" y="190" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#18181b">문서 취급</text>
+<text x="772" y="190" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">출력·폐기</text>
+<rect x="126" y="216" width="628" height="42" rx="9" fill="#eef2ff" stroke="#4f46e5"/>
+<text x="142" y="242" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#4f46e5">구역 분리</text>
+<text x="738" y="242" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a" text-anchor="end">서버실·개인정보 처리 구역</text>
+</svg>

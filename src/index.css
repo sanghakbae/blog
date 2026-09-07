@@ -18,6 +18,20 @@
   --accent-ink: oklch(0.99 0 0);
   --accent-soft: oklch(0.94 0.045 268);
   --radius: 16px;
+
+  /* 사용 빈도 상위 태그를 구분하는 색.
+     강조색(268)과 섞이지 않게 색상만 벌리고 명도·채도는 맞춰, 다섯 개가
+     한 줄에 있어도 서열이 아니라 종류로 읽히게 한다. */
+  --rank-1: oklch(0.52 0.16 25);
+  --rank-1-soft: oklch(0.95 0.035 25);
+  --rank-2: oklch(0.52 0.14 70);
+  --rank-2-soft: oklch(0.95 0.04 70);
+  --rank-3: oklch(0.5 0.13 150);
+  --rank-3-soft: oklch(0.95 0.04 150);
+  --rank-4: oklch(0.52 0.13 220);
+  --rank-4-soft: oklch(0.95 0.035 220);
+  --rank-5: oklch(0.52 0.16 320);
+  --rank-5-soft: oklch(0.95 0.035 320);
 }
 
 /* 시스템이 어둡거나 사용자가 어둡게 골랐을 때 */
@@ -31,6 +45,17 @@
     --accent: oklch(0.78 0.17 268);
     --accent-ink: oklch(0.16 0.01 270);
     --accent-soft: oklch(0.28 0.08 268);
+
+    --rank-1: oklch(0.78 0.13 25);
+    --rank-1-soft: oklch(0.29 0.06 25);
+    --rank-2: oklch(0.8 0.12 70);
+    --rank-2-soft: oklch(0.29 0.055 70);
+    --rank-3: oklch(0.79 0.13 150);
+    --rank-3-soft: oklch(0.28 0.06 150);
+    --rank-4: oklch(0.79 0.12 220);
+    --rank-4-soft: oklch(0.28 0.055 220);
+    --rank-5: oklch(0.79 0.13 320);
+    --rank-5-soft: oklch(0.29 0.06 320);
   }
 }
 
@@ -43,6 +68,17 @@
   --accent: oklch(0.78 0.17 268);
   --accent-ink: oklch(0.16 0.01 270);
   --accent-soft: oklch(0.28 0.08 268);
+
+  --rank-1: oklch(0.78 0.13 25);
+  --rank-1-soft: oklch(0.29 0.06 25);
+  --rank-2: oklch(0.8 0.12 70);
+  --rank-2-soft: oklch(0.29 0.055 70);
+  --rank-3: oklch(0.79 0.13 150);
+  --rank-3-soft: oklch(0.28 0.06 150);
+  --rank-4: oklch(0.79 0.12 220);
+  --rank-4-soft: oklch(0.28 0.055 220);
+  --rank-5: oklch(0.79 0.13 320);
+  --rank-5-soft: oklch(0.29 0.06 320);
 }
 
 html { scroll-behavior: smooth; }
@@ -81,6 +117,20 @@ dialog > div {
   --accent: oklch(0.8 0.14 268);
   --accent-ink: oklch(0.2 0.01 268);
   --accent-soft: oklch(0.4 0.06 268);
+
+  /* 상단 바는 화면 테마와 무관하게 어둡다. 모바일 메뉴의 태그도 이 안에 들어오므로
+     여기서도 대비를 맞춘 값으로 덮는다. */
+  --rank-1: oklch(0.82 0.12 25);
+  --rank-1-soft: oklch(0.42 0.06 25);
+  --rank-2: oklch(0.84 0.11 70);
+  --rank-2-soft: oklch(0.42 0.055 70);
+  --rank-3: oklch(0.83 0.12 150);
+  --rank-3-soft: oklch(0.41 0.06 150);
+  --rank-4: oklch(0.83 0.11 220);
+  --rank-4-soft: oklch(0.41 0.055 220);
+  --rank-5: oklch(0.83 0.12 320);
+  --rank-5-soft: oklch(0.42 0.06 320);
+
   background: oklch(0.32 0.006 260);
   color: var(--ink);
 }

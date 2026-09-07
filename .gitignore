@@ -5,3 +5,9 @@ dist
 *.local
 .DS_Store
 .wrangler
+
+# 서비스 계정 키 — 저장소에 절대 들어가면 안 된다 (이 저장소는 공개다)
+*-firebase-adminsdk-*.json
+*service-account*.json
+*.key
+*.pem

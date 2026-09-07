@@ -1,5 +1,5 @@
 /**
- * 보안 포스팅 150편을 Firestore 에 넣는다.
+ * 보안 포스팅 250편을 Firestore 에 넣는다.
  *
  *   npx tsx scripts/seed.mts --dry        내용과 태그만 확인 (쓰기 없음)
  *   npx tsx scripts/seed.mts              실제 입력
@@ -30,6 +30,16 @@ import { posts12 } from './content/posts-12.js'
 import { posts13 } from './content/posts-13.js'
 import { posts14 } from './content/posts-14.js'
 import { posts15 } from './content/posts-15.js'
+import { posts16 } from './content/posts-16.js'
+import { posts17 } from './content/posts-17.js'
+import { posts18 } from './content/posts-18.js'
+import { posts19 } from './content/posts-19.js'
+import { posts20 } from './content/posts-20.js'
+import { posts21 } from './content/posts-21.js'
+import { posts22 } from './content/posts-22.js'
+import { posts23 } from './content/posts-23.js'
+import { posts24 } from './content/posts-24.js'
+import { posts25 } from './content/posts-25.js'
 
 /** 처음 올린 100편. */
 const LEGACY: SeedPost[] = [
@@ -37,8 +47,12 @@ const LEGACY: SeedPost[] = [
   ...posts6, ...posts7, ...posts8, ...posts9, ...posts10,
 ]
 
-/** 나중에 추가한 50편. --only=new 로 이것만 넣을 수 있다. */
-const ADDED: SeedPost[] = [...posts11, ...posts12, ...posts13, ...posts14, ...posts15]
+/** 나중에 추가한 150편. --only=new 로 이것만 넣을 수 있다. */
+const ADDED: SeedPost[] = [
+  ...posts11, ...posts12, ...posts13, ...posts14, ...posts15,
+  ...posts16, ...posts17, ...posts18, ...posts19, ...posts20,
+  ...posts21, ...posts22, ...posts23, ...posts24, ...posts25,
+]
 
 const ALL: SeedPost[] = [...LEGACY, ...ADDED]
 const isAdded = (p: SeedPost) => ADDED.includes(p)
@@ -62,6 +76,8 @@ function validate() {
     slugs.add(p.slug)
     if (!p.body.includes(`/img/posts/${p.slug}.svg`))
       problems.push(`${p.slug}: 본문에 도식 이미지 참조 없음`)
+    if (p.diagram2 && !p.body.includes(`/img/posts/${p.slug}-2.svg`))
+      problems.push(`${p.slug}: 두 번째 도식을 만들었는데 본문에서 참조하지 않음`)
     if (!p.body.includes('| --- |')) problems.push(`${p.slug}: 표 없음`)
     if (p.body.length < 600) problems.push(`${p.slug}: 본문이 너무 짧음 (${p.body.length}자)`)
   }
@@ -99,8 +115,16 @@ function auditScores(scored: { post: SeedPost; tags: string[] }[]) {
 
 function writeDiagrams() {
   mkdirSync(IMG_DIR, { recursive: true })
-  for (const p of ALL) writeFileSync(`${IMG_DIR}/${p.slug}.svg`, renderDiagram(p.diagram))
-  return ALL.length
+  let n = 0
+  for (const p of ALL) {
+    writeFileSync(`${IMG_DIR}/${p.slug}.svg`, renderDiagram(p.diagram))
+    n++
+    if (p.diagram2) {
+      writeFileSync(`${IMG_DIR}/${p.slug}-2.svg`, renderDiagram(p.diagram2))
+      n++
+    }
+  }
+  return n
 }
 
 // ── 태그 산출 ───────────────────────────────────────────────────────────────
