@@ -170,8 +170,21 @@ if (fatal) {
   process.exit(1)
 }
 
+// 홈은 글이 아니지만 사이트 색인 여부를 판단하는 기준점이라 함께 본다.
+// 글만 조회하면 "색인 0" 이라는 결과가 사이트 전체가 색인되지 않은 것으로 오해된다.
+try {
+  const home = await inspect(`${SITE}/`)
+  const s = home?.indexStatusResult
+  console.log(
+    `\n홈  ${isIndexed(home) ? '색인됨' : '미색인'} · ${s?.coverageState ?? '알 수 없음'}` +
+      ` · 마지막 크롤 ${s?.lastCrawlTime?.slice(0, 10) ?? '없음'}`,
+  )
+} catch {
+  // 홈 조회 실패는 글 결과에 영향을 주지 않는다
+}
+
 const indexed = rows.filter((r) => r.indexed)
-console.log(`\n색인됨 ${indexed.length} / 조회 성공 ${rows.length}${failed ? ` · 실패 ${failed}` : ''}`)
+console.log(`\n글 ${rows.length}편 중 색인됨 ${indexed.length}편${failed ? ` · 조회 실패 ${failed}` : ''}`)
 
 const byState = new Map<string, number>()
 rows.forEach((r) => byState.set(r.state, (byState.get(r.state) ?? 0) + 1))
