@@ -7,7 +7,8 @@
  *
  *   npx tsx scripts/gsc-verify.mts token     확인 파일 생성 (배포 전)
  *   npx tsx scripts/gsc-verify.mts verify    소유권 확인 (배포 후)
- *   npx tsx scripts/gsc-verify.mts status    현재 소유 상태 조회
+ *   npx tsx scripts/gsc-verify.mts add       Search Console 속성 등록
+ *   npx tsx scripts/gsc-verify.mts status    소유 상태와 등록된 속성 조회
  *
  * 선행 조건 — GCP 콘솔에서 아래 두 API 사용 설정 (프로젝트 소유자만 가능)
  *   Google Search Console API      searchconsole.googleapis.com
@@ -109,6 +110,31 @@ if (cmd === 'verify') {
   process.exit(0)
 }
 
+if (cmd === 'add') {
+  // 소유권 확인만으로는 부족하다. Search Console 에 속성으로 등록해야
+  // URL 검사 API 가 그 주소를 자기 속성으로 인식한다.
+  try {
+    await client.request({
+      url: `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(SITE)}`,
+      method: 'PUT',
+    })
+    console.log('속성 등록 완료 —', SITE)
+  } catch (err) {
+    console.error('속성 등록 실패 —', explain(err))
+    process.exit(1)
+  }
+
+  try {
+    const res = await client.request<{ siteEntry?: { siteUrl: string; permissionLevel: string }[] }>({
+      url: 'https://www.googleapis.com/webmasters/v3/sites',
+    })
+    for (const s of res.data.siteEntry ?? []) console.log('  ', s.siteUrl, '·', s.permissionLevel)
+  } catch {
+    // 목록 조회는 부가 정보라 실패해도 넘어간다
+  }
+  process.exit(0)
+}
+
 // status
 try {
   const res = await client.request<{ items?: { site: { identifier: string }; owners?: string[] }[] }>({
@@ -116,13 +142,30 @@ try {
   })
   const items = res.data.items ?? []
   if (!items.length) {
-    console.log('이 서비스 계정이 소유한 속성이 없습니다.')
+    console.log('소유권이 확인된 사이트가 없습니다.')
     console.log('  → npx tsx scripts/gsc-verify.mts token 부터 시작하세요.')
   } else {
-    for (const it of items) console.log(it.site.identifier, '·', (it.owners ?? []).join(', '))
+    console.log('소유권 확인됨:')
+    for (const it of items) console.log('  ', it.site.identifier, '·', (it.owners ?? []).join(', '))
   }
 } catch (err) {
-  console.error('조회 실패 —', explain(err))
+  console.error('소유권 조회 실패 —', explain(err))
+}
+
+try {
+  const res = await client.request<{ siteEntry?: { siteUrl: string; permissionLevel: string }[] }>({
+    url: 'https://www.googleapis.com/webmasters/v3/sites',
+  })
+  const sites = res.data.siteEntry ?? []
+  if (!sites.length) {
+    console.log('\nSearch Console 에 등록된 속성이 없습니다.')
+    console.log('  → npx tsx scripts/gsc-verify.mts add 를 실행하세요.')
+  } else {
+    console.log('\n등록된 속성:')
+    for (const s of sites) console.log('  ', s.siteUrl, '·', s.permissionLevel)
+  }
+} catch (err) {
+  console.error('속성 조회 실패 —', explain(err))
   process.exit(1)
 }
 process.exit(0)

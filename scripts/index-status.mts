@@ -125,6 +125,8 @@ let fatal = ''
 function setupError(message: string): string {
   if (/has not been used in project|SERVICE_DISABLED/i.test(message))
     return 'GCP 콘솔에서 "Google Search Console API" 를 사용 설정하세요.'
+  if (/do not own this site|not part of this property/i.test(message))
+    return 'Search Console 속성이 등록되지 않았습니다. npx tsx scripts/gsc-verify.mts add 를 실행하세요.'
   if (/permission|not authori|403/i.test(message))
     return 'Search Console → 설정 → 사용자 및 권한에서 서비스 계정을 소유자로 추가하세요.'
   if (/invalid_grant|unauthorized_client|401/i.test(message))
