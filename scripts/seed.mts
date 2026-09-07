@@ -320,8 +320,11 @@ for (let i = 0; i < result.length; i += 100) {
       published: true,
       author: AUTHOR,
       seed: true,
+      // createdAt 은 목록 순서를 위해 과거로 흩뿌리지만, updatedAt 은 실제로 쓴 시각이다.
+      // 둘 다 과거로 두면 사이트맵의 lastmod 가 몇 달 전이 되어, 방금 추가한 글이
+      // IndexNow 의 최근 변경분 필터에서 빠진다.
       createdAt: Timestamp.fromDate(at),
-      updatedAt: Timestamp.fromDate(at),
+      updatedAt: Timestamp.now(),
     })
     written++
   })
