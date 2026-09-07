@@ -47,7 +47,10 @@ function scoreStyle(score: number): string {
 
 export default function AdminSeo() {
   const [posts, setPosts] = useState<Post[] | null>(null)
-  const [area, setArea] = useState<IssueArea | null>(null)
+  /** 카드 하나만 걸린다. 지적 영역이면 그 지적이 있는 글, 포털이면 그 포털에 색인된 글. */
+  type Filter = { kind: 'area'; v: IssueArea } | { kind: 'engine'; v: Engine }
+  const [filter, setFilter] = useState<Filter | null>(null)
+  const area = filter?.kind === 'area' ? filter.v : null
   // 색인 상태는 CI 가 Search Console API 로 채운 값을 그대로 보여준다
   const [status, setStatus] = useState<Record<string, IndexStatus>>({})
 
@@ -66,9 +69,11 @@ export default function AdminSeo() {
   const audits = useMemo(() => (posts ? auditAll(posts) : []), [posts])
   const counts = useMemo(() => summarize(audits), [audits])
 
-  const shown: PostAudit[] = area
-    ? audits.filter((a) => a.issues.some((i) => i.area === area))
-    : audits
+  const shown: PostAudit[] = !filter
+    ? audits
+    : filter.kind === 'area'
+      ? audits.filter((a) => a.issues.some((i) => i.area === filter.v))
+      : audits.filter((a) => status[a.id]?.[filter.v])
 
   return (
     <div>
@@ -81,40 +86,53 @@ export default function AdminSeo() {
       </header>
 
       {/* 지적 4종 + 포털 3종. 넓은 화면은 한 줄, 좁은 화면은 네 개씩 두 줄. */}
-      <div className="mb-6 grid grid-cols-4 gap-1 sm:gap-1.5 lg:grid-cols-7">
+      <div className="mb-6 grid grid-cols-7 gap-1 sm:gap-1.5">
         {AREAS.map((a) => (
           <button
             key={a}
             type="button"
-            onClick={() => setArea(area === a ? null : a)}
-            className={`rounded-lg border p-1.5 text-left transition-colors sm:p-2.5 ${
+            onClick={() => setFilter(area === a ? null : { kind: 'area', v: a })}
+            className={`rounded-lg border p-1 text-left transition-colors sm:p-2.5 ${
               area === a
                 ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
                 : 'border-[var(--line)] bg-[var(--bg-elev)] hover:border-[var(--accent)]'
             }`}
           >
-            <span className="block truncate text-[10px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
+            <span className="block truncate text-[9px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
               {a}
             </span>
-            <span className="mt-0.5 block text-center text-base font-semibold tabular-nums sm:text-xl">
+            <span className="mt-0.5 block text-center text-[13px] font-semibold tabular-nums sm:text-xl">
               {counts[a]}
             </span>
           </button>
         ))}
 
         {ENGINES.map((e) => (
-          <div key={e} className="rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] p-1.5 sm:p-2.5">
-            <span className="block truncate text-[10px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
+          <button
+            key={e}
+            type="button"
+            onClick={() =>
+              setFilter(filter?.kind === 'engine' && filter.v === e ? null : { kind: 'engine', v: e })
+            }
+            className={`rounded-lg border p-1 text-left transition-colors sm:p-2.5 ${
+              filter?.kind === 'engine' && filter.v === e
+                ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                : 'border-[var(--line)] bg-[var(--bg-elev)] hover:border-[var(--accent)]'
+            }`}
+          >
+            <span className="block truncate text-[9px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
               {ENGINE_LABEL[e]}
             </span>
-            <span className="mt-0.5 block text-center text-base font-semibold tabular-nums sm:text-xl">
+            <span className="mt-0.5 block text-center text-[13px] font-semibold tabular-nums sm:text-xl">
               {indexed(e)}
-              <span className="text-[10px] font-normal text-[var(--muted)] sm:text-xs">
-                {' / '}
+              {/* 좁은 화면에서는 아래로 내린다. 한 줄에 붙이면 7칸이 넘친다. */}
+              <span className="block text-[9px] font-normal text-[var(--muted)] sm:inline sm:text-xs">
+                <span className="hidden sm:inline">{' / '}</span>
+                <span className="sm:hidden">/</span>
                 {posts?.length ?? 0}
               </span>
             </span>
-          </div>
+          </button>
         ))}
       </div>
 

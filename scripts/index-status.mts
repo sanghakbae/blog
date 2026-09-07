@@ -123,6 +123,10 @@ let fatal = ''
 
 /** 글마다 다시 시도해도 소용없는, 설정을 고쳐야 하는 오류인가 */
 function setupError(message: string): string {
+  // 할당량은 설정 문제가 아니지만, 남은 글을 다 조회해도 전부 같은 오류가 난다.
+  // 251편이면 경고가 251줄 쌓여 로그가 못 읽게 되므로 여기서 멈춘다.
+  if (/quota exceeded|rate ?limit|RESOURCE_EXHAUSTED|429/i.test(message))
+    return 'URL 검사 API 하루 한도(2,000건)를 넘겼습니다. 이미 기록된 값은 그대로 두고 다음 실행에서 이어집니다.'
   if (/has not been used in project|SERVICE_DISABLED/i.test(message))
     return 'GCP 콘솔에서 "Google Search Console API" 를 사용 설정하세요.'
   if (/do not own this site|not part of this property/i.test(message))
@@ -166,8 +170,12 @@ const queue = [...posts]
 await Promise.all(Array.from({ length: CONCURRENCY }, () => worker(queue)))
 
 if (fatal) {
-  console.error(`\n색인 조회를 시작하지 못했습니다.\n  ${fatal}`)
-  process.exit(1)
+  // 할당량 초과는 설정이 잘못된 게 아니라 다음 실행에서 이어지면 되는 상태다.
+  // 이미 조회된 글은 아래에서 정상적으로 기록한 뒤 끝낸다.
+  const quota = /한도/.test(fatal)
+  console.error(`\n${quota ? '색인 조회를 중간에 멈췄습니다' : '색인 조회를 시작하지 못했습니다'}.\n  ${fatal}`)
+  if (!quota) process.exit(1)
+  console.error(`  조회를 마친 글 ${rows.length}편만 반영합니다.`)
 }
 
 // 홈은 글이 아니지만 사이트 색인 여부를 판단하는 기준점이라 함께 본다.
