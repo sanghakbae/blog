@@ -86,6 +86,16 @@ export default function AdminSeo() {
           GEO 는 Generative Engine Optimization — 답변 엔진이 인용할 수 있는 구조 신호를 뜻합니다.
           점수가 낮은 글이 위에 옵니다.
         </p>
+        {/* 같은 모양의 칸에 0 이 두 가지 뜻으로 놓여 있었다.
+            앞 네 칸의 0 은 지적이 없다는 뜻이고, 뒤 세 칸의 0 은 색인된 글이
+            없다는 뜻이다. 정반대인데 구분이 없어 오해를 부른다. */}
+        <p className="mt-1 text-[11px] leading-relaxed text-[var(--muted)]">
+          아래 앞 네 칸은 <strong className="font-medium text-[var(--ink)]">남은 지적 수</strong>라
+          0 이 좋은 상태이고, 뒤 세 칸은{' '}
+          <strong className="font-medium text-[var(--ink)]">색인이 확인된 글 수</strong>라 클수록
+          좋습니다. 구글은 12시간마다 자동으로 확인하고, 네이버·빙은 확인 API 가 없어 배지를 눌러
+          직접 봐야 합니다.
+        </p>
       </header>
 
       {/* 지적 4종 + 포털 3종. 넓은 화면은 한 줄, 좁은 화면은 네 개씩 두 줄. */}
@@ -105,7 +115,11 @@ export default function AdminSeo() {
               <span className={AREA_SHORT[a] ? 'sm:hidden' : ''}>{AREA_SHORT[a] ?? a}</span>
               {AREA_SHORT[a] && <span className="hidden sm:inline">{a}</span>}
             </span>
-            <span className="mt-0.5 block text-center text-[13px] font-semibold tabular-nums sm:text-xl">
+            <span
+              className={`mt-0.5 block text-center text-[13px] font-semibold tabular-nums sm:text-xl ${
+                counts[a] === 0 ? 'text-emerald-600' : 'text-[var(--ink)]'
+              }`}
+            >
               {counts[a]}
             </span>
           </button>
@@ -126,6 +140,10 @@ export default function AdminSeo() {
           >
             <span className="block truncate text-[9px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
               {ENGINE_LABEL[e]}
+              {/* 구글만 API 로 확인된다. 나머지는 사람이 눌러 확인한 기록이다. */}
+              <span className="ml-1 hidden font-normal text-[10px] sm:inline">
+                {e === 'google' ? '자동' : '수동'}
+              </span>
             </span>
             <span className="mt-0.5 block text-center text-[13px] font-semibold tabular-nums sm:text-xl">
               {indexed(e)}
