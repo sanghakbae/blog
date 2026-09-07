@@ -8,9 +8,10 @@ export default function Home() {
 
   return (
     <div>
-      {/* 표어 대신 지금 무엇이 있는지만 적는다 */}
+      {/* 표어 대신 지금 무엇이 있는지만 적는다.
+          목록은 최신순으로 전부 보여주므로 "최근"이 아니라 "전체"다. */}
       <header className="mb-3 flex items-baseline gap-2.5">
-        <h1 className="text-[13px] font-semibold tracking-tight">최근 글</h1>
+        <h1 className="text-[13px] font-semibold tracking-tight">전체 글</h1>
         {posts && (
           <span className="font-mono text-[11px] tabular-nums text-[var(--muted)]">
             {posts.length}편

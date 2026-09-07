@@ -293,7 +293,7 @@ const RECENT_ON_HOME = 40
 const homeContent =
   `<h1>sanghak</h1>` +
   `<p>보안 실무 기록. 웹 취약점부터 클라우드·컴플라이언스까지 ${posts.length}편.</p>` +
-  `<h2>최근 글</h2><ul>${posts
+  `<h2>전체 글</h2><ul>${posts
     .slice(0, RECENT_ON_HOME)
     .map(
       (p) =>
