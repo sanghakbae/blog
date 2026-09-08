@@ -65,17 +65,19 @@ export function subscribeComments(postId: string, cb: (comments: Comment[]) => v
   )
 }
 
+/** 새 댓글의 문서 id 를 돌려준다. 알림 요청이 이 id 로 댓글을 특정한다. */
 export async function addComment(
   postId: string,
   input: { body: string; authorUid: string; authorName: string; authorPhoto: string | null },
-): Promise<void> {
+): Promise<string> {
   const body = input.body.trim().slice(0, MAX_COMMENT_LENGTH)
   if (!body) throw new Error('내용을 입력하세요.')
 
   if (USE_LOCAL) {
     const list = localStore.get(postId) ?? []
+    const id = crypto.randomUUID()
     list.push({
-      id: crypto.randomUUID(),
+      id,
       body,
       authorUid: input.authorUid,
       authorName: input.authorName,
@@ -83,10 +85,12 @@ export async function addComment(
       createdAt: { toDate: () => new Date() } as Timestamp,
     })
     localStore.set(postId, list)
-    return localNotify(postId)
+    localNotify(postId)
+    return id
   }
 
-  await addDoc(commentsCol(postId), { ...input, body, createdAt: serverTimestamp() })
+  const ref = await addDoc(commentsCol(postId), { ...input, body, createdAt: serverTimestamp() })
+  return ref.id
 }
 
 /** 댓글 수정. 규칙상 작성자 본인만 가능하며 본문만 바뀐다. */

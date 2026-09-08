@@ -1,11 +1,8 @@
-import { requireAdmin } from './auth'
+import { requireAdmin, requireUser } from './auth'
+import { notifyComment } from './notify'
 
-export type Env = {
-  BUCKET: R2Bucket
-  FIREBASE_PROJECT_ID: string
-  ADMIN_EMAILS: string
-  ALLOWED_ORIGIN: string
-}
+// Env 는 `wrangler types` 가 worker-configuration.d.ts 에 만든 전역 타입을 쓴다.
+// wrangler.jsonc 를 바꾸면 다시 생성해야 한다.
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const EXT_BY_TYPE: Record<string, string> = {
@@ -73,6 +70,19 @@ export default {
     }
 
     if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405, headers)
+
+    if (url.pathname === '/notify-comment') {
+      try {
+        const user = await requireUser(req, env)
+        if (!user) return json({ error: '로그인이 필요합니다' }, 401, headers)
+        const r = await notifyComment(req, env, user)
+        return json(r.body, r.status, headers)
+      } catch (err) {
+        console.error('notify-comment', err)
+        return json({ error: (err as Error).message }, 500, headers)
+      }
+    }
+
     if (url.pathname !== '/upload') return json({ error: 'Not found' }, 404, headers)
 
     try {

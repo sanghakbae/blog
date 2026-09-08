@@ -3,6 +3,7 @@ import {
   MAX_COMMENT_LENGTH, addComment, editComment, removeComment, subscribeComments, type Comment,
 } from '../lib/comments'
 import { signIn, subscribeViewer, type Viewer } from '../lib/authState'
+import { notifyComment } from '../lib/notifyComment'
 
 /** 게시글 하단의 댓글 영역. 댓글을 쓰려면 구글 로그인이 필요하다. */
 export default function CommentSection({ postId }: { postId: string }) {
@@ -35,12 +36,14 @@ export default function CommentSection({ postId }: { postId: string }) {
     setBusy(true)
     setStatus('')
     try {
-      await addComment(postId, {
+      const commentId = await addComment(postId, {
         body,
         authorUid: me.uid,
         authorName: me.name,
         authorPhoto: me.photo,
       })
+      // 알림은 부수 효과다. 기다리지 않고, 실패해도 댓글 저장 결과와 무관하다.
+      void notifyComment(postId, commentId)
       setBody('')
       areaRef.current?.focus()
     } catch (err) {

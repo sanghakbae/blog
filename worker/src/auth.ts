@@ -82,3 +82,19 @@ export async function requireAdmin(
   const admins = env.ADMIN_EMAILS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
   return admins.includes(claims.email.toLowerCase()) ? claims : null
 }
+
+/**
+ * 로그인한 사용자인지만 확인한다 — 누구인지(sub)를 돌려준다.
+ *
+ * 댓글 알림은 관리자가 아니라 댓글을 쓴 사람이 요청한다. 이메일 인증 여부는
+ * 여기서 보지 않는다. 댓글 생성 규칙이 이미 인증된 계정만 허용하고, 알림 쪽은
+ * "그 댓글을 이 사람이 썼는가" 를 Firestore 문서로 대조하므로 그것으로 충분하다.
+ */
+export async function requireUser(
+  req: Request,
+  env: { FIREBASE_PROJECT_ID: string },
+): Promise<Claims | null> {
+  const token = /^Bearer (.+)$/.exec(req.headers.get('Authorization') ?? '')?.[1]
+  if (!token) return null
+  return verifyIdToken(token, env.FIREBASE_PROJECT_ID)
+}

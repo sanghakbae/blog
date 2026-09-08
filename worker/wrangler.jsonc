@@ -10,13 +10,25 @@
     { "binding": "BUCKET", "bucket_name": "blog-images" }
   ],
 
+  // 댓글 알림 메일. 인증된 수신 주소로만 보내므로 요금제와 무관하게 무료다.
+  "send_email": [
+    { "name": "EMAIL" }
+  ],
+
   "vars": {
     // Firebase 프로젝트 ID — ID 토큰의 aud/iss 검증에 쓴다
     "FIREBASE_PROJECT_ID": "tag-blog-8408e",
     // 글쓰기(업로드/태그분석) 권한을 가진 이메일, 쉼표 구분
     "ADMIN_EMAILS": "totoriverce@gmail.com",
     // 프론트 오리진 (CORS)
-    "ALLOWED_ORIGIN": "https://blog.sanghak.kr,http://localhost:5173"
+    "ALLOWED_ORIGIN": "https://blog.sanghak.kr,http://localhost:5173",
+    // Firestore REST 읽기용 공개 웹 키 — 브라우저 번들에도 들어가는 값이라 비밀이 아니다
+    "FIREBASE_WEB_API_KEY": "AIzaSyDdmAgngyuIjoJFB7sXfRX_cb6698XL99o",
+    // 댓글 알림을 받을 주소(쉼표 구분). Cloudflare 에 인증된 수신 주소여야 한다.
+    "NOTIFY_TO": "totoriverce@gmail.com",
+    // 발신 주소는 라우팅 도메인이어야 한다
+    "NOTIFY_FROM": "blog@sanghak.kr",
+    "SITE_URL": "https://blog.sanghak.kr"
   }
 
 }
