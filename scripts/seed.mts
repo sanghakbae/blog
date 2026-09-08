@@ -5,6 +5,7 @@
  *   npx tsx scripts/seed.mts              실제 입력
  *   npx tsx scripts/seed.mts --only=new       나중에 추가한 250편만 입력
  *   npx tsx scripts/seed.mts --only=missing   Firestore 에 없는 글만 입력
+ *   npx tsx scripts/seed.mts --recount        태그 집계를 실제 글 수로 다시 센다
  *   npx tsx scripts/seed.mts --refresh    이미 올라간 글의 본문·요약·태그만 갱신 (주소 유지)
  *   npx tsx scripts/seed.mts --purge      시드로 넣은 글만 삭제
  *
@@ -76,6 +77,7 @@ const IMG_DIR = 'public/img/posts'
 const dry = process.argv.includes('--dry')
 const onlyNew = process.argv.includes('--only=new')
 const onlyMissing = process.argv.includes('--only=missing')
+const recount = process.argv.includes('--recount')
 const refresh = process.argv.includes('--refresh')
 const purge = process.argv.includes('--purge')
 const local = process.argv.includes('--local')
@@ -256,6 +258,42 @@ const { getFirestore, FieldValue, Timestamp } = await import('firebase-admin/fir
 initializeApp({ credential: applicationDefault(), projectId: 'tag-blog-8408e' })
 const db = getFirestore()
 
+/**
+ * 태그 집계를 실제 발행 글 수로 다시 센다.
+ *
+ * 예전에는 시드가 넣은 만큼 increment 로 더했다. 그러면 시드를 다시 돌리거나
+ * --refresh 로 태그가 바뀔 때 집계가 실제와 벌어진다 — 48종이 어긋난 채로
+ * 사이드바 순서와 상위 5개 색이 정해지고 있었다. 더하는 대신 셀 때마다
+ * 절대값으로 맞춘다. 쓰지 않는 태그 문서는 지운다.
+ */
+async function recountTags(): Promise<{ tags: number; fixed: number; removed: number }> {
+  const posts = await db.collection('posts').where('published', '==', true).select('tags').get()
+  const actual = new Map<string, number>()
+  for (const d of posts.docs)
+    for (const t of (d.data().tags ?? []) as string[]) actual.set(t, (actual.get(t) ?? 0) + 1)
+
+  const stored = await db.collection('tags').get()
+  const storedCount = new Map(stored.docs.map((d) => [d.id, (d.data().count ?? 0) as number]))
+
+  let fixed = 0
+  let removed = 0
+  const batch = db.batch()
+  for (const [tag, count] of actual) {
+    if (storedCount.get(tag) !== count) fixed++
+    batch.set(db.collection('tags').doc(tag), { name: tag, count }, { merge: true })
+  }
+  for (const d of stored.docs)
+    if (!actual.has(d.id)) { batch.delete(d.ref); removed++ }
+  await batch.commit()
+  return { tags: actual.size, fixed, removed }
+}
+
+if (recount) {
+  const r = await recountTags()
+  console.log(`태그 ${r.tags}종 · 집계 수정 ${r.fixed}종 · 미사용 삭제 ${r.removed}종`)
+  process.exit(0)
+}
+
 if (purge) {
   const snap = await db.collection('posts').where('seed', '==', true).get()
   console.log(`시드 글 ${snap.size}편 삭제`)
@@ -304,7 +342,8 @@ if (refresh) {
     if (queued) await batch.commit()
   }
 
-  console.log(`\n갱신 ${updated}편`)
+  const r = await recountTags()
+  console.log(`\n갱신 ${updated}편 · 태그 집계 수정 ${r.fixed}종`)
   if (missing.length)
     console.log(`Firestore 에 없는 글 ${missing.length}편 — --only=new 또는 전체 시드로 넣어야 합니다:\n  ` + missing.join('\n  '))
   process.exit(0)
@@ -319,7 +358,7 @@ if (refresh) {
  * 최근인 글 뒤에 하루 간격으로 이어 붙인다.
  */
 if (onlyMissing) {
-  const snap = await db.collection('posts').select('createdAt').get()
+  const snap = await db.collection('posts').select().get()
   const existing = new Set(snap.docs.map((d) => d.id))
 
   const targets = result.filter(({ post }) => !existing.has(post.slug))
@@ -366,10 +405,8 @@ if (onlyMissing) {
     console.log(`  ${inserted}/${targets.length} 저장`)
   }
 
-  const tagBatch = db.batch()
-  for (const [tag, count] of addedTags)
-    tagBatch.set(db.collection('tags').doc(tag), { name: tag, count: FieldValue.increment(count) }, { merge: true })
-  tagBatch.set(db.collection('audit').doc(), {
+  const r = await recountTags()
+  await db.collection('audit').doc().set({
     at: FieldValue.serverTimestamp(),
     action: 'post.create',
     actorEmail: AUTHOR,
@@ -378,9 +415,8 @@ if (onlyMissing) {
     detail: `보안 포스팅 ${inserted}편 추가 등록 · 태그 ${addedTags.size}종`,
     userAgent: 'seed-script',
   })
-  await tagBatch.commit()
 
-  console.log(`\n완료. 새 글 ${inserted}편, 태그 ${addedTags.size}종 집계 반영.`)
+  console.log(`\n완료. 새 글 ${inserted}편 · 태그 ${r.tags}종으로 다시 셈 (수정 ${r.fixed}종).`)
   process.exit(0)
 }
 
@@ -422,26 +458,16 @@ for (let i = 0; i < result.length; i += 100) {
   console.log(`  ${written}/${onlyNew ? ADDED.length : ALL.length} 저장`)
 }
 
-const tagBatch = db.batch()
-const writtenTags = onlyNew
-  ? result.filter(({ post }) => isAdded(post)).reduce((m, { tags }) => {
-      tags.forEach((t) => m.set(t, (m.get(t) ?? 0) + 1))
-      return m
-    }, new Map<string, number>())
-  : tagCount
-
-for (const [tag, count] of writtenTags)
-  tagBatch.set(db.collection('tags').doc(tag), { name: tag, count: FieldValue.increment(count) }, { merge: true })
-tagBatch.set(db.collection('audit').doc(), {
+const r = await recountTags()
+await db.collection('audit').doc().set({
   at: FieldValue.serverTimestamp(),
   action: 'post.create',
   actorEmail: AUTHOR,
   actorUid: 'seed-script',
   target: 'posts',
-  detail: `보안 포스팅 ${written}편 일괄 등록 · 태그 ${writtenTags.size}종`,
+  detail: `보안 포스팅 ${written}편 일괄 등록 · 태그 ${r.tags}종`,
   userAgent: 'seed-script',
 })
-await tagBatch.commit()
 
-console.log(`\n완료. 글 ${written}편, 태그 ${writtenTags.size}종.`)
+console.log(`\n완료. 글 ${written}편 · 태그 ${r.tags}종으로 다시 셈 (수정 ${r.fixed}종).`)
 process.exit(0)
