@@ -1,9 +1,10 @@
 /**
- * 보안 포스팅 250편을 Firestore 에 넣는다.
+ * 보안 포스팅 350편을 Firestore 에 넣는다.
  *
  *   npx tsx scripts/seed.mts --dry        내용과 태그만 확인 (쓰기 없음)
  *   npx tsx scripts/seed.mts              실제 입력
- *   npx tsx scripts/seed.mts --only=new   나중에 추가한 50편만 입력
+ *   npx tsx scripts/seed.mts --only=new       나중에 추가한 250편만 입력
+ *   npx tsx scripts/seed.mts --only=missing   Firestore 에 없는 글만 입력
  *   npx tsx scripts/seed.mts --refresh    이미 올라간 글의 본문·요약·태그만 갱신 (주소 유지)
  *   npx tsx scripts/seed.mts --purge      시드로 넣은 글만 삭제
  *
@@ -40,6 +41,16 @@ import { posts22 } from './content/posts-22.js'
 import { posts23 } from './content/posts-23.js'
 import { posts24 } from './content/posts-24.js'
 import { posts25 } from './content/posts-25.js'
+import { posts26 } from './content/posts-26.js'
+import { posts27 } from './content/posts-27.js'
+import { posts28 } from './content/posts-28.js'
+import { posts29 } from './content/posts-29.js'
+import { posts30 } from './content/posts-30.js'
+import { posts31 } from './content/posts-31.js'
+import { posts32 } from './content/posts-32.js'
+import { posts33 } from './content/posts-33.js'
+import { posts34 } from './content/posts-34.js'
+import { posts35 } from './content/posts-35.js'
 
 /** 처음 올린 100편. */
 const LEGACY: SeedPost[] = [
@@ -47,11 +58,13 @@ const LEGACY: SeedPost[] = [
   ...posts6, ...posts7, ...posts8, ...posts9, ...posts10,
 ]
 
-/** 나중에 추가한 150편. --only=new 로 이것만 넣을 수 있다. */
+/** 나중에 추가한 250편. --only=new 로 이것만 넣을 수 있다. */
 const ADDED: SeedPost[] = [
   ...posts11, ...posts12, ...posts13, ...posts14, ...posts15,
   ...posts16, ...posts17, ...posts18, ...posts19, ...posts20,
   ...posts21, ...posts22, ...posts23, ...posts24, ...posts25,
+  ...posts26, ...posts27, ...posts28, ...posts29, ...posts30,
+  ...posts31, ...posts32, ...posts33, ...posts34, ...posts35,
 ]
 
 const ALL: SeedPost[] = [...LEGACY, ...ADDED]
@@ -62,6 +75,7 @@ const MAX_TAGS = 3
 const IMG_DIR = 'public/img/posts'
 const dry = process.argv.includes('--dry')
 const onlyNew = process.argv.includes('--only=new')
+const onlyMissing = process.argv.includes('--only=missing')
 const refresh = process.argv.includes('--refresh')
 const purge = process.argv.includes('--purge')
 const local = process.argv.includes('--local')
@@ -293,6 +307,80 @@ if (refresh) {
   console.log(`\n갱신 ${updated}편`)
   if (missing.length)
     console.log(`Firestore 에 없는 글 ${missing.length}편 — --only=new 또는 전체 시드로 넣어야 합니다:\n  ` + missing.join('\n  '))
+  process.exit(0)
+}
+
+/**
+ * Firestore 에 아직 없는 글만 넣는다.
+ *
+ * 전체 시드는 createdAt 을 "오늘 − 전체 글 수" 부터 다시 흩뿌린다. 글이 늘어나면
+ * 이미 올라간 글의 작성일까지 과거로 밀리고, 검색엔진이 알고 있는 날짜와 목록
+ * 순서가 함께 바뀐다. 새 글을 덧붙일 때는 기존 글을 건드리지 않고, 지금 가장
+ * 최근인 글 뒤에 하루 간격으로 이어 붙인다.
+ */
+if (onlyMissing) {
+  const snap = await db.collection('posts').select('createdAt').get()
+  const existing = new Set(snap.docs.map((d) => d.id))
+
+  const targets = result.filter(({ post }) => !existing.has(post.slug))
+  if (!targets.length) {
+    console.log('\nFirestore 에 없는 글이 없습니다. 넣을 것이 없습니다.')
+    process.exit(0)
+  }
+
+  // 작성일은 지금을 마지막으로 두고 한 시간 간격으로 거꾸로 매긴다.
+  //
+  // 기존 글 뒤에 하루 간격으로 이어 붙이면 글이 100편일 때 마지막 글이 석 달 뒤가
+  // 된다. 미래 날짜는 목록에서 이상하게 보이고 사이트맵에도 그대로 나간다.
+  const STEP_MS = 60 * 60 * 1000
+  const end = Date.now()
+
+  console.log(`\n기존 ${existing.size}편 유지 · 새로 넣을 글 ${targets.length}편`)
+  console.log(
+    `작성일 ${new Date(end - (targets.length - 1) * STEP_MS).toISOString().slice(0, 16)}` +
+      ` ~ ${new Date(end).toISOString().slice(0, 16)} (한 시간 간격)`,
+  )
+
+  const addedTags = new Map<string, number>()
+  let inserted = 0
+
+  for (let i = 0; i < targets.length; i += 100) {
+    const batch = db.batch()
+    targets.slice(i, i + 100).forEach(({ post, tags }, j) => {
+      const at = new Date(end - (targets.length - 1 - (i + j)) * STEP_MS)
+      tags.forEach((t) => addedTags.set(t, (addedTags.get(t) ?? 0) + 1))
+      batch.set(db.collection('posts').doc(post.slug), {
+        title: post.title,
+        body: post.body,
+        excerpt: excerpt(post.body),
+        tags,
+        published: true,
+        author: AUTHOR,
+        seed: true,
+        createdAt: Timestamp.fromDate(at),
+        updatedAt: Timestamp.now(),
+      })
+      inserted++
+    })
+    await batch.commit()
+    console.log(`  ${inserted}/${targets.length} 저장`)
+  }
+
+  const tagBatch = db.batch()
+  for (const [tag, count] of addedTags)
+    tagBatch.set(db.collection('tags').doc(tag), { name: tag, count: FieldValue.increment(count) }, { merge: true })
+  tagBatch.set(db.collection('audit').doc(), {
+    at: FieldValue.serverTimestamp(),
+    action: 'post.create',
+    actorEmail: AUTHOR,
+    actorUid: 'seed-script',
+    target: 'posts',
+    detail: `보안 포스팅 ${inserted}편 추가 등록 · 태그 ${addedTags.size}종`,
+    userAgent: 'seed-script',
+  })
+  await tagBatch.commit()
+
+  console.log(`\n완료. 새 글 ${inserted}편, 태그 ${addedTags.size}종 집계 반영.`)
   process.exit(0)
 }
 
