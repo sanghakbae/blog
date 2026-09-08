@@ -1,0 +1,930 @@
+import type { SeedPost } from './types'
+
+/** 321~330 — 서비스 아키텍처와 인가 경계 */
+export const posts33: SeedPost[] = [
+  {
+    slug: 'service-identity-propagation',
+    title: '마이크로서비스 인증 전파 설계 기준',
+    body: `요청이 여러 서비스를 거치는 구조에서는, 뒤쪽 서비스가 "이 요청이 누구의 것인가"를 알아야 한다. 그런데 앞단이 인증했으니 뒤는 믿는다는 구성이 흔하다. 그러면 내부망에 들어온 요청 하나가 아무 사용자를 흉내 낼 수 있다. 서비스 간 신원과 사용자 신원을 구분해 각각 전파하는 것이 원칙이다.
+
+## 두 가지 신원을 어떻게 구분하는가?
+
+| 신원 | 의미 | 검증 방법 |
+| --- | --- | --- |
+| 서비스 신원 | 어느 서비스가 부르는가 | 상호 TLS, 서비스 토큰 |
+| 사용자 신원 | 누구의 요청인가 | 서명된 토큰 전파 |
+
+둘을 한 개로 합치면 문제가 생긴다. 서비스 신원만 검증하면 그 서비스가 아무 사용자를 대신할 수 있고, 사용자 신원만 검증하면 어느 서비스에서 왔는지 모른다.
+
+![두 신원의 전파 경로](/img/posts/service-identity-propagation.svg)
+
+## 제로 트러스트에서 사용자 신원을 전파하는 방식
+
+헤더에 사용자 식별자만 넣는 방식은 위조가 쉽다. 서명된 토큰을 전파하거나, 앞단이 내부용 토큰을 새로 발급하는 방식을 쓴다.
+
+\`\`\`
+방식 1  원 토큰 전파      간단하나 수명·범위가 그대로, 유출 시 범위 넓음
+방식 2  내부 토큰 교환    게이트웨이가 짧은 내부 토큰 발급 (권장)
+방식 3  헤더에 식별자만   내부망 신뢰 전제. 위조에 취약
+검증    각 서비스가 서명을 검증한다. 부르는 쪽을 믿지 않는다
+\`\`\`
+
+내부 토큰에는 필요한 최소 정보만 담는다. 대상 서비스와 수명을 좁히면 한 서비스의 침해가 다른 서비스로 번지지 않는다.
+
+\`\`\`ts
+// 게이트웨이가 대상 서비스별로 좁은 토큰을 발급한다
+const internal = await signJwt({
+  sub: actor.id, tenant: actor.tenantId,
+  aud: 'billing-service',          // 다른 서비스에서는 쓸 수 없다
+  scope: ['orders:read'],
+  exp: nowSec() + 60,              // 1분
+})
+\`\`\`
+
+![내부 토큰 교환](/img/posts/service-identity-propagation-2.svg)
+
+## 각 서비스가 무엇을 검증하는가
+
+| 검증 | 놓치면 |
+| --- | --- |
+| 서명 | 위조된 신원 통과 |
+| 대상 | 다른 서비스용 토큰 재사용 |
+| 만료 | 오래된 토큰 사용 |
+| 발급자 | 다른 환경의 토큰 통과 |
+| 범위 | 권한 밖 동작 수행 |
+
+대상 검증이 자주 빠진다. 대상을 확인하지 않으면 한 서비스에서 얻은 토큰으로 모든 서비스를 호출할 수 있다.
+
+## 어떻게 점검하는가
+
+\`\`\`bash
+# 내부 서비스를 직접 호출해 본다 — 게이트웨이를 거치지 않고
+kubectl run probe --rm -it --image=curlimages/curl --restart=Never -- \\
+  curl -s -o /dev/null -w '%{http_code}\\n' \\
+  http://billing-service.default.svc.cluster.local/internal/orders/1
+# 401·403 이어야 한다. 200 이면 내부망 신뢰에 의존하고 있다는 뜻이다.
+
+# 다른 서비스용 토큰으로 호출 — aud 검증 여부
+curl -s -o /dev/null -w '%{http_code}\\n' http://billing/internal/orders/1 \\
+  -H "Authorization: Bearer $TOKEN_FOR_SHIPPING"
+\`\`\`
+
+## 참고
+
+- OWASP — Microservices Security Cheat Sheet
+- IETF RFC 8693 — OAuth 2.0 Token Exchange
+- NIST SP 800-204, 마이크로서비스 보안 전략`,
+    diagram: {
+      type: 'flow',
+      caption: '신원 전파',
+      steps: [
+        { label: '사용자 인증', note: '게이트웨이' },
+        { label: '내부 토큰 발급', note: '대상·범위 좁게' },
+        { label: '서비스 간 호출', note: '상호 TLS' },
+        { label: '각 서비스 검증', note: '서명·대상·만료' },
+      ],
+    },
+    diagram2: {
+      type: 'matrix',
+      caption: '검증 조합',
+      x: ['사용자 신원 검증', '미검증'],
+      y: ['서비스 신원 검증', '미검증'],
+      cells: ['안전', '사용자 흉내 가능', '위조 가능', '내부망 신뢰'],
+    },
+  },
+  {
+    slug: 'api-gateway-responsibility',
+    title: 'API 게이트웨이에서 처리할 것의 경계',
+    body: `게이트웨이에 기능을 몰아넣으면 각 서비스가 가벼워지지만, 게이트웨이를 우회하면 아무것도 남지 않는다. 반대로 전부 서비스에서 처리하면 중복이 늘고 누락이 생긴다. 어느 쪽에 둘지는 "우회했을 때 무엇이 무너지는가" 로 판단한다.
+
+## API 보안 기능을 어디에서 처리하는가?
+
+| 기능 | 위치 | 이유 |
+| --- | --- | --- |
+| TLS 종료 | 게이트웨이 | 중앙 관리 |
+| 인증(토큰 검증) | 양쪽 | 우회 시 대비 |
+| 인가(자원 소유) | 서비스 | 자원 문맥이 필요 |
+| 레이트 리밋 | 게이트웨이 | 전역 관점 |
+| 요청 크기 제한 | 게이트웨이 | 자원 보호 |
+| 입력 검증 | 서비스 | 업무 규칙 |
+| 감사 로그 | 양쪽 | 진입과 처리 |
+| 응답 필드 필터 | 서비스 | 데이터 소유자 |
+
+인가를 게이트웨이에 두는 시도가 자주 실패한다. "이 사용자가 이 주문의 주인인가" 를 판단하려면 주문 데이터를 알아야 하고, 그것은 서비스의 일이다.
+
+![기능별 배치](/img/posts/api-gateway-responsibility.svg)
+
+## 우회 경로를 없앤다
+
+게이트웨이에만 통제를 두면 우회가 곧 통제 부재다. 서비스가 게이트웨이 외의 경로로 호출되지 않게 만들어야 한다.
+
+\`\`\`
+네트워크    서비스는 게이트웨이 대역에서만 접속 허용
+신원        게이트웨이의 서비스 신원을 상호 TLS 로 확인
+직접 호출   내부 호출도 인증을 요구 (내부망 신뢰 금지)
+관리 포트   상태·지표 엔드포인트를 외부에서 분리
+\`\`\`
+
+관리용 엔드포인트가 함께 노출되는 사고가 흔하다. 상태 확인 경로에 설정과 환경 변수가 그대로 나오는 구현이 적지 않다.
+
+![우회 차단](/img/posts/api-gateway-responsibility-2.svg)
+
+## 게이트웨이 자체를 어떻게 지키는가
+
+| 항목 | 조치 |
+| --- | --- |
+| 라우팅 설정 | 코드로 관리, 변경 검토 |
+| 인증 우회 경로 | 공개 경로 목록을 명시적으로 관리 |
+| 헤더 처리 | 클라이언트가 보낸 내부 헤더 제거 |
+| 오류 응답 | 내부 주소·스택 노출 금지 |
+| 로그 | 요청 식별자 부여, 서비스로 전파 |
+
+클라이언트가 보낸 내부 헤더를 지우는 것이 중요하다. 사용자 식별자를 헤더로 전파하는 구조에서, 클라이언트가 그 헤더를 직접 보내면 신원 위조가 된다. 게이트웨이는 들어오는 헤더를 걸러 내는 자리이기도 하다는 뜻이다. 그리고 오류 응답에 내부 주소나 스택이 섞이지 않게 응답을 정규화한다. 뒤쪽 서비스의 오류 형식이 그대로 나가면 내부 구조가 노출된다.
+
+\`\`\`
+# 게이트웨이 진입 시 내부 헤더 초기화
+proxy_set_header X-Actor-Id       "";
+proxy_set_header X-Internal-Token "";
+proxy_set_header X-Forwarded-For  $remote_addr;   # 덧붙이지 않고 덮어쓴다
+\`\`\`
+
+## 점검 명령
+
+\`\`\`bash
+# 공개로 열린 경로 목록 — 인증 없이 200 을 주는 경로를 찾는다
+while read -r p; do
+  c=$(curl -s -o /dev/null -w '%{http_code}' "https://api.example.com$p")
+  [ "$c" = "200" ] && echo "인증 없이 200: $p"
+done < paths.txt
+
+# 관리·상태 엔드포인트 노출 확인
+for p in /actuator/env /debug/pprof /metrics /healthz?verbose=true /.env; do
+  printf '%-28s %s\\n' "$p" "$(curl -s -o /dev/null -w '%{http_code}' "https://api.example.com$p")"
+done
+\`\`\`
+
+## 참고
+
+- OWASP API Security Top 10
+- NIST SP 800-204, API 게이트웨이 활용 지침
+- OWASP — REST Security Cheat Sheet`,
+    diagram: {
+      type: 'layers',
+      caption: '처리 계층',
+      layers: [
+        { label: '게이트웨이', note: 'TLS·한도·크기' },
+        { label: '양쪽', note: '인증·감사' },
+        { label: '서비스', note: '인가·입력 검증' },
+        { label: '데이터 계층', note: '행 수준 통제' },
+      ],
+    },
+    diagram2: {
+      type: 'matrix',
+      caption: '우회 시 결과',
+      x: ['서비스도 검증', '게이트웨이만'],
+      y: ['우회 경로 차단', '우회 가능'],
+      cells: ['안전', '차단에 의존', '이중 방어', '통제 부재'],
+    },
+  },
+  {
+    slug: 'service-mesh-security',
+    title: '서비스 메시 보안 기능 판단 기준',
+    body: `서비스 메시를 넣으면 상호 TLS 와 서비스 간 인가를 애플리케이션 수정 없이 얻는다. 매력적인 제안이지만 운영 복잡도가 크게 올라간다. 메시가 해 주는 것과 해 주지 않는 것을 구분하지 않으면, 넣고도 필요한 통제가 빠진 상태가 된다.
+
+## 메시가 해 주는 것과 안 해 주는 것
+
+| 항목 | 메시 | 애플리케이션 |
+| --- | --- | --- |
+| 서비스 간 암호화 | 해 준다 | 불필요 |
+| 서비스 신원 확인 | 해 준다 | 불필요 |
+| 서비스 간 호출 허용 목록 | 해 준다 | 불필요 |
+| 사용자 인가 | 안 해 준다 | 필요 |
+| 자원 소유 확인 | 안 해 준다 | 필요 |
+| 입력 검증 | 안 해 준다 | 필요 |
+| 데이터 필드 통제 | 안 해 준다 | 필요 |
+
+메시는 "누가 누구를 부를 수 있는가" 를 다루고, "누가 무엇을 볼 수 있는가" 는 다루지 않는다. 후자가 실제 사고의 대부분이다.
+
+![메시의 경계](/img/posts/service-mesh-security.svg)
+
+## 도입할 만한 상황인가
+
+| 조건 | 판단 |
+| --- | --- |
+| 서비스가 수십 개 이상 | 도입 이득 큼 |
+| 서비스 간 호출이 복잡 | 도입 이득 큼 |
+| 규정상 구간 암호화 필수 | 도입 이득 큼 |
+| 서비스가 몇 개 | 상호 TLS 직접 구성이 단순 |
+| 운영 인력이 적다 | 부담이 이득보다 큼 |
+
+서비스가 적을 때는 라이브러리나 프록시로 상호 TLS 를 직접 구성하는 편이 유지하기 쉽다. 메시는 사이드카가 모든 트래픽을 거치게 만드는 구조라, 장애 상황에서 원인을 찾는 난이도가 올라간다. 업그레이드 때 전 서비스의 사이드카가 함께 바뀌는 것도 부담이다. 그래서 도입 결정에는 보안 이득만이 아니라 운영 인력의 여력을 함께 따져야 한다. 넣은 뒤에 관리하지 못하면 사이드카가 빠진 파드가 늘어나면서 통제 공백이 생긴다.
+
+![도입 판단](/img/posts/service-mesh-security-2.svg)
+
+## 넣었을 때 무엇을 반드시 설정하는가
+
+기본 설정은 대개 느슨하다. 세 가지를 명시적으로 조인다.
+
+\`\`\`yaml
+# 1) 평문 허용 모드를 끈다 — 기본값이 허용인 경우가 많다
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata: { name: default, namespace: istio-system }
+spec:
+  mtls: { mode: STRICT }
+---
+# 2) 기본 거부로 두고 필요한 호출만 허용한다
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata: { name: deny-all, namespace: prod }
+spec: {}          # 규칙 없는 정책 = 전부 거부
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata: { name: allow-billing, namespace: prod }
+spec:
+  selector: { matchLabels: { app: billing } }
+  rules:
+    - from: [{ source: { principals: ['cluster.local/ns/prod/sa/orders'] } }]
+      to:   [{ operation: { methods: ['GET'], paths: ['/internal/orders/*'] } }]
+\`\`\`
+
+## 점검 명령
+
+\`\`\`bash
+# 평문 통신이 남아 있는지 — 허용 모드면 STRICT 로 바꿔야 한다
+kubectl get peerauthentication -A -o custom-columns=NS:.metadata.namespace,MODE:.spec.mtls.mode
+
+# 인가 정책이 없는 네임스페이스 — 기본 허용 상태다
+comm -23 <(kubectl get ns -o name | sed 's|namespace/||' | sort) \\
+         <(kubectl get authorizationpolicy -A -o jsonpath='{.items[*].metadata.namespace}' |
+           tr ' ' '\\n' | sort -u)
+
+# 사이드카가 빠진 파드 — 메시 밖에서 도는 것
+kubectl get pods -A -o json |
+  python3 -c 'import sys,json; d=json.load(sys.stdin)
+for p in d["items"]:
+  names=[c["name"] for c in p["spec"]["containers"]]
+  if "istio-proxy" not in names: print(p["metadata"]["namespace"], p["metadata"]["name"])' | head
+\`\`\`
+
+## 참고
+
+- Istio 문서 — Security, PeerAuthentication 과 AuthorizationPolicy
+- NIST SP 800-204A, 서비스 메시를 활용한 마이크로서비스 보안
+- OWASP — Kubernetes Security Cheat Sheet`,
+    diagram: {
+      type: 'matrix',
+      caption: '통제 범위',
+      x: ['서비스 간', '사용자 단위'],
+      y: ['메시가 처리', '앱이 처리'],
+      cells: ['암호화·허용 목록', '해당 없음', '직접 구성', '인가·검증'],
+    },
+    diagram2: {
+      type: 'bars',
+      caption: '서비스 수와 도입 이득(경향)',
+      unit: '상대값',
+      items: [
+        { label: '50개 이상', value: 45 },
+        { label: '20~50개', value: 30 },
+        { label: '5~20개', value: 15 },
+        { label: '5개 미만', value: 5, note: '직접 구성' },
+      ],
+    },
+  },
+  {
+    slug: 'multi-tenant-isolation',
+    title: '멀티테넌시 데이터 격리 설계 선택',
+    body: `여러 고객사의 데이터를 한 시스템에서 다룰 때, 격리를 어느 계층에서 할지가 가장 중요한 설계 결정이다. 코드 한 줄의 실수로 다른 고객의 데이터가 나가는 구조와, 실수해도 데이터베이스가 막아 주는 구조는 사고 확률이 다르다. 그리고 이 결정은 나중에 바꾸기가 매우 어렵다.
+
+## 어떤 선택지가 있는가?
+
+| 방식 | 격리 강도 | 비용·운영 |
+| --- | --- | --- |
+| 테넌트별 별도 인스턴스 | 가장 강함 | 비용 높음, 운영 부담 |
+| 테넌트별 별도 스키마 | 강함 | 마이그레이션 부담 |
+| 공유 테이블 + 행 수준 보안 | 중간 | 효율적, 설정 필요 |
+| 공유 테이블 + 조건절만 | 약함 | 실수 하나로 유출 |
+
+조건절만으로 격리하는 구조가 가장 흔하고 가장 위험하다. 새 질의를 추가할 때마다 사람이 조건을 기억해야 한다.
+
+![격리 계층별 강도](/img/posts/multi-tenant-isolation.svg)
+
+## 어디까지 격리해야 하는가
+
+데이터베이스만 생각하기 쉬운데, 테넌트 경계는 여러 계층에 걸쳐 있다. 한 곳만 빠져도 경계가 무너진다.
+
+\`\`\`
+데이터베이스   행 수준 보안 또는 스키마 분리
+캐시           키에 테넌트 식별자 포함
+검색 색인      문서 수준 필터 또는 색인 분리
+파일 저장소    경로에 테넌트 포함 + 접근 정책
+큐·이벤트      메시지에 테넌트 포함, 소비 측에서 검증
+로그·지표      테넌트별 조회 권한
+백업           복구 시 테넌트 단위 선택 가능
+\`\`\`
+
+캐시가 특히 자주 빠진다. 데이터베이스는 잘 격리했는데 캐시 키에 테넌트가 없어 응답이 섞이는 사고가 실제로 발생한다.
+
+![계층별 격리 지점](/img/posts/multi-tenant-isolation-2.svg)
+
+## 문맥을 어떻게 전달하는가
+
+테넌트 식별자를 함수 인자로 넘기는 방식은 빠뜨리기 쉽다. 요청 문맥에 담아 데이터 접근 계층이 자동으로 참조하게 만들면 누락이 줄어든다.
+
+\`\`\`ts
+// 요청 단위 문맥에 담고, 데이터 접근 계층이 항상 참조한다
+await tenantContext.run({ tenantId: actor.tenantId }, async () => {
+  await handler(req, res)              // 이 안의 모든 질의에 테넌트가 적용된다
+})
+
+// 데이터 접근 계층 — 문맥이 없으면 실행 자체를 막는다
+function scoped() {
+  const t = tenantContext.get()?.tenantId
+  if (!t) throw new Error('테넌트 문맥 없이 질의를 실행했습니다')
+  return { tenantId: t }
+}
+\`\`\`
+
+문맥이 없을 때 오류를 내는 것이 핵심이다. 조용히 전체를 조회하는 것보다 실패하는 편이 안전하다.
+
+## 무엇을 시험하는가
+
+테넌트 경계 시험을 자동 테스트로 만든다. 테넌트 A 의 문맥에서 B 의 식별자로 조회해 0건이 나오는지 확인하는 테스트를 모든 자원 유형에 대해 둔다. 그리고 새 테이블이 추가되면 그 테스트도 함께 추가되도록 목록을 유지한다.
+
+## 참고
+
+- OWASP — Multi-tenant Application Security 관련 지침
+- PostgreSQL 문서 — Row Security Policies
+- NIST SP 800-53 SC-4 Information in Shared System Resources`,
+    diagram: {
+      type: 'bars',
+      caption: '방식별 사고 위험(상대값)',
+      unit: '상대값',
+      items: [
+        { label: '조건절만', value: 45 },
+        { label: '행 수준 보안', value: 15 },
+        { label: '스키마 분리', value: 8 },
+        { label: '인스턴스 분리', value: 3 },
+      ],
+    },
+    diagram2: {
+      type: 'layers',
+      caption: '격리가 필요한 계층',
+      layers: [
+        { label: '데이터베이스', note: '행·스키마' },
+        { label: '캐시·색인', note: '키·필터' },
+        { label: '파일·큐', note: '경로·메시지' },
+        { label: '로그·백업', note: '조회·복구 단위' },
+      ],
+    },
+  },
+  {
+    slug: 'tenant-boundary-testing',
+    title: '테넌트 경계 시험 자동화 설계',
+    body: `멀티테넌시에서 가장 두려운 사고는 다른 고객의 데이터가 보이는 것이다. 이 결함은 코드 리뷰로 잘 안 걸리고, 기능 테스트로도 안 걸린다 — 기능은 정상 동작하기 때문이다. 경계를 넘는 시도를 명시적으로 시험하는 테스트가 있어야 한다.
+
+## 무엇을 시험해야 하는가?
+
+| 시험 | 기대 결과 |
+| --- | --- |
+| 다른 테넌트의 자원 조회 | 404 또는 0건 |
+| 다른 테넌트의 자원 수정 | 404 또는 403 |
+| 목록 조회 | 자기 테넌트 건수만 |
+| 집계·통계 | 자기 테넌트 범위만 |
+| 검색 | 다른 테넌트 문서 미포함 |
+| 파일 내려받기 | 접근 거부 |
+| 캐시 재사용 | 테넌트별로 분리 |
+| 내보내기 | 자기 범위만 |
+
+404 를 돌려주는 것이 403 보다 나은 경우가 있다. 403 은 그 식별자의 자원이 존재한다는 정보를 준다.
+
+![경계 시험 축](/img/posts/tenant-boundary-testing.svg)
+
+## 테스트를 어떻게 구성하는가
+
+자원 유형별로 같은 구조의 테스트를 만든다. 반복이 많으므로 표를 만들어 돌리는 방식이 유지하기 쉽다.
+
+\`\`\`ts
+// 자원 목록을 표로 두고 같은 시험을 반복한다
+const RESOURCES = [
+  { name: 'orders',   path: (id: string) => \`/api/orders/\${id}\` },
+  { name: 'invoices', path: (id: string) => \`/api/invoices/\${id}\` },
+  { name: 'files',    path: (id: string) => \`/api/files/\${id}/download\` },
+]
+
+describe.each(RESOURCES)('테넌트 경계: $name', ({ path }) => {
+  it('다른 테넌트의 자원은 보이지 않는다', async () => {
+    const idOfB = await seedResourceFor(TENANT_B)
+    for (const method of ['GET', 'PUT', 'PATCH', 'DELETE'] as const) {
+      const res = await request(app)[method.toLowerCase()](path(idOfB))
+        .set('Authorization', \`Bearer \${tokenOf(TENANT_A)}\`)
+      expect(res.status).toBe(404)          // 존재 여부도 노출하지 않는다
+    }
+  })
+
+  it('목록에는 자기 테넌트만 나온다', async () => {
+    const res = await request(app).get(path('').replace(/\\/$/, ''))
+      .set('Authorization', \`Bearer \${tokenOf(TENANT_A)}\`)
+    expect(res.body.items.every((i: { tenantId: string }) => i.tenantId === TENANT_A)).toBe(true)
+  })
+})
+\`\`\`
+
+![테스트 구성](/img/posts/tenant-boundary-testing-2.svg)
+
+## 새 엔드포인트가 빠지지 않게 만든다
+
+테스트를 만들어 두어도 새 API 가 추가되면서 목록에 안 들어가면 공백이 생긴다. 라우터 정의에서 자원 목록을 자동으로 뽑아, 표에 없는 자원이 있으면 테스트가 실패하게 만든다.
+
+\`\`\`ts
+it('모든 자원이 경계 시험 목록에 있다', () => {
+  const routed = listRoutes(app).filter((r) => /^\\/api\\/[a-z]+\\/:id/.test(r.path))
+  const covered = new Set(RESOURCES.map((r) => r.name))
+  const missing = routed.map((r) => r.path.split('/')[2]).filter((n) => !covered.has(n))
+  expect(missing).toEqual([])         // 새 자원을 추가하면 여기서 걸린다
+})
+\`\`\`
+
+## 데이터 계층에서도 시험한다
+
+애플리케이션을 거치지 않고 데이터베이스 정책 자체를 시험하면, 우회 경로까지 확인할 수 있다. 애플리케이션 테스트만 있으면 관리 도구나 배치 작업이 만드는 우회를 못 잡는다. 데이터베이스에서 직접 확인하는 시험이 있으면 그 경로까지 덮인다.
+
+\`\`\`sql
+-- 테넌트 A 문맥에서 B 의 데이터가 보이는지
+SET LOCAL app.tenant_id = 'tenant-a';
+SELECT count(*) FROM orders WHERE tenant_id = 'tenant-b';   -- 0 이어야 한다
+-- 문맥이 없을 때 전체가 보이지 않는지
+RESET app.tenant_id;
+SELECT count(*) FROM orders;                                 -- 0 이어야 한다
+\`\`\`
+
+## 참고
+
+- OWASP — Authorization Testing Guide
+- OWASP ASVS — 접근 통제 검증 항목
+- NIST SP 800-53 AC-3 Access Enforcement`,
+    diagram: {
+      type: 'matrix',
+      caption: '응답 선택',
+      x: ['404 반환', '403 반환'],
+      y: ['자원 존재', '자원 없음'],
+      cells: ['존재 숨김', '존재 노출', '동일', '동일'],
+    },
+    diagram2: {
+      type: 'flow',
+      caption: '시험 자동화',
+      steps: [
+        { label: '자원 목록 정의', note: '표로 관리' },
+        { label: '경계 시험 반복', note: '메서드별' },
+        { label: '누락 검사', note: '라우터 대조' },
+        { label: '데이터 계층 시험', note: '정책 직접 확인' },
+      ],
+    },
+  },
+  {
+    slug: 'cache-authorization',
+    title: '캐시 계층에서 인가가 누락되는 구조',
+    body: `성능을 위해 캐시를 넣는 순간 인가 경계가 하나 늘어난다. 데이터베이스 질의에는 권한 조건이 들어 있는데, 캐시에서 꺼낼 때는 그 조건이 적용되지 않는다. 키 설계가 곧 인가 판정이 되고, 키에 주체가 빠지면 권한 밖 데이터가 응답으로 나간다.
+
+## 어디에서 누락되는가?
+
+| 지점 | 문제 |
+| --- | --- |
+| 키에 주체 없음 | 다른 사용자 응답 재사용 |
+| 키에 권한 범위 없음 | 역할이 바뀌어도 옛 응답 |
+| 권한 변경 시 무효화 안 함 | 회수된 권한으로 계속 조회 |
+| 목록 캐시 | 필터 조건이 키에 빠짐 |
+| 조각 캐시 | 화면 일부만 남의 것 |
+| 부정 캐시 | "없음" 응답이 권한 차이를 가림 |
+
+권한 변경 시 무효화를 놓치는 경우가 특히 많다. 접근 권한을 회수했는데 캐시가 남아 있어 몇 시간 더 조회되는 상황이다.
+
+![캐시가 인가를 건너뛰는 경로](/img/posts/cache-authorization.svg)
+
+## 키에 무엇을 넣는가
+
+캐시 키는 "같은 값을 돌려줘도 되는 조건" 의 표현이다. 응답이 달라지는 모든 요소가 키에 들어가야 한다.
+
+\`\`\`ts
+// 응답을 바꾸는 요소를 모두 키에 넣는다
+const key = [
+  'orders:list',
+  \`tenant=\${actor.tenantId}\`,
+  \`role=\${actor.roleVersion}\`,      // 역할이 바뀌면 키가 바뀐다
+  \`actor=\${actor.id}\`,              // 개인화된 응답이면 필요
+  \`filter=\${hash(filter)}\`,
+  \`page=\${page}\`,
+].join('|')
+\`\`\`
+
+역할 버전을 키에 넣는 방식이 유용하다. 권한을 변경할 때 버전만 올리면 그 사용자의 캐시가 전부 무효가 된다 — 개별 키를 찾아 지울 필요가 없다.
+
+![키 설계](/img/posts/cache-authorization-2.svg)
+
+## 캐시하지 말아야 하는 것
+
+| 대상 | 이유 |
+| --- | --- |
+| 권한 판정 결과 자체 | 회수 반영이 늦어진다 |
+| 사용자별 집계 | 키가 복잡해 실수 유발 |
+| 민감 데이터 상세 | 저장 범위가 넓어진다 |
+| 짧게 쓰이는 조회 | 이득이 없다 |
+
+권한 판정 결과를 캐시하는 것은 특히 신중해야 한다. 캐시한다면 수명을 매우 짧게 두고, 권한 변경 시 즉시 무효화하는 경로를 함께 만든다.
+
+## 어떻게 점검하는가
+
+\`\`\`bash
+# 캐시 키에 주체가 들어 있는지 — 샘플을 훑어본다
+redis-cli --scan --pattern '*orders*' --count 100 | head -20
+# tenant= 나 actor= 가 없는 키가 보이면 검토 대상이다
+
+# 권한 회수 후 응답이 바뀌는지 시험한다
+curl -s -H "Authorization: Bearer $TOK" https://stg.example.com/api/orders | head -c 120
+# 권한 회수 실행
+curl -s -X POST https://stg.example.com/admin/revoke -d "user=$UID" -H "Authorization: Bearer $ADMIN"
+sleep 2
+curl -s -H "Authorization: Bearer $TOK" https://stg.example.com/api/orders | head -c 120
+# 여전히 데이터가 나오면 캐시 무효화가 빠진 것이다
+\`\`\`
+
+## 참고
+
+- OWASP — Access Control Cheat Sheet
+- CWE-524 Use of Cache Containing Sensitive Information
+- NIST SP 800-53 AC-3 Access Enforcement`,
+    diagram: {
+      type: 'matrix',
+      caption: '키 구성과 위험',
+      x: ['주체 포함', '미포함'],
+      y: ['권한 변경 시 무효화', '무효화 없음'],
+      cells: ['안전', '사용자 간 노출', '회수 지연', '전면 노출'],
+    },
+    diagram2: {
+      type: 'flow',
+      caption: '조회 경로',
+      steps: [
+        { label: '요청 수신', note: '주체 확인' },
+        { label: '키 생성', note: '주체·역할 버전 포함' },
+        { label: '캐시 조회', note: '없으면 질의' },
+        { label: '권한 변경 시 버전 상승', note: '일괄 무효' },
+      ],
+    },
+  },
+  {
+    slug: 'search-index-leak',
+    title: '검색 색인에서 새는 권한 밖 데이터',
+    body: `검색 기능은 데이터를 한곳에 모아 놓고 텍스트로 훑는다. 그 특성 때문에 권한 경계가 무너지기 쉽다. 본문에는 접근 권한이 있는데 색인에는 없고, 검색 결과의 제목과 발췌만으로도 충분한 정보가 노출된다. 검색은 인가 관점에서 별도로 설계해야 하는 기능이다.
+
+## 인가 밖 데이터가 무엇으로 새어 나가는가?
+
+| 노출 형태 | 내용 |
+| --- | --- |
+| 검색 결과 제목 | 문서 존재와 주제 |
+| 발췌 문구 | 본문 일부 |
+| 결과 건수 | 특정 조건에 맞는 문서 수 |
+| 자동 완성 | 다른 사용자가 입력한 검색어 |
+| 유사 문서 추천 | 권한 밖 문서로 연결 |
+| 정렬·집계 | 값의 분포 |
+
+결과 건수만으로도 정보가 새어 나간다. 특정 사람 이름으로 검색했을 때 건수가 0 이 아니면 그 사람의 문서가 존재한다는 뜻이다.
+
+![검색을 통한 정보 노출](/img/posts/search-index-leak.svg)
+
+## 언제 걸러야 하는가
+
+검색 후에 걸러내는 방식은 결과 품질과 성능을 모두 해친다. 상위 100건이 전부 권한 밖이면 사용자에게 보여줄 것이 없다. 색인 단계에서 권한 정보를 함께 넣고 질의 시 필터로 적용하는 것이 옳다.
+
+\`\`\`
+색인 시   문서마다 접근 주체 정보를 필드로 저장
+질의 시   사용자의 소속·역할을 필터 조건으로 결합
+결과 후   추가 검증(이중 확인), 발췌 생성 시 권한 재확인
+집계      권한 필터가 적용된 뒤 집계
+\`\`\`
+
+\`\`\`json
+{
+  "query": {
+    "bool": {
+      "must":   [{ "match": { "content": "계약 조건" } }],
+      "filter": [{ "terms": { "allowed_groups": ["team-legal", "user-1042"] } }]
+    }
+  },
+  "highlight": { "fields": { "content": {} } }
+}
+\`\`\`
+
+![색인 단계 권한 부여](/img/posts/search-index-leak-2.svg)
+
+## 권한이 바뀌면 색인은 어떻게 되는가
+
+문서의 접근 권한이 변경되면 색인도 갱신해야 한다. 이 동기화가 빠지면 회수된 권한으로 검색 결과가 계속 나온다.
+
+| 변경 | 필요한 처리 |
+| --- | --- |
+| 문서 권한 변경 | 해당 문서 재색인 |
+| 사용자 소속 변경 | 질의 필터가 반영(재색인 불필요) |
+| 그룹 구성 변경 | 그룹 기준이면 즉시 반영 |
+| 문서 삭제 | 색인에서도 삭제 |
+
+사용자 대신 그룹을 색인에 넣는 설계가 유리하다. 사람의 소속이 바뀔 때 문서를 다시 색인할 필요가 없다.
+
+## 어떻게 점검하는가
+
+\`\`\`bash
+# 권한 필터 없이 질의가 가능한지 — 애플리케이션을 거치지 않고 직접
+curl -s -u "$ES_USER:$ES_PASS" 'https://es.example.com:9200/docs/_search?size=1' \\
+  -H 'Content-Type: application/json' -d '{"query":{"match_all":{}}}' | head -c 300
+
+# 색인에 권한 필드가 있는지
+curl -s -u "$ES_USER:$ES_PASS" 'https://es.example.com:9200/docs/_mapping' |
+  python3 -c 'import sys,json; d=json.load(sys.stdin)
+print([k for v in d.values() for k in v["mappings"]["properties"]])'
+
+# 다른 사용자 토큰으로 같은 검색어를 넣어 건수를 비교한다
+for t in TOK_A TOK_B; do
+  printf '%s ' "$t"
+  curl -s "https://stg.example.com/api/search?q=계약" -H "Authorization: Bearer \${!t}" |
+    python3 -c 'import sys,json; print(json.load(sys.stdin).get("total"))'
+done
+\`\`\`
+
+## 참고
+
+- Elastic 문서 — Document level security
+- OWASP — Access Control Cheat Sheet
+- NIST SP 800-53 AC-3, AC-4 Information Flow Enforcement`,
+    diagram: {
+      type: 'flow',
+      caption: '권한 적용 지점',
+      steps: [
+        { label: '색인 시 권한 저장', note: '그룹 기준' },
+        { label: '질의에 필터 결합', note: '사용자 소속' },
+        { label: '발췌 생성', note: '권한 재확인' },
+        { label: '집계도 필터 후', note: '건수 노출 방지' },
+      ],
+    },
+    diagram2: {
+      type: 'matrix',
+      caption: '필터 위치',
+      x: ['색인·질의 단계', '결과 후처리'],
+      y: ['집계도 필터', '집계 미필터'],
+      cells: ['안전', '품질 저하', '건수 노출', '광범위 노출'],
+    },
+  },
+  {
+    slug: 'direct-storage-access',
+    title: '파일 스토리지 직접 접근 설계 기준',
+    body: `파일을 서버가 중계해 내려주면 인가를 확실히 걸 수 있지만 대역폭과 지연이 부담이다. 스토리지에서 직접 내려주면 빠르지만 인가를 걸 자리가 사라진다. 어느 쪽을 택하든 그 선택에 따르는 통제를 함께 설계해야 한다. 흔한 실패는 직접 접근을 선택하고 통제는 중계 방식의 것을 그대로 두는 것이다.
+
+## 버킷 접근을 어디에서 통제하는가?
+
+| 방식 | 인가 위치 | 부담 |
+| --- | --- | --- |
+| 서버 중계 | 애플리케이션 | 대역폭·지연 |
+| 사전 서명 URL | 발급 시점 | 발급 후 통제 불가 |
+| CDN + 서명 쿠키·토큰 | 엣지 | 설정 복잡 |
+
+발급 후 통제 불가라는 점이 사전 서명 URL 의 본질적 한계다. 회수해야 하는 접근이라면 이 방식은 맞지 않다.
+
+![방식별 인가 위치](/img/posts/direct-storage-access.svg)
+
+## 경로 설계가 통제의 절반이다
+
+객체 키를 어떻게 정하느냐에 따라 정책으로 걸 수 있는 통제가 달라진다. 테넌트와 소유자를 경로에 넣으면 정책으로 범위를 제한할 수 있다.
+
+\`\`\`
+좋은 예   tenants/{tenantId}/users/{userId}/files/{uuid}
+나쁜 예   uploads/{원본파일명}          이름 충돌·추측 가능·경로 조작
+
+정책      주체가 자기 접두사만 접근하도록 조건 부여
+추측 방지 파일 이름은 무작위 식별자, 원본 이름은 메타데이터로
+\`\`\`
+
+원본 파일명을 키로 쓰면 다른 사용자의 파일 이름을 추측해 접근하는 시도가 가능해진다. 그리고 경로에 들어간 이름이 경로 조작의 입력이 된다.
+
+![경로와 정책](/img/posts/direct-storage-access-2.svg)
+
+## 업로드 경로의 통제
+
+업로드는 내려받기보다 위험이 크다. 임의 파일이 우리 저장소에 들어오고, 그것이 다시 제공되면 실행 위험까지 생긴다.
+
+| 통제 | 내용 |
+| --- | --- |
+| 크기 제한 | 서명 조건에 포함 |
+| 형식 제한 | 확장자가 아니라 내용 검사 |
+| 경로 고정 | 서버가 키를 결정 |
+| 제공 시 헤더 | 다운로드 강제, 콘텐츠 유형 고정 |
+| 별도 도메인 | 스크립트 실행 시 출처 분리 |
+| 검사 | 악성코드 검사 후 공개 영역으로 이동 |
+
+업로드 영역과 제공 영역을 나누고, 검사를 통과한 것만 옮기는 구성이 안전하다. 두 영역을 나누지 않으면 업로드된 파일이 검사 전에 이미 제공 가능한 상태가 된다. 그리고 제공 도메인을 서비스 도메인과 분리하면, 업로드된 파일이 브라우저에서 실행되더라도 서비스 쿠키에 닿지 못한다.
+
+## 점검 명령
+
+\`\`\`bash
+# 버킷이 공개돼 있지 않은지, 정책에 넓은 주체가 없는지
+aws s3api get-bucket-policy-status --bucket "$BUCKET" 2>/dev/null
+aws s3api get-bucket-acl --bucket "$BUCKET" \\
+  --query 'Grants[?Grantee.URI!=null].[Grantee.URI,Permission]' --output text
+
+# 제공 시 헤더 — 브라우저에서 실행되지 않게 설정됐는지
+curl -sD - -o /dev/null "https://files.example.com/tenants/t1/users/u1/files/abc" |
+  grep -iE 'content-type|content-disposition|x-content-type-options'
+\`\`\`
+
+## 참고
+
+- AWS 문서 — 버킷 정책 조건, 사전 서명 URL
+- OWASP — File Upload Cheat Sheet
+- NIST SP 800-53 AC-3 Access Enforcement`,
+    diagram: {
+      type: 'layers',
+      caption: '업로드 처리 단계',
+      layers: [
+        { label: '업로드 영역', note: '비공개, 검사 대기' },
+        { label: '내용 검사', note: '형식·악성코드' },
+        { label: '제공 영역', note: '검사 통과분만' },
+        { label: '제공 헤더', note: '실행 차단' },
+      ],
+    },
+    diagram2: {
+      type: 'matrix',
+      caption: '경로 설계',
+      x: ['무작위 식별자', '원본 파일명'],
+      y: ['테넌트 접두사', '평면 경로'],
+      cells: ['정책 적용 가능', '추측 가능', '범위 제한 불가', '경로 조작 위험'],
+    },
+  },
+  {
+    slug: 'admin-plane-separation',
+    title: '관리자 화면 분리와 접근 경로 통제',
+    body: `관리자 기능은 전체 데이터를 다루고 다른 사용자를 대신할 수 있다. 그런데 같은 도메인, 같은 애플리케이션, 같은 인증 경로에 얹혀 있는 경우가 많다. 그러면 일반 사용자용 취약점 하나가 관리 기능까지 닿는다. 관리 평면을 분리하는 것은 구조로 위험을 줄이는 대표적인 방법이다.
+
+## 어디까지 분리하는가?
+
+| 계층 | 분리 방법 | 효과 |
+| --- | --- | --- |
+| 주소 | 별도 도메인 | 쿠키·저장소 분리 |
+| 네트워크 | 사설 접근·VPN·ZTNA | 인터넷 노출 제거 |
+| 인증 | 별도 인증 + 패스키 필수 | 자격 증명 재사용 차단 |
+| 애플리케이션 | 별도 배포 단위 | 취약점 전이 차단 |
+| 데이터 접근 | 전용 계정·감사 강화 | 조사 가능성 |
+
+주소 분리만으로도 효과가 크다. 같은 도메인에 두면 일반 화면의 스크립트 삽입이 관리자 세션에 닿는다.
+
+![분리 계층과 차단 효과](/img/posts/admin-plane-separation.svg)
+
+## 최소 구성으로 시작하는 순서
+
+전부 한 번에 바꾸기 어렵다면 효과가 큰 것부터 한다.
+
+\`\`\`
+1. 관리 경로를 별도 도메인으로 옮긴다        (쿠키 분리)
+2. 인터넷에서 직접 접근을 막는다              (사설 접근 필수)
+3. 관리자 인증에 패스키를 필수로 한다         (피싱 저항)
+4. 모든 관리 동작을 감사 로그로 남긴다        (조사 가능)
+5. 대리 로그인·대량 조회에 승인을 붙인다      (오남용 억제)
+6. 배포 단위를 분리한다                       (취약점 전이 차단)
+\`\`\`
+
+![도입 순서](/img/posts/admin-plane-separation-2.svg)
+
+## 내부자 위험까지 다루는 관리 기능 통제
+
+분리해도 관리자가 할 수 있는 일이 넓으면 내부자 위험이 남는다. 기능별로 조건을 붙인다.
+
+| 기능 | 통제 |
+| --- | --- |
+| 사용자 대리 로그인 | 사유 입력, 대상자 통지, 시간 제한 |
+| 전체 목록 조회 | 건수 상한, 조회 이력 |
+| 데이터 수정 | 변경 전후 기록, 승인 |
+| 데이터 삭제 | 지연 삭제, 복구 가능 기간 |
+| 권한 부여 | 이중 승인 |
+| 설정 변경 | 변경 이력과 되돌리기 |
+
+대리 로그인은 특히 신중해야 한다. 대상자에게 알리는 것만으로도 오남용이 크게 줄어든다. 그리고 대리 상태에서 무엇을 했는지 별도로 표시해 두면, 나중에 그 계정의 행위가 본인의 것인지 관리자의 것인지 구분할 수 있다. 이 구분이 없으면 분쟁이 생겼을 때 기록이 근거가 되지 못한다.
+
+## 점검 명령
+
+\`\`\`bash
+# 관리 경로가 인터넷에서 접근되는지
+for p in /admin /admin/login /internal /manage; do
+  printf '%-16s %s\\n' "$p" "$(curl -s -o /dev/null -w '%{http_code}' "https://www.example.com$p")"
+done
+# 별도 도메인을 쓰더라도 원래 경로가 남아 있는 경우가 많다
+
+# 관리 도메인이 공개 DNS 에 노출됐는지
+dig +short admin.example.com
+# 사설 대역이거나 응답이 없어야 한다
+\`\`\`
+
+## 참고
+
+- OWASP — Administrative Interfaces 관련 지침
+- NIST SP 800-53 AC-6(2) Non-Privileged Access for Nonsecurity Functions
+- CIS Controls — 관리 권한 통제`,
+    diagram: {
+      type: 'layers',
+      caption: '분리 계층',
+      layers: [
+        { label: '별도 도메인', note: '쿠키·저장소' },
+        { label: '사설 접근', note: '인터넷 차단' },
+        { label: '별도 인증', note: '패스키 필수' },
+        { label: '별도 배포', note: '취약점 전이 차단' },
+      ],
+    },
+    diagram2: {
+      type: 'matrix',
+      caption: '분리 상태',
+      x: ['사설 접근', '인터넷 노출'],
+      y: ['별도 도메인', '같은 도메인'],
+      cells: ['안전', '자격 증명 노출', '스크립트 전이', '전면 위험'],
+    },
+  },
+  {
+    slug: 'capability-reduction',
+    title: '기능 축소 없이 권한 줄이는 방법',
+    body: `권한을 줄이자고 하면 업무가 불편해진다는 반발이 나온다. 그런데 대부분의 경우 필요한 것은 "그 데이터를 볼 수 있는 권한" 이 아니라 "그 업무를 처리할 수 있는 수단" 이다. 업무를 그대로 두고 권한만 줄이는 방법이 있고, 그것이 설계의 여지다.
+
+## 최소 권한을 어떻게 만드는가?
+
+| 기존 방식 | 바꾼 방식 |
+| --- | --- |
+| 데이터베이스 직접 조회 권한 | 필요한 조회만 하는 화면 제공 |
+| 전체 목록 조회 | 식별자로 단건 조회 |
+| 원본 값 열람 | 마스킹된 값 + 필요 시 사유 입력 후 열람 |
+| 운영 서버 접속 | 로그 조회 도구와 지표 화면 |
+| 수동 데이터 수정 | 승인이 붙은 정정 기능 |
+| 전권 배치 계정 | 작업별 계정 |
+
+핵심은 업무 흐름을 관찰해 실제로 필요한 동작을 찾아내는 것이다. 대개 넓은 권한의 1~2% 만 쓰인다.
+
+![권한과 업무의 분리](/img/posts/capability-reduction.svg)
+
+## 실제 사용 내역으로 좁힌다
+
+무엇을 쓰는지 모르면 무엇을 뺄지 정할 수 없다. 사용 기록을 근거로 만든다.
+
+\`\`\`bash
+# 클라우드 — 최근 90일간 실제로 호출한 동작만 남긴다
+aws cloudtrail lookup-events --start-time "$(date -u -v-90d +%FT%TZ)" \\
+  --query 'Events[?Username==\`ops-user\`].[EventName]' --output text 2>/dev/null |
+  sort | uniq -c | sort -rn | head -30
+
+# 데이터베이스 — 그 계정이 실제로 접근한 테이블
+psql -Atc "SELECT relname, seq_scan + idx_scan AS reads
+           FROM pg_stat_user_tables ORDER BY reads DESC LIMIT 20"
+\`\`\`
+
+이 목록으로 새 권한을 만들고, 기존 권한을 회수한다. 관찰 기간이 짧으면 분기·연말 업무가 빠지므로 최소 한 분기는 본다.
+
+![관찰에서 축소까지](/img/posts/capability-reduction-2.svg)
+
+## 사유 입력과 지연 승인의 효과
+
+권한을 완전히 막지 않고 마찰을 넣는 방법도 있다. 열람 자체는 가능하지만 사유를 적어야 하고 기록이 남으면, 필요한 사람은 계속 일할 수 있고 불필요한 조회는 줄어든다.
+
+| 수단 | 효과 | 부담 |
+| --- | --- | --- |
+| 사유 입력 | 불필요한 조회 감소 | 낮음 |
+| 사후 통지 | 오남용 억제 | 낮음 |
+| 지연 승인 | 긴급하지 않은 접근 차단 | 중간 |
+| 이중 승인 | 단독 오남용 차단 | 높음 |
+| 시간 제한 권한 | 상시 권한 제거 | 중간 |
+
+사유 입력만으로도 조회 건수가 크게 줄어드는 경우가 많다. 강제력이 아니라 인식의 효과다.
+
+## 반발을 어떻게 다루는가
+
+권한 축소는 기술 문제가 아니라 협의 문제다. 무엇이 불편해지는지 먼저 듣고, 그 업무를 대체할 수단을 함께 만든 다음 권한을 회수하는 순서가 지켜지면 대개 합의된다. 순서를 뒤집으면 반발이 정당해지고, 되돌려 놓게 된다.
+
+## 참고
+
+- NIST SP 800-53 AC-6 Least Privilege
+- AWS 문서 — 마지막 액세스 정보로 정책 좁히기
+- CIS Controls — 계정 관리와 접근 통제 권장 사항`,
+    diagram: {
+      type: 'flow',
+      caption: '축소 절차',
+      steps: [
+        { label: '사용 내역 수집', note: '최소 한 분기' },
+        { label: '필요한 동작 식별', note: '업무 관찰' },
+        { label: '대체 수단 제공', note: '화면·도구' },
+        { label: '기존 권한 회수', note: '순서가 중요' },
+      ],
+    },
+    diagram2: {
+      type: 'bars',
+      caption: '수단별 조회 감소 효과(경향)',
+      unit: '상대값',
+      items: [
+        { label: '권한 회수', value: 40 },
+        { label: '이중 승인', value: 25 },
+        { label: '사유 입력', value: 20, note: '부담 낮음' },
+        { label: '사후 통지', value: 15 },
+      ],
+    },
+  },
+]
