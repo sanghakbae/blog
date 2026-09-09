@@ -25,7 +25,7 @@
     // Firestore REST 읽기용 공개 웹 키 — 브라우저 번들에도 들어가는 값이라 비밀이 아니다
     "FIREBASE_WEB_API_KEY": "AIzaSyDdmAgngyuIjoJFB7sXfRX_cb6698XL99o",
     // 댓글 알림을 받을 주소(쉼표 구분). Cloudflare 에 인증된 수신 주소여야 한다.
-    "NOTIFY_TO": "totoriverce@gmail.com",
+    "NOTIFY_TO": "bae@sanghak.kr",
     // 발신 주소는 라우팅 도메인이어야 한다
     "NOTIFY_FROM": "blog@sanghak.kr",
     "SITE_URL": "https://blog.sanghak.kr"
