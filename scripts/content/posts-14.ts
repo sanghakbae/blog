@@ -66,6 +66,49 @@ const BLOCKED = ['169.254.0.0/16', '127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12',
 // 호스트 이름으로 검사하면 DNS 재바인딩으로 우회된다.
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+서버 측 요청 위조 하나로 계정이 넘어간 사례에서, 경로는 언제나 같다. 애플리케이션이 사용자가 준 주소로 요청을 보내고, 그 주소가 메타데이터 엔드포인트였다. 응답에는 인스턴스 역할의 임시 자격 증명이 들어 있었다.
+
+컨테이너 환경에서는 더 넓다. 호스트의 메타데이터가 파드에서도 보이면, 파드 하나가 노드 역할 권한을 갖는다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 내부 주소라 외부에서 못 닿는다 | 서버가 대신 요청한다 |
+| 토큰 필수 모드면 끝이다 | 구버전 허용이 남아 있는 경우가 많다 |
+| 컨테이너는 격리돼 있다 | 기본은 호스트 메타데이터가 보인다 |
+| 역할 권한이 좁아서 괜찮다 | 대개 생각보다 넓다 |
+| 애플리케이션만 고치면 된다 | 인프라 설정이 더 확실하다 |
+
+## 층을 겹친다
+
+| 층 | 조치 |
+| --- | --- |
+| 메타데이터 | 토큰 필수 모드, 응답 홉 제한 |
+| 컨테이너 | 파드에서 메타데이터 접근 차단 |
+| 역할 | 권한 최소화, 조건 부여 |
+| 애플리케이션 | 아웃바운드 주소 검증 |
+| 네트워크 | 외부 호출 전용 워커 분리 |
+
+응답 홉 제한이 효과가 크다. 값을 1로 두면 컨테이너 안에서 온 요청은 응답을 받지 못한다.
+
+## 점검과 적용
+
+\`\`\`bash
+# 토큰 없이 응답하는 인스턴스 찾기
+aws ec2 describe-instances \
+  --query 'Reservations[].Instances[].[InstanceId,MetadataOptions.HttpTokens,MetadataOptions.HttpPutResponseHopLimit]' \
+  --output text | awk '$2!="required" || $3>1'
+
+# 토큰 필수로 전환하고 홉 제한을 건다
+aws ec2 modify-instance-metadata-options --instance-id i-0abc \
+  --http-tokens required --http-put-response-hop-limit 1 --http-endpoint enabled
+\`\`\`
+
+전환 전에 애플리케이션이 새 방식을 지원하는지 확인한다. 오래된 SDK 는 토큰 요청을 하지 않는다.
+
 ## 참고
 
 - OWASP Cheat Sheet — SSRF Prevention, 클라우드 메타데이터
@@ -143,6 +186,61 @@ aws cloudtrail lookup-events \\
   --max-results 50 --query 'Events[].CloudTrailEvent' --output text \\
   | python3 -c 'import sys,json;[print(json.loads(l)["userIdentity"].get("accountId")) for l in sys.stdin if l.strip()]' \\
   | sort | uniq -c
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+외부 업체에 역할 수임 권한을 주면서 신뢰 정책에 계정 번호만 넣은 사례가 있다. 그 업체는 여러 고객을 같은 계정에서 관리했고, 다른 고객이 우리 역할 이름을 추측해 수임할 수 있었다. 이른바 혼란된 대리인 문제다.
+
+내부에서도 같은 일이 생긴다. 개발 계정 역할이 운영 계정 역할을 수임할 수 있게 열어 두면 계정 분리가 무의미해진다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 계정 번호를 지정하면 안전하다 | 그 계정의 누구나 수임할 수 있다 |
+| 역할 이름을 어렵게 하면 된다 | 추측이 아니라 문서에 적혀 있다 |
+| 외부 ID 는 비밀이 아니다 | 비밀은 아니지만 조건으로 작동한다 |
+| 읽기 전용이면 위험이 낮다 | 설정과 자격 증명이 다 읽힌다 |
+| 한 번 주면 회수가 어렵다 | 신뢰 정책 한 줄이다 |
+
+## 신뢰 정책에 무엇을 넣는가
+
+| 조건 | 막는 것 |
+| --- | --- |
+| 외부 ID | 혼란된 대리인 |
+| 출발지 계정 | 다른 계정의 수임 |
+| 출발지 역할 지정 | 그 계정의 다른 주체 |
+| 다단계 인증 여부 | 사람 수임 시 |
+| 출발지 대역 | 예상 밖 위치 |
+| 세션 시간 제한 | 장기 사용 |
+
+외부 업체에는 외부 ID 를 반드시 요구한다. 업체가 우리마다 다른 값을 쓰면 고객 간 혼선이 막힌다.
+
+\`\`\`json
+{
+  "Effect": "Allow",
+  "Principal": { "AWS": "arn:aws:iam::999988887777:root" },
+  "Action": "sts:AssumeRole",
+  "Condition": {
+    "StringEquals": { "sts:ExternalId": "우리만의-무작위-값" },
+    "Bool": { "aws:MultiFactorAuthPresent": "true" }
+  }
+}
+\`\`\`
+
+## 점검 절차
+
+\`\`\`bash
+# 조건 없이 외부 계정을 신뢰하는 역할
+aws iam list-roles --query 'Roles[].[RoleName,AssumeRolePolicyDocument]' --output json |
+python3 -c 'import sys,json,urllib.parse
+for name, doc in json.load(sys.stdin):
+    d = doc if isinstance(doc, dict) else json.loads(urllib.parse.unquote(doc))
+    for s in d.get("Statement", []):
+        p = s.get("Principal", {})
+        if p.get("AWS") and not s.get("Condition"):
+            print("조건 없음:", name, p["AWS"])'
 \`\`\`
 
 ## 참고
@@ -232,6 +330,67 @@ docker ps -q | while read -r id; do
   docker inspect "$id" --format \\
    '{{.Name}} privileged={{.HostConfig.Privileged}} net={{.HostConfig.NetworkMode}} mounts={{range .Mounts}}{{.Source}} {{end}}'
 done | grep -E 'privileged=true|net=host|/var/run/docker.sock|Source=/ '
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+컨테이너 하나가 침해된 뒤 노드 전체가 넘어간 사례에서, 그 컨테이너는 특권 모드로 돌고 있었다. 개발 중 편의를 위해 켰고 그대로 배포됐다.
+
+도커 소켓을 마운트한 경우도 흔하다. 컨테이너 안에서 다른 컨테이너를 만들 수 있으니, 사실상 호스트 권한이다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 컨테이너는 가상머신처럼 격리된다 | 커널을 공유한다 |
+| 루트로 실행해도 컨테이너 안이다 | 탈출 시 호스트 루트가 된다 |
+| 특권 모드는 편의 기능이다 | 격리를 사실상 해제한다 |
+| 소켓 마운트는 흔한 방식이다 | 호스트 제어권을 주는 것이다 |
+| 이미지가 작으면 안전하다 | 실행 권한이 더 중요하다 |
+
+## 탈출 경로
+
+| 설정 | 위험 |
+| --- | --- |
+| 특권 모드 | 거의 모든 격리 해제 |
+| 도커 소켓 마운트 | 호스트 제어 |
+| 호스트 네임스페이스 공유 | 프로세스·네트워크 노출 |
+| 호스트 경로 쓰기 마운트 | 파일 조작으로 탈출 |
+| 위험한 커널 권한 추가 | 모듈 적재·장치 접근 |
+| 루트 사용자 실행 | 탈출 시 권한 상속 |
+
+## 무엇을 강제하는가
+
+\`\`\`yaml
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
+\`\`\`
+
+정책으로 클러스터 전체에 강제하면 개별 배포에서 빠뜨려도 막힌다.
+
+\`\`\`bash
+# 특권 모드나 위험한 마운트를 쓰는 파드
+kubectl get pods -A -o json |
+python3 -c 'import sys,json
+for p in json.load(sys.stdin)["items"]:
+    ns, name = p["metadata"]["namespace"], p["metadata"]["name"]
+    if p["spec"].get("hostPID") or p["spec"].get("hostNetwork"):
+        print(ns, name, "호스트 네임스페이스")
+    for v in p["spec"].get("volumes") or []:
+        hp = (v.get("hostPath") or {}).get("path", "")
+        if "docker.sock" in hp or hp in ("/", "/etc", "/var/run"):
+            print(ns, name, "위험한 마운트", hp)
+    for c in p["spec"]["containers"]:
+        sc = c.get("securityContext") or {}
+        if sc.get("privileged"): print(ns, name, c["name"], "특권 모드")
+        if sc.get("allowPrivilegeEscalation") is not False: print(ns, name, c["name"], "권한 상승 허용")'
 \`\`\`
 
 ## 참고
@@ -332,6 +491,62 @@ kubectl get networkpolicy -A
 kubectl describe networkpolicy default-deny-all -n payments
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+파드 하나가 침해된 뒤 클러스터 안 모든 서비스에 접근된 사례가 있다. 네트워크 정책이 하나도 없었고, 기본값은 전부 허용이다. 데이터베이스 파드도 같은 클러스터에 있었다.
+
+정책을 만들었는데 적용되지 않은 경우도 있다. CNI 플러그인이 네트워크 정책을 지원하지 않았다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 네임스페이스가 격리한다 | 네트워크는 기본 전부 허용이다 |
+| 정책을 만들면 적용된다 | CNI 가 지원해야 한다 |
+| 인그레스만 막으면 된다 | 반출은 이그레스로 나간다 |
+| 라벨로 충분히 좁혀진다 | 라벨이 바뀌면 정책이 헐거워진다 |
+| 서비스 메시가 대신한다 | 계층이 다르다, 함께 쓴다 |
+
+## 어떻게 시작하는가
+
+전면 차단부터 걸면 서비스가 멈춘다. 관찰 후 좁힌다.
+
+1. CNI 가 네트워크 정책을 지원하는지 확인한다
+2. 현재 통신을 관찰한다 — 흐름 로그나 메시 지표
+3. 네임스페이스마다 기본 거부 정책을 준비하되 적용하지 않는다
+4. 관찰 결과로 허용 규칙을 만든다
+5. 시험 네임스페이스부터 기본 거부를 적용한다
+6. 순차 확대하고, 거부 로그를 감시한다
+
+\`\`\`yaml
+# 기본 거부 — 인그레스와 이그레스 모두
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny, namespace: prod }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# DNS 는 반드시 열어야 한다 — 빠뜨리면 전부 실패한다
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-dns, namespace: prod }
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } } }]
+      ports: [{ protocol: UDP, port: 53 }, { protocol: TCP, port: 53 }]
+\`\`\`
+
+DNS 를 빠뜨리는 것이 가장 흔한 실수다. 이름 해석이 막히면 전 통신이 실패한다.
+
+\`\`\`bash
+# 정책이 없는 네임스페이스 — 전부 허용 상태다
+comm -23 <(kubectl get ns -o name | sed 's|namespace/||' | sort) \
+         <(kubectl get networkpolicy -A -o jsonpath='{.items[*].metadata.namespace}' | tr ' ' '\n' | sort -u)
+\`\`\`
+
 ## 참고
 
 - 쿠버네티스 공식 문서 — Network Policies
@@ -423,6 +638,57 @@ aws ec2 describe-security-groups \\
   --query 'SecurityGroups[].[GroupId,GroupName]' --output text
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+인프라 코드로 관리한다고 했지만 실제 환경의 30% 가 콘솔에서 손으로 바뀐 사례가 있다. 급할 때 콘솔에서 고치고 코드에 반영하지 않는 관행이 쌓였다. 코드를 다시 적용하는 순간 그 변경이 사라져 장애가 났다.
+
+보안 설정이 조용히 풀린 경우도 있다. 누군가 조사 목적으로 버킷을 공개로 바꾸고 되돌리지 않았다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 코드로 관리하니 실제도 같다 | 손으로 바꾼 것이 있다 |
+| 코드 검사를 통과하면 안전하다 | 실제 상태는 다를 수 있다 |
+| 드리프트는 재적용으로 해결된다 | 필요한 변경까지 사라진다 |
+| 콘솔 접근을 막으면 된다 | 긴급 상황에는 열어야 한다 |
+| 탐지만 하면 된다 | 처리 절차가 있어야 한다 |
+
+## 무엇을 탐지하는가
+
+| 대상 | 우선순위 |
+| --- | --- |
+| 공개 접근 설정 | 최우선 |
+| 보안 그룹 규칙 | 높음 |
+| 암호화·로깅 활성 여부 | 높음 |
+| 권한 정책 | 높음 |
+| 태그 | 중간 |
+| 인스턴스 크기 | 낮음 |
+
+전부 탐지하면 소음이 된다. 보안에 영향을 주는 항목만 경보로 올리고 나머지는 보고서로 둔다.
+
+## 처리 절차
+
+1. 드리프트를 발견하면 누가 언제 바꿨는지 확인한다 — 감사 로그
+2. 정당한 변경이면 코드에 반영한다
+3. 정당하지 않으면 되돌리고 원인을 확인한다
+4. 반복되면 콘솔 권한을 조정하거나 절차를 만든다
+5. 긴급 변경 경로를 공식화한다 — 사후 반영 의무 포함
+
+긴급 경로를 공식화하지 않으면 비공식 경로가 계속 쓰인다.
+
+\`\`\`bash
+# 코드와 실제의 차이 — 종료 코드 2 면 드리프트가 있다
+terraform plan -detailed-exitcode -refresh-only
+echo "exit=$?"
+
+# 누가 바꿨는지 — 감사 로그에서 콘솔 변경을 찾는다
+aws cloudtrail lookup-events --lookup-attributes AttributeKey=ReadOnly,AttributeValue=false \
+  --start-time "$(date -u -v-7d +%FT%TZ)" \
+  --query 'Events[?contains(to_string(@), \`ConsoleLogin\`) == \`false\`].[EventTime,Username,EventName]' \
+  --output text | head -20
+\`\`\`
+
 ## 참고
 
 - CIS Controls v8, 4 안전한 설정 관리
@@ -506,6 +772,62 @@ PY
 # 저장소 이력에 상태 파일이 들어간 적 있는지
 git log --all --name-only --pretty=format: | grep -E 'terraform\\.tfstate' | sort -u
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+상태 파일이 공개 버킷에 있던 사례가 있다. 그 안에는 데이터베이스 비밀번호와 접근 키가 평문으로 들어 있었다. 코드에는 변수로 참조했지만, 적용 결과가 상태에 기록되면서 값 자체가 저장된 것이다.
+
+상태를 저장소에 커밋한 경우도 흔하다. 이력에 남아 지워도 복구된다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 코드에 비밀값이 없으니 안전하다 | 상태 파일에 값이 남는다 |
+| 상태는 메타데이터일 뿐이다 | 자원 속성 전체가 들어 있다 |
+| 로컬 상태면 안전하다 | 노트북 하나가 전체 인프라다 |
+| 암호화하면 끝이다 | 접근 권한이 더 중요하다 |
+| 잠금은 편의 기능이다 | 동시 적용이 상태를 깨뜨린다 |
+
+## 무엇을 지키는가
+
+| 항목 | 설정 |
+| --- | --- |
+| 저장 위치 | 원격 백엔드, 버전 관리 활성 |
+| 암호화 | 저장 시 암호화, 우리 키 |
+| 접근 권한 | 파이프라인과 소수 인원만 |
+| 잠금 | 동시 적용 방지 |
+| 버전 | 복구 가능하게 이력 유지 |
+| 감사 | 누가 읽고 썼는지 기록 |
+
+읽기 권한을 좁히는 것이 핵심이다. 상태를 읽을 수 있으면 인프라의 모든 비밀을 읽는 것과 같다.
+
+## 비밀값을 상태에서 빼는 방법
+
+1. 비밀값을 코드로 만들지 않는다 — 비밀 저장소에서 참조만
+2. 자원 생성 시 임의 값을 쓰고 사람이 모르게 한다
+3. 상태에 남는 민감 속성을 확인하고 대안을 찾는다
+4. 데이터 소스로 조회하는 방식으로 바꾼다
+5. 상태를 읽는 권한을 감사 대상으로 둔다
+
+\`\`\`bash
+# 상태에 어떤 민감 값이 들어 있는지 확인한다
+terraform show -json | python3 -c '
+import sys, json, re
+d = json.load(sys.stdin)
+pat = re.compile(r"password|secret|token|key|private", re.I)
+def walk(o, path=""):
+    if isinstance(o, dict):
+        for k, v in o.items():
+            if pat.search(k) and isinstance(v, str) and v:
+                print(f"{path}.{k}")
+            walk(v, f"{path}.{k}")
+    elif isinstance(o, list):
+        for i, v in enumerate(o): walk(v, f"{path}[{i}]")
+walk(d)' | sort -u | head -20
+\`\`\`
+
+출력이 있으면 그 값들은 상태를 읽을 수 있는 사람 전원이 볼 수 있다는 뜻이다.
 
 ## 참고
 
@@ -598,6 +920,53 @@ aws logs describe-log-groups \\
 어제 특정 사용자의 개인정보 조회 건수        예/아니오
 2주 전 특정 서버에서 실행된 프로세스         예/아니오
 지난달 외부로 나간 데이터 총량              예/아니오
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+전부 수집하다가 월 비용이 감당이 안 돼 절반을 끈 사례가 있다. 무엇을 끌지 판단할 기준이 없어서 용량이 큰 것부터 껐고, 그중에 인증 로그가 있었다.
+
+반대로 비용이 무서워 처음부터 적게 수집한 경우도 있다. 침해 조사에서 필요한 로그가 없었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 많이 수집할수록 안전하다 | 검색되지 않으면 소용없다 |
+| 용량이 큰 것을 끄면 된다 | 가치와 용량은 무관하다 |
+| 애플리케이션 로그가 중요하다 | 인증·권한 로그가 더 자주 쓰인다 |
+| 다 같은 기간 보관한다 | 유형별로 다르게 둔다 |
+| 저장이 비용이다 | 색인이 대부분이다 |
+
+## 우선순위
+
+| 순위 | 로그 | 이유 |
+| --- | --- | --- |
+| 1 | 인증·권한 변경 | 거의 모든 조사에 쓰인다 |
+| 2 | 클라우드 관리 이벤트 | 설정 변경 추적 |
+| 3 | 프로세스 생성 | 실행 행위 |
+| 4 | 네트워크 연결 요약 | 통신 상대 |
+| 5 | 애플리케이션 감사 | 데이터 접근 |
+| 6 | 웹 접근 로그 | 양이 많고 가치는 상황별 |
+| 7 | 디버그 로그 | 보안 가치 낮음 |
+
+## 비용을 줄이는 방법
+
+용량이 아니라 처리 단계를 나눈다.
+
+| 계층 | 보관 | 검색 |
+| --- | --- | --- |
+| 실시간 색인 | 7~30일 | 즉시 |
+| 검색 가능 저장 | 90일 | 수 분 |
+| 저비용 보관 | 1년 이상 | 복원 필요 |
+
+색인 기간을 줄이고 저비용 계층을 늘리면 비용이 크게 준다. 조사의 90% 는 최근 30일 안에서 끝난다.
+
+\`\`\`bash
+# 로그 종류별 용량과 실제 검색 빈도를 함께 본다 — 끌 것을 정하는 근거
+aws logs describe-log-groups --query 'logGroups[].[logGroupName,storedBytes,retentionInDays]' \
+  --output text | sort -k2 -rn | head -20
+# 용량 상위 항목 중 조사에 쓰인 적 없는 것이 정리 후보다
 \`\`\`
 
 ## 참고
@@ -697,6 +1066,58 @@ done
   발동 대부분이 오탐               →  조건 보강 또는 폐기
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+콘솔에서 만든 규칙이 200개가 된 조직에서, 누가 언제 왜 만들었는지 아무도 몰랐던 사례가 있다. 규칙을 지우려 해도 근거가 없었고, 검토도 불가능했다.
+
+규칙을 손으로 고치다 오탐이 폭증한 경우도 있다. 되돌릴 이전 버전이 없었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 콘솔이 편하다 | 이력과 검토가 사라진다 |
+| 규칙은 자주 안 바꾼다 | 튜닝이 계속 필요하다 |
+| 코드로 관리하면 느려진다 | 검토가 붙어 품질이 올라간다 |
+| 시험할 방법이 없다 | 표본 로그로 시험할 수 있다 |
+| 도구가 지원해야 한다 | API 만 있으면 된다 |
+
+## 무엇을 얻는가
+
+| 항목 | 효과 |
+| --- | --- |
+| 버전 관리 | 언제 왜 바뀌었는지 |
+| 검토 | 규칙 변경에 두 번째 눈 |
+| 시험 | 표본으로 오탐·미탐 확인 |
+| 재현 | 환경을 다시 만들 수 있다 |
+| 지표 | 커버리지 자동 집계 |
+
+## 저장소 구조
+
+\`\`\`
+detections/
+  rules/
+    auth/privileged-login-offhours.yml
+    aws/cloudtrail-logging-disabled.yml
+  tests/
+    auth/privileged-login-offhours/
+      positive.json        # 걸려야 하는 표본
+      negative.json        # 걸리면 안 되는 표본
+  docs/
+    privileged-login-offhours.md   # 확인 절차·대응 방법
+\`\`\`
+
+각 규칙에 시험 표본과 대응 문서를 함께 두면, 규칙과 운영 지식이 같이 이동한다.
+
+\`\`\`bash
+# 규칙마다 시험 표본과 문서가 있는지 확인 — 없으면 배포를 막는다
+find detections/rules -name '*.yml' | while read -r r; do
+  n=$(basename "$r" .yml); d=$(dirname "$r" | sed 's|rules/||')
+  [ -d "detections/tests/$d/$n" ] || echo "시험 없음: $r"
+  [ -f "detections/docs/$n.md" ] || echo "문서 없음: $r"
+done
+\`\`\`
+
 ## 참고
 
 - MITRE ATT&CK 기법 분류 체계
@@ -781,6 +1202,61 @@ INSERT INTO customers (name, email, phone, note)
 VALUES ('점검용', 'canary+db1@example.com', '000-0000-0000', 'do-not-use');
 
 -- 이 항목이 포함된 조회를 감사 로그에서 탐지 규칙으로 잡는다
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+침해를 몇 달 뒤에야 알게 되는 이유는 공격자가 조용하기 때문이다. 카나리를 심어 둔 조직에서는 공격자가 파일 공유를 훑는 단계에서 바로 걸렸다. 매력적인 이름의 문서를 열자 경보가 떴다.
+
+반대로 카나리를 심어 두고 잊어 정상 업무가 걸린 경우도 있다. 백업 도구가 전 파일을 읽으면서 경보가 매일 떴다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 탐지 도구가 있으면 불필요하다 | 오탐이 거의 없는 신호를 준다 |
+| 심어 두면 알아서 된다 | 정상 접근을 제외해야 한다 |
+| 파일만 가능하다 | 자격 증명·주소·레코드도 가능하다 |
+| 공격자가 알아챈다 | 구분하기 어렵게 만들 수 있다 |
+| 비용이 든다 | 대부분 무료이거나 매우 싸다 |
+
+## 무엇을 심는가
+
+| 유형 | 걸리는 시점 |
+| --- | --- |
+| 문서 파일 | 열람 시 |
+| 가짜 자격 증명 | 사용 시도 시 |
+| 데이터베이스 행 | 조회·반출 시 |
+| 웹 주소 | 접근 시 |
+| DNS 이름 | 이름 해석 시 |
+| 코드 저장소 내 토큰 | 유출 후 사용 시 |
+
+가짜 자격 증명이 특히 유용하다. 절대 쓰일 일이 없으므로 사용 시도 자체가 침해 신호다.
+
+## 어디에 두는가
+
+1. 파일 서버의 매력적인 이름 폴더 — 인사, 급여, 계약
+2. 관리자 노트북의 문서 폴더
+3. 코드 저장소의 설정 파일 — 가짜 접근 키
+4. 데이터베이스의 가짜 고객 행 — 반출 시 확인
+5. 내부 위키의 가짜 접속 정보
+
+## 운영 규칙
+
+| 항목 | 내용 |
+| --- | --- |
+| 위치 기록 | 어디에 무엇을 심었는지 |
+| 정상 접근 제외 | 백업·검색 색인 도구 |
+| 경보 등급 | 최고 — 오탐이 거의 없다 |
+| 대응 절차 | 즉시 조사 시작 |
+| 정기 확인 | 아직 그 자리에 있는지 |
+
+\`\`\`bash
+# 가짜 접근 키가 사용됐는지 — 감사 로그에서 찾는다
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=AccessKeyId,AttributeValue=AKIAI44QH8DHBEXAMPLE \
+  --query 'Events[].[EventTime,EventName,Username,SourceIPAddress]' --output table
+# 결과가 있으면 그 키가 새어 나갔고 누군가 시도한 것이다
 \`\`\`
 
 ## 참고
@@ -871,6 +1347,58 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name ir-deny-old-sessions \
 aws cloudtrail lookup-events --max-results 50 \\
   --lookup-attributes AttributeKey=AccessKeyId,AttributeValue="$LEAKED_KEY" \\
   --query 'Events[].[EventTime,EventName,Username]' --output table
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+침해된 인스턴스를 바로 종료한 사례가 있다. 클라우드에서는 종료가 삭제에 가까워서 디스크와 메모리가 함께 사라졌다. 조사할 것이 남지 않았다.
+
+자격 증명 폐기를 빠뜨린 경우도 있다. 인스턴스는 격리했지만 그 역할로 발급된 임시 자격 증명이 만료까지 유효했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 온프레미스와 절차가 같다 | 증거 수집과 격리 방법이 다르다 |
+| 인스턴스를 끄면 격리된다 | 증거가 사라진다 |
+| 계정을 잠그면 끝이다 | 발급된 임시 자격 증명이 남는다 |
+| 스냅샷은 나중에 떠도 된다 | 자동 종료 정책에 사라질 수 있다 |
+| 한 계정만 보면 된다 | 역할 수임으로 다른 계정에 닿는다 |
+
+## 클라우드에서 달라지는 것
+
+| 단계 | 온프레미스 | 클라우드 |
+| --- | --- | --- |
+| 격리 | 케이블 분리 | 보안 그룹 교체, 역할 분리 |
+| 증거 | 디스크 이미지 | 스냅샷 + 메모리 덤프 |
+| 범위 | 그 서버 | 그 역할이 닿는 전 자원 |
+| 로그 | 서버 로컬 | 관리 이벤트 + 데이터 이벤트 |
+| 복구 | 재설치 | 새 이미지로 재생성 |
+
+범위 판단이 가장 다르다. 침해된 것은 인스턴스 하나지만, 그 역할로 무엇을 할 수 있었는지가 실제 범위다.
+
+## 첫 조치 순서
+
+1. 스냅샷을 먼저 뜬다 — 종료하기 전에
+2. 메모리를 수집한다 — 가능하면
+3. 보안 그룹을 격리용으로 교체한다 — 종료하지 않는다
+4. 인스턴스 역할을 권한 없는 것으로 교체한다
+5. 그 역할로 발급된 임시 자격 증명을 무효화한다
+6. 그 역할이 닿는 자원 목록을 만든다
+7. 관리 이벤트에서 그 역할의 최근 활동을 훑는다
+
+\`\`\`bash
+# 증거 보전 후 격리 — 순서가 중요하다
+aws ec2 create-snapshot --volume-id "$VOL" --description "INC-2026-0912 evidence" \
+  --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Incident,Value=INC-2026-0912}]'
+aws ec2 modify-instance-attribute --instance-id "$INST" --groups "$QUARANTINE_SG"
+aws ec2 replace-iam-instance-profile-association \
+  --association-id "$ASSOC" --iam-instance-profile Name=quarantine-no-perms
+
+# 그 역할의 최근 활동
+aws cloudtrail lookup-events --lookup-attributes AttributeKey=Username,AttributeValue="$ROLE_SESSION" \
+  --start-time "$(date -u -v-7d +%FT%TZ)" \
+  --query 'Events[].[EventTime,EventName,SourceIPAddress]' --output table | head -40
 \`\`\`
 
 ## 참고
