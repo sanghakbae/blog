@@ -14,7 +14,7 @@ import type { SeedPost } from './content/types.js'
 const want = process.argv.slice(2).map(Number).filter((n) => n > 0)
 
 const groups: { n: number; posts: SeedPost[] }[] = []
-for (let n = 1; n <= 40; n++) {
+for (let n = 1; n <= 60; n++) {
   try {
     const mod = (await import(`./content/posts-${n}.js`)) as Record<string, SeedPost[]>
     const posts = mod[`posts${n}`]
