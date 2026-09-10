@@ -94,13 +94,13 @@ chmod +x .git/hooks/pre-commit
 describe('인가 회귀', () => {
   it('다른 사용자의 주문은 404 (진단 2026-03 #12)', async () => {
     const res = await request(app)
-      .get(`/api/orders/\${orderOfUserB.id}`)
-      .set('Authorization', `Bearer \${tokenOfUserA}`)
+      .get(\`/api/orders/\${orderOfUserB.id}\`)
+      .set('Authorization', \`Bearer \${tokenOfUserA}\`)
     expect(res.status).toBe(404)
   })
 
   it('응답에 내부 필드가 없다 (진단 2026-03 #18)', async () => {
-    const res = await request(app).get('/api/me').set('Authorization', `Bearer \${tokenOfUserA}`)
+    const res = await request(app).get('/api/me').set('Authorization', \`Bearer \${tokenOfUserA}\`)
     expect(Object.keys(res.body)).not.toEqual(
       expect.arrayContaining(['passwordHash', 'internalMemo', 'ssn']),
     )
