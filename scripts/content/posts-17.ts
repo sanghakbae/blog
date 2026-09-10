@@ -64,6 +64,65 @@ grep "client_id=$CLIENT_ID" api.log | awk '{print $7}' | sort | uniq -c | sort -
 줄일 대상       orders:write, payments:read
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+스코프를 크게 두 개만 만든 사례가 있다. 읽기와 쓰기였고, 모든 연동 앱이 쓰기를 요구했다. 앱 하나가 침해되자 그 앱이 할 수 있는 일이 사용자 계정 전체였다.
+
+반대로 스코프를 너무 잘게 나눠 동의 화면이 스무 줄이 된 경우도 있다. 사용자는 읽지 않고 동의했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 스코프가 많을수록 세밀하다 | 사용자가 판단할 수 없으면 무의미하다 |
+| 나중에 나누면 된다 | 기존 앱이 이미 넓게 받았다 |
+| 앱이 요구하면 줘야 한다 | 부분 동의를 허용할 수 있다 |
+| 동의 화면은 형식이다 | 사용자가 판단하는 유일한 지점이다 |
+| 스코프가 곧 인가다 | 서버가 다시 확인해야 한다 |
+
+## 어떻게 나누는가
+
+사용자가 이해할 수 있는 단위로 나눈다. 내부 API 단위가 아니다.
+
+| 나쁜 예 | 나은 예 |
+| --- | --- |
+| read, write | 프로필 보기, 주문 내역 보기, 주문하기 |
+| admin | 팀원 관리, 결제 수단 관리 |
+| all | 없음 — 전체 권한 스코프를 만들지 않는다 |
+
+기준은 "동의 화면에 한 줄로 적었을 때 사용자가 무엇에 동의하는지 아는가" 다.
+
+## 동의 화면에 무엇을 보여 주는가
+
+| 항목 | 내용 |
+| --- | --- |
+| 앱 이름·개발자 | 누구에게 주는지 |
+| 권한 목록 | 사용자 언어로 |
+| 필수·선택 구분 | 부분 동의 허용 |
+| 유효 기간 | 언제까지 |
+| 철회 방법 | 어디서 취소하는지 |
+
+부분 동의를 허용하면 앱이 최소 권한만 요구하게 되는 유인이 생긴다.
+
+## 발급 후 관리
+
+1. 사용자가 연동 앱 목록을 보고 개별 철회할 수 있게 한다
+2. 오래 쓰지 않은 연동은 만료시킨다
+3. 앱별 사용 스코프 통계를 본다 — 요구했지만 안 쓰는 것
+4. 안 쓰는 스코프는 앱에 축소를 요청한다
+5. 스코프 추가 요청 시 재동의를 받는다
+
+\`\`\`sql
+-- 요구했지만 실제로 쓰지 않는 스코프 — 축소 요청 근거
+SELECT g.client_id, g.scope,
+       count(u.id) AS used
+FROM granted_scopes g
+LEFT JOIN api_usage u ON u.client_id = g.client_id AND u.scope = g.scope
+                     AND u.at > now() - interval '90 days'
+GROUP BY 1, 2 HAVING count(u.id) = 0
+ORDER BY 1;
+\`\`\`
+
 ## 참고
 
 - RFC 6749 — The OAuth 2.0 Authorization Framework
@@ -146,6 +205,58 @@ grep -c '<ds:Signature' resp.xml          # 서명 개수
 grep -oE 'Reference URI="[^"]*"' resp.xml # 서명이 덮는 대상
 grep -oE '<saml:Issuer>[^<]*' resp.xml    # 발급자
 grep -oE 'NotOnOrAfter="[^"]*"' resp.xml  # 만료 시각
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+서명은 검증했는데 무엇에 대한 서명인지 확인하지 않은 사례가 있다. 응답 전체가 아니라 일부만 서명돼 있었고, 서명되지 않은 부분에 사용자 식별자가 있었다. 그 값을 바꾸면 다른 사람으로 로그인됐다.
+
+수신자와 대상 확인을 빠뜨린 경우도 있다. 다른 서비스용으로 발급된 응답을 우리 서비스에 제출해도 통과했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 서명이 유효하면 안전하다 | 무엇이 서명됐는지 봐야 한다 |
+| 라이브러리가 다 검증한다 | 기본 설정이 느슨한 경우가 있다 |
+| 인증서만 맞으면 된다 | 대상·수신자·시간이 남는다 |
+| 재사용은 못 한다 | 식별자 추적이 없으면 가능하다 |
+| XML 이라 안전하다 | 외부 엔티티 문제가 있다 |
+
+## 검증 항목
+
+| 항목 | 확인 |
+| --- | --- |
+| 서명 대상 | 응답 전체 또는 어설션 전체 |
+| 서명 알고리즘 | 약한 알고리즘 거부 |
+| 인증서 | 등록된 발급자 인증서와 일치 |
+| 발급자 | 기대한 신원 제공자 |
+| 대상 | 우리 서비스 식별자 |
+| 수신자 | 우리 콜백 주소 |
+| 시간 | 유효 구간 내 |
+| 응답 식별자 | 재사용 여부 추적 |
+| 요청 대응 | 우리가 보낸 요청에 대한 응답인지 |
+
+서명 대상 확인이 가장 자주 빠진다. 서명된 부분과 우리가 읽는 부분이 같아야 한다.
+
+## 구현 시 주의
+
+1. XML 파서에서 외부 엔티티를 끈다
+2. 서명 검증 후에 값을 읽는다 — 순서가 중요하다
+3. 서명된 노드에서만 값을 읽는다
+4. 응답 식별자를 저장해 재사용을 막는다
+5. 시계 오차 허용 범위를 좁게 둔다
+
+\`\`\`bash
+# 응답에서 서명 대상이 무엇인지 확인한다
+python3 - <<'PY'
+import base64, sys, re
+xml = base64.b64decode(sys.stdin.read()).decode()
+for m in re.finditer(r'<(?:ds:)?Reference[^>]*URI="([^"]*)"', xml):
+    print('서명 대상:', m.group(1) or '(문서 전체)')
+print('어설션 ID:', re.findall(r'<(?:saml2?:)?Assertion[^>]*ID="([^"]+)"', xml))
+PY
+# 서명 대상과 어설션 ID 가 일치하지 않으면 검토가 필요하다
 \`\`\`
 
 ## 참고
@@ -237,6 +348,65 @@ SELECT count(*) FILTER (WHERE expires_at IS NULL) AS 만료없음,
   FROM api_keys WHERE revoked_at IS NULL;
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+API 키에 만료가 없고 권한 구분도 없던 사례가 있다. 발급받은 키 하나로 모든 엔드포인트를 호출할 수 있었고, 5년 전 발급된 키가 그대로 살아 있었다. 누구에게 발급했는지 기록도 없었다.
+
+키를 데이터베이스에 평문으로 저장한 경우도 있다. 유출 시 전 고객의 키가 함께 나간다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 키는 길면 안전하다 | 수명과 범위가 더 중요하다 |
+| 평문 저장이 편하다 | 유출 시 전량 노출이다 |
+| 만료를 두면 불편하다 | 회전 경로가 있으면 괜찮다 |
+| 키 하나면 충분하다 | 용도별로 나눠야 회수가 쉽다 |
+| 유출은 고객 책임이다 | 탐지와 회수는 우리 몫이다 |
+
+## 어떻게 설계하는가
+
+| 항목 | 권장 |
+| --- | --- |
+| 형식 | 접두사 + 무작위 — 어떤 키인지 식별 가능하게 |
+| 저장 | 해시만 저장, 원문은 발급 시 한 번만 표시 |
+| 범위 | 스코프·엔드포인트·출발지 제한 |
+| 만료 | 기본 만료 있음, 갱신 가능 |
+| 개수 | 여러 개 발급 가능 — 무중단 회전 |
+| 기록 | 발급자·용도·마지막 사용 |
+
+접두사를 붙이면 유출 탐지가 쉬워진다. 공개 저장소 검사 도구가 우리 키 형식을 인식할 수 있다.
+
+\`\`\`ts
+// 발급 — 원문은 이때만 보여 주고 저장하지 않는다
+const raw = 'sk_live_' + crypto.randomBytes(24).toString('base64url')
+await db.apiKey.create({
+  data: {
+    hash: sha256(raw),               // 해시만 저장
+    prefix: raw.slice(0, 12),        // 목록 표시용
+    ownerId, scopes, expiresAt,
+  },
+})
+return { key: raw }                  // 다시 볼 수 없다고 안내
+\`\`\`
+
+## 회수를 쉽게 만든다
+
+1. 여러 키를 동시에 유효하게 한다 — 무중단 교체
+2. 마지막 사용 시각을 기록한다 — 안 쓰는 키를 찾는다
+3. 키별 사용 통계를 고객에게 보여 준다
+4. 유출 의심 시 즉시 폐기 버튼을 제공한다
+5. 공개 저장소에서 발견되면 자동 폐기하고 알린다
+
+\`\`\`sql
+-- 오래 쓰지 않았거나 만료가 지난 키
+SELECT prefix, owner_id, created_at::date, last_used_at::date, expires_at::date
+FROM api_keys
+WHERE revoked_at IS NULL
+  AND (last_used_at < now() - interval '90 days' OR expires_at < now())
+ORDER BY last_used_at NULLS FIRST;
+\`\`\`
+
 ## 참고
 
 - OWASP Cheat Sheet — Secrets Management
@@ -320,6 +490,61 @@ for svc in orders payments search; do
     | openssl x509 -noout -subject -enddate | tr '\\n' ' '
   echo
 done
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+서버 간 통신에 공유 비밀값을 쓴 사례가 있다. 열 개 서비스가 같은 값을 썼고, 하나가 유출되자 전부 교체해야 했다. 교체 중에 몇 개 서비스가 멈췄다.
+
+인증만 하고 인가를 안 한 경우도 있다. 내부 서비스면 무엇이든 호출할 수 있었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 내부 통신이라 간단해도 된다 | 침해 시 확산 경로다 |
+| 공유 비밀값이 편하다 | 회수와 회전이 불가능해진다 |
+| 인증하면 인가된 것이다 | 무엇을 할 수 있는지는 별개다 |
+| 네트워크로 막으면 된다 | 같은 망 안이면 무력하다 |
+| 상호 TLS 는 과하다 | 관리형 도구가 많아졌다 |
+
+## 방식 선택
+
+| 방식 | 적합 | 주의 |
+| --- | --- | --- |
+| 공유 비밀값 | 임시·소규모 | 회전이 어렵다 |
+| 서명된 요청 | 외부 연동 | 시각·논스 필요 |
+| 클라이언트 자격 증명 흐름 | 서비스 간 표준 | 토큰 수명 관리 |
+| 상호 TLS | 내부망 | 인증서 수명 관리 |
+| 워크로드 신원 | 클라우드·쿠버네티스 | 저장할 비밀이 없다 |
+
+아래로 갈수록 관리할 비밀값이 줄어든다. 가능하면 마지막 행으로 간다.
+
+## 인가를 어떻게 두는가
+
+서비스 신원만으로는 부족하다. 무엇을 할 수 있는지를 따로 정한다.
+
+| 계층 | 판정 |
+| --- | --- |
+| 전송 | 이 서비스가 맞는가 (상호 TLS) |
+| 토큰 | 어떤 범위를 가졌는가 (스코프) |
+| 애플리케이션 | 이 자원에 대해 그 동작이 허용되는가 |
+
+\`\`\`ts
+// 서비스 신원 + 스코프 + 자원 인가를 각각 확인한다
+const peer = req.socket.getPeerCertificate()
+if (!ALLOWED_SERVICES.has(peer.subject?.CN)) return res.status(401).end()
+
+const claims = await verifyToken(bearer(req), { audience: 'billing-service' })
+if (!claims.scope?.includes('orders:read')) return res.status(403).end()
+
+const order = await db.order.findFirst({ where: { id, tenantId: claims.tenant } })
+if (!order) return res.status(404).end()
+\`\`\`
+
+\`\`\`bash
+# 공유 비밀값을 쓰는 서비스가 몇 개인지 — 회전 부담의 척도
+grep -rl 'SHARED_SERVICE_SECRET' --include='*.yaml' --include='*.env' deploy/ | wc -l
 \`\`\`
 
 ## 참고
@@ -420,6 +645,66 @@ app.use((req, res, next) => {
   next()
 })
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+로그인만 하면 모든 것을 할 수 있던 서비스에서, 세션 탈취 한 번으로 출금까지 이어진 사례가 있다. 로그인은 다단계였지만 그 이후에는 아무 확인이 없었다.
+
+반대로 모든 동작에 재인증을 요구해 사용자가 이탈한 경우도 있다. 조회할 때마다 인증번호를 요구했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 로그인 시 강하게 하면 된다 | 세션은 오래 유지된다 |
+| 재인증은 불편하다 | 위험한 동작에만 걸면 괜찮다 |
+| 다단계가 있으면 충분하다 | 그 세션이 탈취되면 무관하다 |
+| 위험 판단은 어렵다 | 몇 가지 신호로 충분하다 |
+| 매번 같은 수단이어야 한다 | 위험에 따라 다르게 |
+
+## 언제 추가 인증을 요구하는가
+
+| 상황 | 요구 |
+| --- | --- |
+| 결제 수단 변경 | 항상 |
+| 출금·송금 | 항상 |
+| 비밀번호·연락처 변경 | 항상 |
+| 권한 부여 | 항상 |
+| 새 기기 로그인 | 조건부 |
+| 평소와 다른 위치 | 조건부 |
+| 오래된 세션 | 조건부 |
+| 대량 조회·내보내기 | 조건부 |
+
+## 위험 신호
+
+| 신호 | 판단 |
+| --- | --- |
+| 새 기기 | 위험 상승 |
+| 새 위치·국가 | 위험 상승 |
+| 세션 나이 | 오래될수록 상승 |
+| 최근 비밀번호 변경 | 상승 |
+| 짧은 시간 내 여러 실패 | 상승 |
+| 기억된 기기 | 하락 |
+
+점수를 합산해 임계값을 넘으면 추가 인증을 요구한다. 이분법보다 이탈이 적다.
+
+\`\`\`ts
+function riskScore(ctx: Ctx): number {
+  let s = 0
+  if (!ctx.knownDevice) s += 30
+  if (ctx.countryChanged) s += 25
+  if (ctx.sessionAgeHours > 12) s += 15
+  if (ctx.recentFailures > 3) s += 20
+  if (ctx.rememberedDevice) s -= 20
+  return s
+}
+
+// 동작별 임계값 — 위험한 동작일수록 낮게
+const THRESHOLD = { view: 80, changeEmail: 30, withdraw: 0 }
+if (riskScore(ctx) >= THRESHOLD[action]) return requireStepUp()
+\`\`\`
+
+출금은 임계값이 0이므로 언제나 추가 인증을 요구한다.
 
 ## 참고
 
@@ -524,6 +809,66 @@ SELECT at, action, actor_id, subject_id, reason
 -- actor_id 가 비어 있으면 조사에서 누가 했는지 알 수 없다
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+고객 지원을 위한 대리 로그인이 기록 없이 쓰인 사례가 있다. 상담원이 고객 계정으로 들어가 문제를 확인했는데, 그 계정의 활동 로그에는 고객 본인이 한 것으로 남았다. 나중에 분쟁이 생겼을 때 누가 한 일인지 구분할 수 없었다.
+
+대리 상태에서 결제까지 가능했던 경우도 있다. 제한이 없었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 지원 목적이라 문제없다 | 권한 남용 경로다 |
+| 기록은 남는다 | 대리 여부가 구분되지 않는 경우가 많다 |
+| 상담원은 신뢰할 수 있다 | 계정 탈취와 실수가 있다 |
+| 고객에게 알릴 필요 없다 | 알리는 것만으로 남용이 준다 |
+| 전 기능을 써야 지원이 된다 | 대부분은 조회로 충분하다 |
+
+## 무엇을 제한하는가
+
+| 항목 | 기준 |
+| --- | --- |
+| 사유 입력 | 필수, 티켓 번호 연결 |
+| 시간 제한 | 30분 등 짧게 |
+| 기능 제한 | 결제·출금·권한 변경 금지 |
+| 대상자 통지 | 시작 시 또는 종료 후 |
+| 기록 | 대리 여부를 별도 필드로 |
+| 승인 | 민감 계정은 관리자 승인 |
+
+기록에서 대리 여부를 구분하는 것이 핵심이다. 나중에 그 계정의 행위가 본인 것인지 상담원 것인지 답할 수 있어야 한다.
+
+\`\`\`ts
+// 세션에 대리 정보를 함께 담고, 모든 기록에 남긴다
+type Actor = { userId: string; impersonatedBy?: string; reason?: string; ticket?: string }
+
+await audit.log(action, {
+  userId: actor.userId,
+  actualActor: actor.impersonatedBy ?? actor.userId,   // 실제 수행자
+  impersonation: !!actor.impersonatedBy,
+  reason: actor.reason,
+  ticket: actor.ticket,
+})
+
+// 위험한 동작은 대리 상태에서 막는다
+const BLOCKED_WHEN_IMPERSONATING = new Set(['payment.create', 'withdraw', 'role.grant', 'password.change'])
+if (actor.impersonatedBy && BLOCKED_WHEN_IMPERSONATING.has(action)) {
+  throw new Forbidden('대리 로그인 상태에서는 할 수 없는 동작입니다')
+}
+\`\`\`
+
+## 점검 항목
+
+\`\`\`sql
+-- 사유 없이 시작된 대리 세션, 오래 유지된 세션
+SELECT staff_id, target_user_id, started_at, ended_at, reason, ticket
+FROM impersonation_sessions
+WHERE reason IS NULL
+   OR ticket IS NULL
+   OR coalesce(ended_at, now()) - started_at > interval '1 hour'
+ORDER BY started_at DESC LIMIT 30;
+\`\`\`
+
 ## 참고
 
 - NIST SP 800-53, AC-6 최소 권한 및 AU-2 감사 이벤트
@@ -609,6 +954,50 @@ AFTER=$(grep -oE 'session[^\\s]*\\s+\\S+$' jar.txt | awk '{print $NF}')
 
 \`\`\`bash
 grep -rnE 'regenerate|renewSession|rotateSession' --include='*.ts' src/ || echo '재발급 호출 없음'
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+로그인 시 세션 식별자를 새로 발급하지 않은 사례가 있다. 공격자가 자기 식별자를 피해자 브라우저에 심어 두고, 피해자가 로그인하면 그 식별자가 인증된 세션이 됐다. 공격자는 처음부터 그 값을 알고 있었다.
+
+권한이 올라갈 때도 같은 문제가 생긴다. 일반 사용자가 관리자로 전환될 때 식별자를 유지하면 같은 경로가 열린다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 식별자가 예측 불가능하면 안전하다 | 고정 공격은 예측이 필요 없다 |
+| 로그인하면 새 세션이 생긴다 | 프레임워크 설정에 따라 다르다 |
+| 쿠키만 쓰면 안전하다 | 주소로 세션을 넘기는 경로가 남을 수 있다 |
+| 로그아웃하면 정리된다 | 서버에서 지우지 않으면 남는다 |
+| 흔하지 않은 공격이다 | 설정 하나로 생긴다 |
+
+## 언제 식별자를 재발급하는가
+
+| 시점 | 이유 |
+| --- | --- |
+| 로그인 성공 | 핵심 |
+| 권한 상승 | 관리자 전환 등 |
+| 비밀번호 변경 | 기존 세션 무효화와 함께 |
+| 추가 인증 통과 | 권한 범위가 바뀐다 |
+| 로그아웃 | 기존 식별자 폐기 |
+
+## 함께 확인할 것
+
+1. 세션 식별자를 주소로 전달하는 경로가 없는가
+2. 로그인 전 세션에 어떤 데이터가 담기는가 — 장바구니 등은 이관 필요
+3. 로그아웃 시 서버 세션이 실제로 지워지는가
+4. 동시 세션 수에 상한이 있는가
+5. 세션 목록을 사용자가 볼 수 있는가
+
+\`\`\`bash
+# 로그인 전후 식별자 비교
+BEFORE=$(curl -sI https://stg.example.com/login | grep -oiE 'sessionid=[^;]+')
+AFTER=$(curl -sI -X POST https://stg.example.com/login \
+          -H "Cookie: $BEFORE" -d 'id=test&pw=test' | grep -oiE 'sessionid=[^;]+')
+echo "전: $BEFORE"
+echo "후: $AFTER"
+[ "$BEFORE" = "$AFTER" ] && echo '재발급되지 않는다 — 고정 공격에 취약'
 \`\`\`
 
 ## 참고
@@ -704,6 +1093,57 @@ curl -s -o /dev/null -w '비밀번호 변경 %{http_code}\\n' -X POST \\
 # 401 재인증 요구가 정상이다
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+자동 로그인 토큰이 만료 없이 발급된 사례가 있다. 한 번 로그인하면 영구히 유지됐고, 기기를 잃어버려도 회수할 방법이 없었다. 토큰은 사용자 식별자를 그대로 담고 있어서 값을 바꾸면 다른 사람이 됐다.
+
+토큰 재사용을 탐지하지 않은 경우도 있다. 탈취된 토큰과 정상 토큰이 동시에 쓰였지만 아무 신호가 없었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 편의 기능이라 위험이 낮다 | 장기 자격 증명이다 |
+| 암호화하면 안전하다 | 탈취 시 그대로 쓰인다 |
+| 만료를 길게 해야 편하다 | 회전하면 길어도 안전하다 |
+| 기기 정보를 넣으면 안전하다 | 위조 가능하다 |
+| 로그아웃하면 사라진다 | 서버에서 지워야 한다 |
+
+## 어떻게 설계하는가
+
+토큰을 사용할 때마다 새것으로 바꾸는 회전 방식이 표준이다.
+
+| 항목 | 설계 |
+| --- | --- |
+| 값 | 무작위, 사용자 정보 미포함 |
+| 저장 | 서버에 해시로, 기기 정보와 함께 |
+| 수명 | 절대 만료 + 유휴 만료 |
+| 회전 | 사용 시 새 토큰 발급, 이전 무효 |
+| 재사용 감지 | 이미 쓴 토큰이 다시 오면 전체 폐기 |
+| 범위 | 자동 로그인 세션은 권한 축소 |
+
+마지막 항목이 중요하다. 자동 로그인으로 들어온 세션에서는 결제·설정 변경 전에 재인증을 요구한다.
+
+\`\`\`ts
+const row = await rememberTokens.findByHash(sha256(presented))
+if (!row) return null
+
+if (row.usedAt) {
+  // 이미 사용된 토큰이 다시 왔다 — 탈취 가능성이 높다
+  await rememberTokens.revokeFamily(row.familyId)
+  await alerts.security('자동 로그인 토큰 재사용', { userId: row.userId })
+  return null
+}
+
+await rememberTokens.markUsed(row.id)
+const next = await rememberTokens.issue(row.userId, row.familyId)   // 회전
+return { userId: row.userId, token: next, elevated: false }         // 권한 축소
+\`\`\`
+
+## 사용자에게 무엇을 보여 주는가
+
+기기 목록과 마지막 사용 시각을 보여 주고 개별 해제를 제공한다. 사용자가 스스로 이상을 알아채는 유일한 수단이다.
+
 ## 참고
 
 - OWASP Cheat Sheet — Session Management, Remember Me
@@ -790,6 +1230,60 @@ curl -s -o /dev/null -w 'API 키      %{http_code}\\n' -H "X-Api-Key: $APIKEY" h
 \`\`\`
 
 401 이 아닌 항목이 남은 경로다.
+
+## 실제로 이렇게 터진다
+
+비밀번호를 바꿨는데 기존 세션이 그대로 유지된 사례가 있다. 계정이 탈취된 것을 알고 비밀번호를 바꿨지만, 공격자의 세션은 계속 살아 있었다.
+
+전체 로그아웃 기능은 있었는데 API 토큰은 빠진 경우도 있다. 화면 세션만 끊기고 발급된 토큰은 유효했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 비밀번호를 바꾸면 세션이 끊긴다 | 명시적으로 처리해야 한다 |
+| 로그아웃하면 다 끝난다 | 그 기기만이다 |
+| 세션만 끊으면 된다 | 토큰·자동 로그인·연동 앱이 남는다 |
+| 사용자가 알아서 한다 | 목록을 보여줘야 판단할 수 있다 |
+| 즉시 반영된다 | 캐시 때문에 지연될 수 있다 |
+
+## 무엇을 함께 끊는가
+
+| 대상 | 놓치기 쉬움 |
+| --- | --- |
+| 웹 세션 | 기본 |
+| 모바일 앱 세션 | 별도 저장소 |
+| 갱신 토큰 | 서버 저장 |
+| 자동 로그인 토큰 | 별도 테이블 |
+| API 키 | 대개 유지가 맞다 |
+| 연동 앱 권한 | 사용자 선택 |
+
+API 키는 보통 유지한다. 사용자가 명시적으로 선택하게 하는 편이 낫다.
+
+## 언제 자동으로 끊는가
+
+| 상황 | 처리 |
+| --- | --- |
+| 비밀번호 변경 | 현재 기기 외 전부 |
+| 다단계 수단 변경 | 전부 |
+| 계정 복구 완료 | 전부 |
+| 관리자 정지 | 전부 |
+| 의심 활동 감지 | 전부 + 알림 |
+
+## 사용자 화면에 무엇을 두는가
+
+기기·위치·마지막 사용 시각을 보여 주고 개별·전체 해제를 제공한다. 목록이 없으면 사용자는 이상을 알아챌 수 없다.
+
+\`\`\`ts
+// 일괄 폐기는 기준 시각으로 — 목록을 지우지 않아도 된다
+await users.update(userId, { tokensInvalidBefore: Math.floor(Date.now() / 1000) })
+await sessions.deleteAllFor(userId, { except: currentSessionId })
+await rememberTokens.revokeAllFor(userId)
+await refreshTokens.revokeAllFor(userId)
+await notify.user(userId, '모든 기기에서 로그아웃되었습니다')
+\`\`\`
+
+검증 시 발급 시각을 기준 시각과 비교하면, 폐기 목록을 크게 유지하지 않아도 된다.
 
 ## 참고
 
@@ -880,6 +1374,66 @@ for i in $(seq 1 20); do
     https://auth.example.com/device/verify -d "user_code=$code")"
 done; echo
 # 계속 400 만 나오고 차단되지 않으면 시도 제한이 없는 것이다
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+TV 앱 로그인에서 코드가 짧고 만료가 길었던 사례가 있다. 네 자리 코드에 만료가 30분이라 무차별 대입이 가능했다. 공격자가 코드를 맞히면 그 기기가 피해자 계정으로 연결됐다.
+
+사용자에게 무엇을 승인하는지 보여 주지 않은 경우도 있다. 코드만 입력하면 승인되어, 피싱으로 코드를 받아 낼 수 있었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 코드가 짧아야 편하다 | 대입 가능성이 커진다 |
+| 만료가 길어야 편하다 | 공격 창이 넓어진다 |
+| 코드만 맞으면 된다 | 무엇을 승인하는지 보여야 한다 |
+| 기기 화면에 코드가 있으니 안전하다 | 코드를 전달받는 피싱이 있다 |
+| 승인 후에는 안전하다 | 기기 목록에서 회수 가능해야 한다 |
+
+## 무엇을 정하는가
+
+| 항목 | 권장 |
+| --- | --- |
+| 코드 길이 | 8자 이상, 혼동 문자 제외 |
+| 만료 | 5~10분 |
+| 시도 제한 | 5회 후 코드 폐기 |
+| 폴링 간격 | 서버가 지정, 초과 시 거부 |
+| 승인 화면 | 기기 종류·위치·요청 시각 표시 |
+| 사후 관리 | 기기 목록에서 해제 가능 |
+
+승인 화면에 정보를 보여 주는 것이 피싱 방어의 핵심이다. "거실 TV 에서 로그인 요청" 을 보면 사용자가 판단할 수 있다.
+
+## 흐름
+
+1. 기기가 코드 발급을 요청한다
+2. 기기 화면에 사용자 코드와 확인 주소를 표시한다
+3. 사용자가 다른 기기에서 로그인하고 코드를 입력한다
+4. 승인 화면에 무엇을 승인하는지 보여 준다
+5. 승인하면 기기가 폴링으로 토큰을 받는다
+6. 기기 목록에 등록되어 나중에 해제할 수 있다
+
+\`\`\`ts
+// 코드 생성 — 혼동되는 문자를 뺀다
+const ALPHABET = 'BCDFGHJKLMNPQRSTVWXZ23456789'   // 0/O, 1/I 제외
+const userCode = Array.from(crypto.randomBytes(8))
+  .map((b) => ALPHABET[b % ALPHABET.length]).join('')
+  .replace(/(.{4})/, '$1-')                        // BCDF-GHJK
+
+await deviceCodes.create({
+  userCode, deviceCode: crypto.randomUUID(),
+  expiresAt: new Date(Date.now() + 8 * 60_000),    // 8분
+  attempts: 0, interval: 5,
+})
+\`\`\`
+
+\`\`\`bash
+# 코드 대입 시도가 있는지 — 실패가 몰리면 신호다
+psql -Atc "
+  SELECT date_trunc('hour', at) AS h, count(*) FILTER (WHERE NOT ok) AS fail
+  FROM device_code_attempts WHERE at > now() - interval '24 hours'
+  GROUP BY 1 ORDER BY 1 DESC LIMIT 24"
 \`\`\`
 
 ## 참고
