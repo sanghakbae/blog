@@ -72,7 +72,7 @@ export async function signIn(): Promise<Viewer> {
   viewer = toViewer(user, ADMIN_EMAILS)
   notify()
   void start()
-  logAudit('auth.signin', user.uid, user.email ?? '')
+  logAudit('auth.signin')
   return viewer
 }
 
@@ -82,7 +82,7 @@ export async function signOut(): Promise<void> {
     import('firebase/auth'),
     import('./audit'),
   ])
-  await logAudit('auth.signout', auth.currentUser?.uid ?? '', auth.currentUser?.email ?? '')
+  await logAudit('auth.signout')
   await fbAuth.signOut(auth)
   localStorage.removeItem(SEEN)
   viewer = null

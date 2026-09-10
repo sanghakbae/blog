@@ -2,6 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "blog-7777",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "7777",
+        "--strictPort"
+      ],
+      "port": 7777
+    },
+    {
       "name": "blog",
       "runtimeExecutable": "npm",
       "runtimeArgs": [

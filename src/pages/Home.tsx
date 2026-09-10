@@ -20,11 +20,17 @@ export default function Home() {
       </header>
 
       {!posts ? (
-        <ul className="border-t border-[var(--line)]">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
           {[...Array(4)].map((_, i) => (
-            <li key={i} className="border-b border-[var(--line)] py-8">
-              <div className="h-7 w-2/3 animate-pulse rounded bg-[var(--bg-elev)]" />
-              <div className="mt-3 h-4 w-full animate-pulse rounded bg-[var(--bg-elev)]" />
+            <li
+              key={i}
+              className="overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-elev)]"
+            >
+              <div className="aspect-[16/7] animate-pulse bg-[var(--accent-soft)]" />
+              <div className="px-4 pt-3.5 pb-4 sm:px-5 sm:pb-5">
+                <div className="h-4 w-3/4 animate-pulse rounded bg-[var(--bg)]" />
+                <div className="mt-2.5 h-3 w-full animate-pulse rounded bg-[var(--bg)]" />
+              </div>
             </li>
           ))}
         </ul>

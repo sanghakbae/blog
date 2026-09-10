@@ -44,15 +44,43 @@ const auditCol = collection(db, 'audit')
 
 const USE_LOCAL = import.meta.env.DEV && import.meta.env.VITE_LOCAL_DATA === '1'
 
+/**
+ * userAgent 를 사람이 읽는 한 줄로 줄인다.
+ *
+ * 로그인 기록의 '대상' 자리에 계정 UID 를 넣어 두었더니, 화면에는 읽을 수 없는
+ * 28자 문자열만 남고 '내용' 에는 수행자와 똑같은 이메일이 반복됐다. 로그인에서
+ * 실제로 궁금한 것은 "누가" 가 아니라 "어디서" 다.
+ */
+function device(): string {
+  const ua = navigator.userAgent
+  const browser =
+    /Edg\//.test(ua) ? 'Edge'
+    : /OPR\//.test(ua) ? 'Opera'
+    : /Chrome\//.test(ua) ? 'Chrome'
+    : /Firefox\//.test(ua) ? 'Firefox'
+    : /Safari\//.test(ua) ? 'Safari'
+    : '알 수 없는 브라우저'
+  const os =
+    /iPhone|iPad/.test(ua) ? 'iOS'
+    : /Android/.test(ua) ? 'Android'
+    : /Mac OS X/.test(ua) ? 'macOS'
+    : /Windows/.test(ua) ? 'Windows'
+    : /Linux/.test(ua) ? 'Linux'
+    : ''
+  return os ? `${browser} · ${os}` : browser
+}
+
 function entryData(action: AuditAction, target = '', detail = '') {
   const user = auth.currentUser
+  const auth_ = action === 'auth.signin' || action === 'auth.signout'
   return {
     at: serverTimestamp(),
     action,
     actorEmail: user?.email ?? '',
     actorUid: user?.uid ?? '',
-    target,
-    detail,
+    // 인증 기록은 대상이 세션 자신이라 적을 것이 없다. 대신 접속 환경을 남긴다.
+    target: auth_ ? '' : target,
+    detail: auth_ ? device() : detail,
     userAgent: navigator.userAgent.slice(0, 200),
   }
 }

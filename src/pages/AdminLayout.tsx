@@ -6,6 +6,7 @@ const tabs = [
   { to: '/admin/audit', label: '감사 로그', end: false },
   { to: '/admin/seo', label: 'SEO / GEO', end: false },
   { to: '/admin/security', label: '보안', end: false },
+  { to: '/admin/stats', label: '통계', end: false },
 ]
 
 export default function AdminLayout() {

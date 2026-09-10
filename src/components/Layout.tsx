@@ -117,8 +117,8 @@ export default function Layout() {
             1920px 에서 사이드바가 16% 까지 좁아져 태그가 잘게 접혔다.
             xl 부터는 화면에 비례해 늘리되 위아래로 묶어, 좁은 화면의 폭은
             그대로 두고 초광폭에서만 넓어지게 한다. */}
-        <aside className="hidden shrink-0 overflow-hidden border-l border-[var(--line)] bg-[var(--bg-elev)] p-4 lg:block lg:w-[16.8rem] xl:w-[clamp(19.2rem,20vw,26rem)]">
-          <TagSidebar fit />
+        <aside className="hidden shrink-0 overflow-y-auto border-l border-[var(--line)] bg-[var(--bg-elev)] p-4 lg:block lg:w-[16.8rem] xl:w-[clamp(19.2rem,20vw,26rem)]">
+          <TagSidebar />
         </aside>
       </div>
 
@@ -128,7 +128,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => setPrivacyOpen(true)}
-            className="underline underline-offset-4 transition-colors hover:text-[var(--ink)]"
+            className="ml-auto underline underline-offset-4 transition-colors hover:text-[var(--ink)]"
           >
             개인정보처리방침
           </button>
