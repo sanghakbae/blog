@@ -59,7 +59,7 @@ async function fetchPosts(): Promise<Post[]> {
             },
           },
           orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
-          limit: 500,
+          limit: 2000,
         },
       }),
     },

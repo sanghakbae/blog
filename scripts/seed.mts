@@ -1,5 +1,5 @@
 /**
- * 보안 포스팅 350편을 Firestore 에 넣는다.
+ * 보안 포스팅 499편을 Firestore 에 넣는다.
  *
  *   npx tsx scripts/seed.mts --dry        내용과 태그만 확인 (쓰기 없음)
  *   npx tsx scripts/seed.mts              실제 입력
@@ -52,6 +52,21 @@ import { posts32 } from './content/posts-32.js'
 import { posts33 } from './content/posts-33.js'
 import { posts34 } from './content/posts-34.js'
 import { posts35 } from './content/posts-35.js'
+import { posts36 } from './content/posts-36.js'
+import { posts37 } from './content/posts-37.js'
+import { posts38 } from './content/posts-38.js'
+import { posts39 } from './content/posts-39.js'
+import { posts40 } from './content/posts-40.js'
+import { posts41 } from './content/posts-41.js'
+import { posts42 } from './content/posts-42.js'
+import { posts43 } from './content/posts-43.js'
+import { posts44 } from './content/posts-44.js'
+import { posts45 } from './content/posts-45.js'
+import { posts46 } from './content/posts-46.js'
+import { posts47 } from './content/posts-47.js'
+import { posts48 } from './content/posts-48.js'
+import { posts49 } from './content/posts-49.js'
+import { posts50 } from './content/posts-50.js'
 
 /** 처음 올린 100편. */
 const LEGACY: SeedPost[] = [
@@ -66,6 +81,9 @@ const ADDED: SeedPost[] = [
   ...posts21, ...posts22, ...posts23, ...posts24, ...posts25,
   ...posts26, ...posts27, ...posts28, ...posts29, ...posts30,
   ...posts31, ...posts32, ...posts33, ...posts34, ...posts35,
+  ...posts36, ...posts37, ...posts38, ...posts39, ...posts40,
+  ...posts41, ...posts42, ...posts43, ...posts44, ...posts45,
+  ...posts46, ...posts47, ...posts48, ...posts49, ...posts50,
 ]
 
 const ALL: SeedPost[] = [...LEGACY, ...ADDED]

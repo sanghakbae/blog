@@ -44,8 +44,11 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
         return (
           <li
             key={post.id}
-            className="rise"
-            style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+            /* 등장 애니메이션은 처음 화면에 보일 만큼만 건다.
+               500편 전체에 걸면 애니메이션이 그 수만큼 동시에 돌고,
+               무엇보다 애니메이션이 시작되지 않는 환경에서 카드가 계속 투명해진다. */
+            className={i < 12 ? 'rise' : undefined}
+            style={i < 12 ? { animationDelay: `${Math.min(i, 8) * 45}ms` } : undefined}
           >
             <article className="flex h-full gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] p-3 transition-colors hover:border-[var(--accent)]">
               <div className="flex min-w-0 flex-1 flex-col">

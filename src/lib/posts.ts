@@ -69,7 +69,7 @@ const CACHE_TTL = 5 * 60 * 1000
  * 화면마다 다른 숫자를 하드코딩해 두면 글이 늘 때 조용히 잘린다. 실제로 251편이
  * 된 뒤 홈이 200편만 그리고 있었다. 목록 함수의 기본값을 여기로 모아 둔다.
  */
-export const LIST_LIMIT = 500
+export const LIST_LIMIT = 1000
 const CACHE_LIMIT = LIST_LIMIT
 
 /**
