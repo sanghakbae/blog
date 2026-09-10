@@ -192,7 +192,7 @@ export default function AdminStats() {
         <Tile
           label="SEO / GEO 평균"
           value={`${s.avg}점`}
-          sub={`100점 ${s.perfect}편 (${Math.round((s.perfect / s.published) * 100)}%)`}
+          sub={`100점 ${s.perfect}편 (${Math.round((s.perfect / Math.max(1, s.published)) * 100)}%)`}
         />
         <Tile
           label="구글 색인"

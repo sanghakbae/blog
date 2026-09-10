@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'tag-blog-v10'
+const CACHE_VERSION = 'tag-blog-v11'
 
 /**
  * 캐시를 찾을 때 Vary 를 보지 않는다.
@@ -20,11 +20,19 @@ const APP_SHELL = [
   '/icon-192.png',
   '/icon-512.png',
   '/posts-list.json',
-  '/posts.json',
   // 빌드된 js·css 는 이름에 해시가 붙어 여기 적을 수 없다.
   // scripts/precache.mts 가 빌드 후 실제 이름을 이 자리에 채운다.
   // BUILD_ASSETS
 ]
+
+/**
+ * 설치 때 받지는 않지만, 한 번 받으면 사본을 둘 만한 것.
+ *
+ * /posts.json 은 본문까지 담고 있어 글이 500편이 되면서 2.5MB 가 됐다.
+ * 검색을 한 번도 열지 않는 방문자에게까지 설치 시점에 내려받게 할 이유가 없다.
+ * 처음 필요해질 때 받고 그때 캐시에 담는다.
+ */
+const RUNTIME_ONLY = ['/posts.json']
 
 self.addEventListener('install', (event) => {
   // addAll 은 하나라도 실패하면 전체가 실패한다. 그러면 설치가 끝나지 않아
@@ -112,6 +120,7 @@ self.addEventListener('fetch', (event) => {
   // 방문하지도 않은 잘못된 주소까지 캐시에 쌓인다.
   const worthCaching =
     APP_SHELL.includes(url.pathname) ||
+    RUNTIME_ONLY.includes(url.pathname) ||
     /\.(svg|png|jpg|jpeg|webp|avif|ico|woff2?|css|js)$/.test(url.pathname)
 
   // 네트워크를 먼저 쓰고, 실패했을 때만 캐시로 돌아간다.
