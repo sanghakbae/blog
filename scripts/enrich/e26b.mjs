@@ -32,13 +32,11 @@ export default {
 
 \`\`\`powershell
 # 제약 없는 위임이 설정된 계정·컴퓨터 — 도메인 컨트롤러 외에는 즉시 정리
-Get-ADObject -Filter {(UserAccountControl -band 0x80000) -ne 0} `
-  -Properties samAccountName, UserAccountControl |
+Get-ADObject -Filter {(UserAccountControl -band 0x80000) -ne 0} -Properties samAccountName |
   Select-Object samAccountName, ObjectClass
 
 # 제약 위임 대상
-Get-ADObject -Filter {msDS-AllowedToDelegateTo -like "*"} `
-  -Properties samAccountName, msDS-AllowedToDelegateTo |
+Get-ADObject -Filter {msDS-AllowedToDelegateTo -like "*"} -Properties msDS-AllowedToDelegateTo |
   Select-Object samAccountName, msDS-AllowedToDelegateTo
 \`\`\`
 
@@ -216,8 +214,8 @@ Get-ADUser krbtgt -Properties PasswordLastSet | Select-Object PasswordLastSet
 auditpol /get /category:* | Select-String -Pattern 'No Auditing' -Context 0,0
 
 # 명령줄 기록 설정 여부
-Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit' `
-  -Name ProcessCreationIncludeCmdLine_Enabled -ErrorAction SilentlyContinue
+$k = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit'
+Get-ItemProperty $k -Name ProcessCreationIncludeCmdLine_Enabled -ErrorAction SilentlyContinue
 \`\`\`
 
 ## 조사에서 실제로 보는 이벤트
