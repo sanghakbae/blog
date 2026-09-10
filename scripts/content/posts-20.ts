@@ -89,6 +89,66 @@ aws guardduty describe-organization-configuration --detector-id "$DET" \\
 # 신규 계정이 자동 포함되지 않으면 계정이 늘 때마다 사각지대가 생긴다
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+켜 두기만 하고 경보를 아무도 보지 않은 사례가 흔하다. 몇 달 뒤 침해 조사에서 관련 탐지가 이미 있었다는 것을 알게 된다. 켜는 것과 운영하는 것은 다르다.
+
+한 리전만 켠 경우도 많다. 공격자는 쓰지 않는 리전에서 활동하고, 그 리전에는 탐지가 없다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 켜면 알아서 막아 준다 | 탐지만 하고 차단하지 않는다 |
+| 한 리전만 켜면 된다 | 전 리전에서 켜야 한다 |
+| 경보가 없으면 안전하다 | 보지 않으면 없는 것과 같다 |
+| 전부 조사해야 한다 | 심각도별로 나눠야 유지된다 |
+| 비용을 예측할 수 없다 | 데이터 소스별로 계산된다 |
+
+## 어떤 탐지가 실제로 유용한가
+
+| 탐지 유형 | 대응 가치 |
+| --- | --- |
+| 자격 증명의 예상 밖 위치 사용 | 매우 높음 — 즉시 조사 |
+| 채굴 관련 통신 | 높음 — 침해 확정에 가깝다 |
+| 알려진 악성 주소 통신 | 높음 |
+| 계정 열거·정찰 | 중간 |
+| 포트 스캔 수신 | 낮음 — 상시 발생 |
+
+자격 증명 관련 탐지에 가장 먼저 대응 절차를 붙인다. 오탐이 적고 영향이 크다.
+
+## 비용은 어떻게 붙는가
+
+데이터 소스별로 처리량 기준이다. 무엇을 켜느냐가 비용을 정한다.
+
+| 소스 | 과금 기준 |
+| --- | --- |
+| 관리 이벤트 분석 | 이벤트 수 |
+| 데이터 이벤트 분석 | 이벤트 수 |
+| 흐름 로그 분석 | GB |
+| DNS 로그 분석 | 포함 |
+| 런타임 모니터링 | vCPU 시간 |
+| 악성코드 검사 | 스캔한 GB |
+
+흐름 로그 분석이 트래픽이 많은 환경에서 큰 비중을 차지한다. 먼저 30일 시험 기간의 실제 청구를 보고 판단한다.
+
+## 운영 설정
+
+\`\`\`bash
+# 전 리전에서 켜져 있는지, 조직 단위로 관리되는지
+for r in $(aws ec2 describe-regions --query 'Regions[].RegionName' --output text); do
+  id=$(aws guardduty list-detectors --region "$r" --query 'DetectorIds[0]' --output text 2>/dev/null)
+  [ "$id" = "None" ] && { echo "$r 미설정"; continue; }
+  st=$(aws guardduty get-detector --region "$r" --detector-id "$id" --query 'Status' --output text)
+  printf '%-16s %s\n' "$r" "$st"
+done
+
+# 심각도 높은 미처리 탐지
+aws guardduty list-findings --detector-id "$DET" \
+  --finding-criteria '{"Criterion":{"severity":{"Gte":7},"service.archived":{"Eq":["false"]}}}' \
+  --query 'FindingIds' --output text | tr '\t' '\n' | wc -l
+\`\`\`
+
 ## 참고
 
 - AWS GuardDuty 사용 설명서 — 데이터 원본과 탐지 유형
@@ -189,6 +249,57 @@ aws securityhub describe-standards-controls \\
   --standards-subscription-arn "$SUB_ARN" \\
   --query 'Controls[?ControlStatus==\`DISABLED\`].{항목:ControlId,사유:DisabledReason}' --output table
 # 사유가 비어 있는 항목은 점수를 올리려고 끈 것일 가능성이 높다
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+표준을 전부 켜서 지적이 3천 건 나온 사례가 있다. 점수는 40% 였고 아무도 손대지 않았다. 무엇부터 고칠지 정할 수 없는 상태가 되면 도구는 대시보드로만 남는다.
+
+예외 처리를 안 해서 같은 지적이 매일 반복된 경우도 있다. 의도적으로 그렇게 둔 설정이었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 표준을 다 켜야 한다 | 우리에게 해당하는 것만 |
+| 점수가 성과다 | 위험이 준 것이 성과다 |
+| 지적은 전부 고쳐야 한다 | 예외를 근거와 함께 등록한다 |
+| 자동으로 고쳐 준다 | 자동 조치는 따로 구성한다 |
+| 켜면 비용이 없다 | 검사 수 기준으로 붙는다 |
+
+## 표준을 어떻게 고르는가
+
+| 표준 | 성격 | 권장 |
+| --- | --- | --- |
+| 기본 모범 사례 | 폭넓은 기본 | 우선 하나만 |
+| CIS 벤치마크 | 구성 강화 | 그다음 |
+| 산업 규정 표준 | 해당 시 | 규정이 요구할 때 |
+
+하나로 시작해 지적을 소화한 뒤 다음을 켜는 것이 유지된다.
+
+## 비용은 어떻게 붙는가
+
+| 항목 | 기준 |
+| --- | --- |
+| 보안 검사 | 계정·리전당 검사 수 |
+| 탐지 수집 | 수집 건수 |
+| 자동 대응 | 별도 서비스 비용 |
+
+계정과 리전이 늘어날수록 검사 수가 곱해진다. 쓰지 않는 리전을 조직 정책으로 막으면 비용과 지적이 함께 줄어든다.
+
+## 운영 방법
+
+1. 표준 하나만 켜고 지적을 등급별로 센다
+2. 치명·높음부터 처리한다
+3. 의도적 설정은 예외로 등록하고 사유를 적는다
+4. 반복 지적은 자동 조치로 만든다
+5. 점수가 아니라 미처리 치명·높음 건수를 지표로 본다
+
+\`\`\`bash
+# 등급별 미처리 건수 — 점수보다 이 숫자가 실질적이다
+aws securityhub get-findings \
+  --filters '{"RecordState":[{"Value":"ACTIVE","Comparison":"EQUALS"}],"WorkflowStatus":[{"Value":"NEW","Comparison":"EQUALS"}]}' \
+  --query 'Findings[].Severity.Label' --output text | tr '\t' '\n' | sort | uniq -c | sort -rn
 \`\`\`
 
 ## 참고
@@ -298,6 +409,58 @@ aws configservice select-resource-config \\
   --query 'Results' --output text | head
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+전 자원 유형을 기록하도록 켜 두었다가 월 비용이 크게 늘어난 사례가 있다. 자주 바뀌는 자원이 많았고, 변경마다 항목이 기록됐다.
+
+반대로 필요한 규칙이 없어 설정 변경을 놓친 경우도 있다. 버킷이 공개로 바뀐 것을 몇 달 뒤에 알았다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 전부 기록해야 한다 | 비용이 급증한다 |
+| 규칙이 자동으로 고친다 | 보정을 따로 구성해야 한다 |
+| 켜면 즉시 평가된다 | 첫 평가에 시간이 걸린다 |
+| 비용은 저장 비용이다 | 기록 항목 수와 규칙 평가가 대부분이다 |
+| 다른 도구와 중복이다 | 이력과 시점 조회는 여기서만 된다 |
+
+## 무엇이 유용한가
+
+이 서비스의 고유한 가치는 "그때 어땠는가" 에 답하는 것이다.
+
+| 질문 | 답할 수 있는 것 |
+| --- | --- |
+| 침해 시점의 보안 그룹 규칙은 | 시점 조회 |
+| 이 설정을 언제 누가 바꿨나 | 변경 이력 |
+| 규정 위반이 언제부터인가 | 규칙 평가 이력 |
+| 지금 위반 자원이 몇 개인가 | 규칙 대시보드 |
+
+## 비용은 어떻게 붙는가
+
+| 항목 | 기준 |
+| --- | --- |
+| 설정 항목 기록 | 기록된 항목 수 |
+| 규칙 평가 | 평가 횟수 |
+| 적합성 팩 | 규칙 수에 따라 |
+| 저장 | S3 저장 비용 |
+
+기록 항목 수가 대부분이다. 자주 바뀌는 자원 유형을 제외하면 비용이 크게 준다.
+
+\`\`\`bash
+# 무엇을 기록하고 있는지 — 전부 켜져 있으면 줄일 여지가 있다
+aws configservice describe-configuration-recorders \
+  --query 'ConfigurationRecorders[].recordingGroup' --output json
+
+# 위반 자원이 많은 규칙 — 처리 우선순위
+aws configservice describe-compliance-by-config-rule \
+  --compliance-types NON_COMPLIANT \
+  --query 'ComplianceByConfigRules[].[ConfigRuleName,Compliance.ComplianceContributorCount.CappedCount]' \
+  --output text | sort -k2 -rn | head -15
+\`\`\`
+
+기록 대상을 줄일 때는 보안 관련 자원 유형을 남긴다. 보안 그룹, IAM, 버킷 정책은 이력이 가장 자주 필요하다.
+
 ## 참고
 
 - AWS Config 개발자 안내서 — 규칙과 적합성 팩
@@ -398,6 +561,68 @@ aws cloudtrail get-event-selectors --trail-name "$TRAIL" \\
 
 aws s3api get-object-lock-configuration --bucket "$LOG_BUCKET" 2>/dev/null \\
   || echo '객체 잠금 없음 — 침해자가 로그를 지울 수 있다'
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+데이터 이벤트를 켜지 않아 무엇이 유출됐는지 모른 사례가 있다. 관리 이벤트는 있었지만 버킷에서 어떤 객체를 읽었는지는 기록이 없었다. 유출 범위를 산정할 수 없었다.
+
+로그를 같은 계정에 둔 경우도 있다. 권한을 얻은 공격자가 먼저 지웠다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 기본으로 다 기록된다 | 데이터 이벤트는 별도다 |
+| 90일 이력이면 충분하다 | 조회용이고 보존이 아니다 |
+| 한 리전만 켜면 된다 | 전 리전이 필요하다 |
+| 같은 계정에 두면 편하다 | 함께 지워진다 |
+| 비용이 많이 든다 | 관리 이벤트는 첫 사본이 무료다 |
+
+## 무엇을 켜는가
+
+| 항목 | 권장 |
+| --- | --- |
+| 범위 | 조직 전체, 전 리전 |
+| 관리 이벤트 | 읽기·쓰기 모두 |
+| 데이터 이벤트 | 민감 버킷·함수 선별 |
+| 로그 검증 | 활성화 |
+| 저장 위치 | 별도 보안 계정 |
+| 객체 잠금 | 삭제 불가 기간 설정 |
+
+데이터 이벤트를 전 버킷에 켜면 비용이 크다. 개인정보나 백업이 있는 버킷만 선별한다.
+
+## 비용은 어떻게 붙는가
+
+| 항목 | 기준 |
+| --- | --- |
+| 관리 이벤트 | 첫 사본 무료, 추가 사본 유료 |
+| 데이터 이벤트 | 이벤트 수 |
+| 인사이트 | 분석된 이벤트 수 |
+| S3 저장 | 용량 |
+
+데이터 이벤트가 비용의 대부분이다. 요청이 많은 버킷에 켜면 급증한다.
+
+## 반드시 걸어야 할 경보
+
+로깅 중지는 침해의 강한 신호다.
+
+\`\`\`bash
+# 전 리전·조직 범위이고 검증이 켜져 있는지
+aws cloudtrail describe-trails \
+  --query 'trailList[].[Name,IsMultiRegionTrail,IsOrganizationTrail,LogFileValidationEnabled]' \
+  --output table
+
+# 실제로 기록 중인지 — 만들어 두고 꺼 둔 경우가 있다
+for t in $(aws cloudtrail describe-trails --query 'trailList[].Name' --output text); do
+  printf '%-28s ' "$t"
+  aws cloudtrail get-trail-status --name "$t" --query 'IsLogging' --output text
+done
+
+# 로깅 중지 이벤트 조회
+aws cloudtrail lookup-events \
+  --lookup-attributes AttributeKey=EventName,AttributeValue=StopLogging \
+  --query 'Events[].[EventTime,Username,AwsRegion]' --output table
 \`\`\`
 
 ## 참고
@@ -506,6 +731,60 @@ aws inspector2 list-findings \\
   --output table | head -20
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+취약점이 수천 건 나왔지만 무엇부터 고칠지 정하지 못한 사례가 있다. 심각도만 있고 도달 가능성 정보가 없어서, 인터넷에 노출되지 않은 서버의 원격 취약점과 노출된 서버의 것이 같은 등급으로 보였다.
+
+컨테이너 이미지를 스캔했지만 실행 중인 것과 다른 경우도 있다. 저장소의 최신 태그를 스캔했는데 운영은 옛 다이제스트를 쓰고 있었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 심각도 순으로 고치면 된다 | 도달 가능성이 더 중요하다 |
+| 스캔하면 다 나온다 | 에이전트가 없으면 안 나온다 |
+| 이미지를 스캔하면 충분하다 | 실행 중인 것과 다를 수 있다 |
+| 한 번 스캔하면 된다 | 새 취약점이 계속 나온다 |
+| 비용은 스캔 횟수다 | 대상 수와 시간 기준이다 |
+
+## 무엇을 스캔하는가
+
+| 대상 | 방식 |
+| --- | --- |
+| EC2 | 에이전트 기반 또는 무에이전트 |
+| 컨테이너 이미지 | 저장소 푸시 시 |
+| 함수 | 코드와 의존성 |
+
+## 비용은 어떻게 붙는가
+
+| 대상 | 기준 |
+| --- | --- |
+| EC2 | 인스턴스·월 |
+| 컨테이너 이미지 | 초기 스캔 + 재스캔 |
+| 함수 | 함수·월 |
+
+이미지 재스캔이 잦으면 비용이 늘어난다. 태그마다 스캔되므로 태그를 남발하지 않는 것이 도움이 된다.
+
+## 우선순위를 어떻게 정하는가
+
+1. 인터넷에 노출된 자원의 취약점부터
+2. 그중 실제 악용이 확인된 것
+3. 도달 가능성이 확인된 것 — 그 코드 경로를 쓰는가
+4. 나머지는 정기 패치 주기로
+
+\`\`\`bash
+# 인터넷 노출 + 심각도 높음 — 실제 우선순위
+aws inspector2 list-findings \
+  --filter-criteria '{"severity":[{"comparison":"EQUALS","value":"CRITICAL"}],
+                      "exploitAvailable":[{"comparison":"EQUALS","value":"YES"}]}' \
+  --query 'findings[].[title,resources[0].id,inspectorScore]' --output text | head -20
+
+# 스캔되지 않는 인스턴스 — 사각지대
+aws inspector2 list-coverage \
+  --filter-criteria '{"scanStatusCode":[{"comparison":"NOT_EQUALS","value":"ACTIVE"}]}' \
+  --query 'coveredResources[].[resourceId,scanStatus.reason]' --output text | head -20
+\`\`\`
+
 ## 참고
 
 - Amazon Inspector 사용 설명서 — 스캔 유형과 도달성 분석
@@ -602,6 +881,57 @@ aws macie2 list-findings \\
 aws macie2 get-automated-discovery-configuration \\
   --query '{상태:status,마지막갱신:lastUpdatedAt}'
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+전 버킷 스캔을 한 번 돌렸다가 청구서를 보고 놀란 사례가 있다. 로그와 백업이 들어 있는 버킷까지 포함됐고, 이들은 용량이 크고 민감정보는 없었다.
+
+반대로 자동 탐지만 켜 두고 그 결과를 아무도 보지 않은 경우도 있다. 공개 버킷에 개인정보가 있다는 탐지가 몇 달째 열려 있었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 켜면 전부 스캔한다 | 자동 탐지는 표본 수준이다 |
+| 스캔하면 개인정보를 지워 준다 | 알려 줄 뿐이다 |
+| 한 번 돌리면 끝이다 | 새 객체가 계속 들어온다 |
+| 비용은 버킷 수 기준이다 | 스캔한 용량 기준이다 |
+| 한국 주민등록번호도 기본 탐지된다 | 사용자 정의 식별자가 필요하다 |
+
+## 비용을 줄이는 순서
+
+1. 자동 탐지로 어느 버킷에 민감정보가 있을 법한지 좁힌다
+2. 그 버킷만 상세 스캔한다
+3. 로그·백업·아티팩트 버킷은 제외 목록에 넣는다
+4. 접두사 단위로 범위를 좁힌다
+5. 이후에는 새 객체만 대상으로 하는 주기 작업으로 돌린다
+
+## 한국 환경에서 필요한 것
+
+기본 제공 식별자는 해외 형식 위주다. 실무에서는 사용자 정의 식별자를 만들어야 쓸 만해진다.
+
+| 대상 | 접근 |
+| --- | --- |
+| 주민등록번호 | 사용자 정의 정규식 + 검증 규칙 |
+| 휴대전화번호 | 사용자 정의 정규식 |
+| 계좌번호 | 은행별 형식이 달라 키워드 병행 |
+| 여권번호 | 사용자 정의 정규식 |
+
+정규식만 쓰면 오탐이 많다. 근처에 나오는 키워드를 함께 요구하면 정확도가 크게 오른다.
+
+\`\`\`bash
+# 민감정보가 발견된 버킷 — 여기부터 조치한다
+aws macie2 list-findings \
+  --finding-criteria '{"criterion":{"category":{"eq":["CLASSIFICATION"]},"archived":{"eq":["false"]}}}' \
+  --query 'findingIds' --output text | tr '\t' '\n' | head -50
+
+# 공개 상태이면서 민감정보가 있는 버킷 — 최우선
+aws macie2 describe-buckets \
+  --criteria '{"publicAccess.effectivePermission":{"eq":["PUBLIC"]}}' \
+  --query 'buckets[].[bucketName,sensitiveData]' --output text
+\`\`\`
+
+조치는 도구가 아니라 사람이 한다. 발견 → 담당자 → 기한을 정하지 않으면 목록만 늘어난다.
 
 ## 참고
 
@@ -703,6 +1033,50 @@ aws accessanalyzer check-no-new-access \\
 # result 가 FAIL 이면 기준보다 넓은 권한이 추가된 것이다
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+외부 공유 탐지가 켜져 있었지만 신뢰 영역을 계정 하나로 잡아 둔 사례가 있다. 조직 내 다른 계정과의 공유가 전부 "외부" 로 잡혀 수백 건이 나왔고, 진짜 외부 공유가 그 속에 묻혔다.
+
+미사용 권한 분석을 돌리지 않아, 붙여 두고 한 번도 쓰지 않은 관리자 권한이 몇 년째 남은 경우도 있다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 외부 공유만 본다 | 미사용 권한 분석도 있다 |
+| 신뢰 영역은 기본값이면 된다 | 조직으로 잡아야 잡음이 준다 |
+| 결과가 없으면 안전하다 | 분석 대상 유형이 한정적이다 |
+| 정책 검증은 배포 후에 한다 | 배포 전에 부를 수 있다 |
+| 무료다 | 외부 공유는 무료, 미사용 분석은 유료 |
+
+## 두 가지 분석의 성격
+
+| 분석 | 답하는 질문 | 비용 |
+| --- | --- | --- |
+| 외부 공유 | 우리 자원을 밖에서 쓸 수 있나 | 무료 |
+| 미사용 권한 | 붙여 둔 권한 중 안 쓰는 것은 | 역할 수 기준 유료 |
+
+외부 공유 분석은 조직 단위로 하나 만들고 신뢰 영역을 조직으로 잡는다. 그러면 진짜 외부만 남는다.
+
+## 배포 전 검증에 쓰기
+
+정책 검증 기능은 파이프라인에 넣을 수 있다. 사람이 리뷰하기 전에 명백한 문제를 걸러 준다.
+
+\`\`\`bash
+# 정책 파일 검증 — 오류·보안 경고를 배포 전에 잡는다
+aws accessanalyzer validate-policy \
+  --policy-type IDENTITY_POLICY \
+  --policy-document file://policy.json \
+  --query 'findings[].[findingType,issueCode,findingDetails]' --output text | grep -v SUGGESTION
+
+# 외부 공유 결과 — 신뢰 영역 밖에서 접근 가능한 자원
+aws accessanalyzer list-findings-v2 --analyzer-arn "$ARN" \
+  --filter '{"status":{"eq":["ACTIVE"]}}' \
+  --query 'findings[].[resourceType,resource]' --output text | sort | uniq -c | sort -rn
+\`\`\`
+
+정책 검증에서 SUGGESTION 을 제외한 이유는, 제안까지 막으면 파이프라인이 자주 멈춰서 결국 검증을 끄게 되기 때문이다. 오류와 보안 경고만 차단 조건으로 둔다.
+
 ## 참고
 
 - AWS IAM Access Analyzer 사용 설명서
@@ -794,6 +1168,49 @@ aws detective list-members --graph-arn "$GRAPH" \\
 GuardDuty 탐지 → 결과 상세 → "Detective 에서 조사" 링크
 또는 개체 검색: 역할 이름 · 액세스 키 ID · 아이피 주소 · 인스턴스 ID
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+침해 조사 때 로그를 직접 뒤지느라 며칠이 걸린 사례가 있다. 어떤 자격 증명이 어디서 언제 무엇을 했는지를 손으로 이어 붙였다. 그래프를 미리 켜 두었다면 몇 분에 끝날 일이었다.
+
+문제는 사후에 켜도 소용이 적다는 것이다. 이력은 켠 시점부터 쌓인다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 사고가 나면 그때 켜면 된다 | 이력이 없어 쓸모가 적다 |
+| 탐지 도구를 대체한다 | 탐지가 아니라 조사 도구다 |
+| 로그를 대신 보관한다 | 보관은 별도로 해야 한다 |
+| 켜면 바로 쓸 수 있다 | 데이터가 쌓이는 데 시간이 걸린다 |
+| 비용이 크다 | 처리 로그 GB 기준이다 |
+
+## 언제 값을 하는가
+
+| 상황 | 도움 정도 |
+| --- | --- |
+| 자격 증명 오남용 조사 | 매우 높음 |
+| 어떤 자원이 연루됐나 | 높음 |
+| 평소 대비 이상한가 | 높음 — 기준선을 갖고 있다 |
+| 실시간 차단 | 없음 |
+| 규정 증적 | 낮음 — 다른 도구가 맞다 |
+
+## 운영 전제
+
+1. 탐지 서비스를 먼저 켠다 — 조사 진입점이 거기서 온다
+2. 조직 단위로 켜서 계정 간 이동을 추적할 수 있게 한다
+3. 관리 계정이 아닌 보안 계정을 관리자로 지정한다
+4. 조사 담당자에게 읽기 권한을 미리 준다 — 사고 때 권한 요청부터 하면 늦다
+
+\`\`\`bash
+# 그래프가 있는지, 어느 계정이 들어와 있는지
+aws detective list-graphs --query 'GraphList[].Arn' --output text
+
+aws detective list-members --graph-arn "$G" \
+  --query 'MemberDetails[].[AccountId,Status]' --output table
+\`\`\`
+
+조사 도구는 평시에 만져 봐야 사고 때 쓸 수 있다. 분기에 한 번 모의 조사로 손에 익혀 두는 것이 실질적이다.
 
 ## 참고
 
@@ -897,6 +1314,54 @@ SELECT time, api.operation, actor.user.uid, src_endpoint.ip
  LIMIT 100;
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+로그를 여러 계정과 리전에 흩어 둔 채로 조사한 사례가 있다. 같은 사건을 보려고 계정을 넘나들며 쿼리를 다시 짰다. 형식도 서비스마다 달라 시간 대부분이 정규화에 들어갔다.
+
+반대로 전부 모았지만 보존 정책을 안 걸어 저장 비용이 계속 늘어난 경우도 있다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 모으면 분석이 된다 | 질의 도구가 따로 필요하다 |
+| 모든 로그가 지원된다 | 지원 소스가 정해져 있다 |
+| 형식 변환을 직접 해야 한다 | 표준 스키마로 정규화된다 |
+| 비용은 저장뿐이다 | 변환·질의 비용이 붙는다 |
+| 다른 도구를 대체한다 | 저장·정규화 계층이다 |
+
+## 무엇이 좋아지는가
+
+| 이전 | 이후 |
+| --- | --- |
+| 서비스마다 다른 형식 | 표준 스키마 하나 |
+| 계정별 개별 조회 | 한곳에서 질의 |
+| 보존 정책 제각각 | 계층별 일괄 정책 |
+| 외부 도구 연동 개별 구현 | 구독자 방식으로 연결 |
+
+## 비용 관리
+
+| 항목 | 조절 방법 |
+| --- | --- |
+| 수집 | 필요한 소스만 |
+| 저장 | 보존 기간·계층 전환 |
+| 질의 | 파티션 활용 |
+| 구독 | 필요한 구독자만 |
+
+시간 파티션을 쓰지 않는 질의가 비용의 주범이다. 조사할 때도 기간을 먼저 좁히는 습관이 필요하다.
+
+\`\`\`bash
+# 어떤 소스를 모으고 있는지
+aws securitylake list-log-sources \
+  --query 'sources[].[account,sourceTypes[].awsLogSource.sourceName]' --output text
+
+# 보존 정책이 걸려 있는지 — 안 걸려 있으면 비용이 계속 는다
+aws securitylake list-data-lakes \
+  --query 'dataLakes[].[region,lifecycleConfiguration.expiration.days]' --output table
+\`\`\`
+
+먼저 조사에 실제로 쓰는 소스 서너 개로 시작하고, 질의 패턴이 정착한 뒤 넓히는 편이 낫다.
+
 ## 참고
 
 - Amazon Security Lake 사용 설명서
@@ -990,6 +1455,52 @@ aws auditmanager get-evidence-folders-by-assessment \\
   --assessment-id "$ASSESSMENT_ID" --max-results 100 \\
   --query 'evidenceFolders[?totalEvidence==\`0\`].controlName' --output text | tr '\\t' '\\n'
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+감사 대응을 매번 손으로 한 사례가 있다. 스크린샷을 찍고 표를 만들고, 감사가 끝나면 그 자료는 버려졌다. 다음 감사 때 같은 일을 처음부터 다시 했다.
+
+반대로 자동 수집을 켜 두었지만 증적이 무엇을 뜻하는지 아무도 설명하지 못한 경우도 있다. 감사인은 자동 수집 자체를 신뢰하지 않았다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 켜면 감사를 통과한다 | 증적을 모을 뿐이다 |
+| 모든 통제가 자동 수집된다 | 상당수는 수동 증적이다 |
+| 감사인이 그대로 받는다 | 설명이 붙어야 받는다 |
+| 프레임워크는 그대로 쓴다 | 우리 환경에 맞게 손봐야 한다 |
+| 비용이 없다 | 평가·증적 수집 기준으로 붙는다 |
+
+## 자동과 수동의 경계
+
+| 통제 성격 | 수집 |
+| --- | --- |
+| 설정 상태 | 자동 |
+| 접근 기록 | 자동 |
+| 취약점 조치 | 자동 |
+| 정책 문서 존재 | 수동 |
+| 교육 실시 | 수동 |
+| 책임자 승인 | 수동 |
+
+자동으로 채워지는 것은 절반 정도다. 나머지를 누가 언제 올릴지 정하지 않으면 감사 직전에 몰린다.
+
+## 실질적인 운영
+
+1. 대상 규정 하나로 시작한다
+2. 자동 수집되는 통제와 수동 통제를 나눈다
+3. 수동 통제마다 담당자와 주기를 정한다
+4. 매달 미수집 통제를 점검한다 — 감사 직전이 아니라
+5. 증적마다 한 줄 설명을 붙인다
+
+\`\`\`bash
+# 진행 중 평가와 미수집 통제 — 매달 이 숫자를 본다
+aws auditmanager get-assessment --assessment-id "$A" \
+  --query 'assessment.framework.controlSets[].controls[].[name,response]' \
+  --output text | grep -c MANUAL
+\`\`\`
+
+감사는 한 달 작업이 아니라 상시 상태 관리다. 도구는 그 전환을 도울 뿐, 대신해 주지 않는다.
 
 ## 참고
 
