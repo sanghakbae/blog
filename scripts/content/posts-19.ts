@@ -75,6 +75,70 @@ async function safeFetch(url: string) {
 }
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+내부 대역 검증을 통과한 뒤 실제 연결에서 내부로 간 사례가 있다. 도메인을 검사할 때는 공인 주소를 응답했고, 실제 요청 시점에는 내부 주소를 응답했다. 검사와 사용 사이의 시간 차를 이용한 것이다.
+
+브라우저에서도 성립한다. 사용자가 공격자 페이지를 열어 두면, 그 페이지가 사용자의 내부망 기기에 요청을 보낼 수 있다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 주소를 검사하면 안전하다 | 검사 후 바뀔 수 있다 |
+| 짧은 캐시가 문제다 | 캐시가 없어도 성립한다 |
+| 서버만 해당한다 | 브라우저에서도 성립한다 |
+| 내부 서비스는 인증이 있다 | 없는 경우가 많다 |
+| 드문 공격이다 | 도구가 공개돼 있다 |
+
+## 어떻게 막는가
+
+| 조치 | 적용 |
+| --- | --- |
+| 해석된 주소로 연결 | 이름을 다시 해석하지 않는다 |
+| 연결 직전 재검증 | 소켓 단계에서 확인 |
+| 최소 캐시 시간 강제 | 리졸버 설정 |
+| 내부 서비스에 인증 | 근본 대책 |
+| Host 헤더 검증 | 예상한 이름만 처리 |
+
+핵심은 검사한 주소로 직접 연결하는 것이다. 이름으로 다시 연결하면 그 사이에 바뀔 수 있다.
+
+\`\`\`ts
+import { lookup } from 'node:dns/promises'
+import ipaddr from 'ipaddr.js'
+import http from 'node:http'
+
+const DENY = ['private', 'loopback', 'linkLocal', 'uniqueLocal', 'reserved']
+
+async function safeFetch(urlStr: string) {
+  const url = new URL(urlStr)
+  const { address } = await lookup(url.hostname)
+  if (DENY.includes(ipaddr.parse(address).range())) throw new Error('내부 주소')
+
+  // 검사한 주소로 직접 연결하고, Host 헤더만 원래 이름으로 둔다
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      host: address,                      // 이름이 아니라 주소로
+      port: url.port || 80,
+      path: url.pathname + url.search,
+      headers: { Host: url.hostname },
+    }, resolve)
+    req.on('error', reject)
+    req.end()
+  })
+}
+\`\`\`
+
+내부 서비스에 인증을 붙이는 것이 근본 대책이다. 재바인딩이 성립해도 인증이 없으면 아무것도 못 한다.
+
+\`\`\`bash
+# 내부 서비스가 인증 없이 응답하는지
+for h in $(cat internal-hosts.txt); do
+  c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://$h/")
+  [ "$c" = "200" ] && echo "$h 인증 없이 200"
+done
+\`\`\`
+
 ## 참고
 
 - OWASP Cheat Sheet — Server Side Request Forgery Prevention
@@ -164,6 +228,64 @@ kubectl exec -n payments deploy/orders -c istio-proxy -- \\
   | openssl x509 -noout -subject -dates
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+상호 TLS 를 켰다고 했는데 평문 허용 모드였던 사례가 있다. 전환 중 호환을 위해 허용 모드로 두었고 그대로 남았다. 암호화되지 않은 통신이 계속 있었지만 지표를 보지 않았다.
+
+인증서 만료로 전 서비스가 멈춘 경우도 있다. 자동 갱신이 한 컴포넌트에서만 실패했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 켜면 전부 암호화된다 | 허용 모드면 평문도 통과한다 |
+| 상호 TLS 면 인가까지 된다 | 누구인지만 안다 |
+| 사이드카가 알아서 한다 | 사이드카가 빠진 파드가 있다 |
+| 인증서는 자동이라 안심이다 | 갱신 실패를 감시해야 한다 |
+| 내부망이라 불필요하다 | 확산 차단 효과가 크다 |
+
+## 전환 순서
+
+한 번에 강제하면 통신이 끊긴다. 단계를 나눈다.
+
+1. 사이드카를 전 워크로드에 주입한다 — 빠진 것을 먼저 찾는다
+2. 허용 모드로 두고 평문 비율 지표를 본다
+3. 평문 통신을 하나씩 없앤다 — 대개 외부 연동과 레거시
+4. 네임스페이스 단위로 강제 모드로 올린다
+5. 전체 강제 후에도 평문 지표를 감시한다
+
+\`\`\`bash
+# 사이드카가 빠진 파드 — 강제 모드로 올리면 통신이 끊긴다
+kubectl get pods -A -o json |
+python3 -c 'import sys,json
+for p in json.load(sys.stdin)["items"]:
+    names = [c["name"] for c in p["spec"]["containers"]]
+    if "istio-proxy" not in names:
+        print(p["metadata"]["namespace"], p["metadata"]["name"])'
+
+# 네임스페이스별 상호 TLS 모드
+kubectl get peerauthentication -A \
+  -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,MODE:.spec.mtls.mode
+\`\`\`
+
+## 인가는 별도로 둔다
+
+상호 TLS 는 "누가 부르는가" 만 답한다. "무엇을 할 수 있는가" 는 인가 정책이다.
+
+\`\`\`yaml
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata: { name: billing-allow, namespace: prod }
+spec:
+  selector: { matchLabels: { app: billing } }
+  action: ALLOW
+  rules:
+    - from: [{ source: { principals: ['cluster.local/ns/prod/sa/orders'] } }]
+      to: [{ operation: { methods: ['GET', 'POST'], paths: ['/internal/*'] } }]
+\`\`\`
+
+기본 거부 정책을 함께 두지 않으면 이 허용 정책은 의미가 없다.
+
 ## 참고
 
 - NIST SP 800-207, Zero Trust Architecture
@@ -252,6 +374,60 @@ dig +short db.example.com          # 사설 대역이 나와야 한다
 dig +short db.example.com @8.8.8.8 # 외부에서는 안 나오거나 공인 주소
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+데이터베이스를 인터넷에 노출한 채로 방화벽으로만 막은 사례가 있다. 규칙 하나가 잘못 열리자 즉시 스캔에 잡혔다. 애초에 공인 주소가 없었다면 규칙 실수가 사고로 이어지지 않았다.
+
+관리형 서비스도 마찬가지다. 기본 설정이 공개 엔드포인트인 경우가 많다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 방화벽으로 막으면 된다 | 규칙 실수 한 번이면 열린다 |
+| 공인 주소가 있어도 접근은 통제된다 | 스캔 대상이 된다 |
+| 사설 연결은 복잡하다 | 대부분 설정 몇 줄이다 |
+| 내부 통신은 이미 사설이다 | 관리형 서비스는 공개 경로를 쓴다 |
+| 비용이 더 든다 | 데이터 전송 비용이 오히려 줄기도 한다 |
+
+## 무엇을 사설로 옮기는가
+
+| 대상 | 우선순위 |
+| --- | --- |
+| 데이터베이스 | 최우선 |
+| 캐시·검색 | 높음 |
+| 오브젝트 스토리지 | 높음 — 반출 통제도 함께 |
+| 비밀 관리 서비스 | 높음 |
+| 컨테이너 레지스트리 | 중간 |
+| 관리 API | 중간 |
+
+스토리지를 사설 엔드포인트로 옮기면 반출 통제도 함께 가능해진다. 엔드포인트 정책으로 우리 버킷만 허용하면, 침해되어도 외부 버킷으로 데이터를 보낼 수 없다.
+
+\`\`\`json
+{
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": "*",
+    "Action": ["s3:GetObject", "s3:PutObject"],
+    "Resource": ["arn:aws:s3:::our-bucket/*"],
+    "Condition": { "StringEquals": { "aws:PrincipalAccount": "111122223333" } }
+  }]
+}
+\`\`\`
+
+## 점검 절차
+
+\`\`\`bash
+# 공인 주소가 붙은 데이터베이스
+aws rds describe-db-instances \
+  --query 'DBInstances[?PubliclyAccessible==\`true\`].[DBInstanceIdentifier,Endpoint.Address]' \
+  --output table
+
+# 사설 엔드포인트가 없는 서비스
+aws ec2 describe-vpc-endpoints \
+  --query 'VpcEndpoints[].[ServiceName,VpcEndpointType,State]' --output table
+\`\`\`
+
 ## 참고
 
 - NIST SP 800-207, Zero Trust Architecture
@@ -332,6 +508,55 @@ done | sort -u
 comm -3 <(sort registered-ips.txt) <(sort actual-egress-ips.txt)
 # 왼쪽만 있으면 등록만 되고 안 쓰이는 주소, 오른쪽만 있으면 등록 누락
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+협력사가 우리 접속 주소를 허용 목록에 넣어야 했는데, 주소가 계속 바뀐 사례가 있다. 인스턴스마다 다른 공인 주소로 나갔고, 확장하면 새 주소가 생겼다. 연동이 간헐적으로 실패했다.
+
+반대로 주소를 고정했는데 그 주소가 노출돼 표적이 된 경우도 있다. 아웃바운드 전용인데 인바운드도 열려 있었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 나가는 주소는 신경 안 써도 된다 | 상대가 허용 목록을 요구한다 |
+| 고정하면 관리가 끝난다 | 확장·리전 추가 시 늘어난다 |
+| 주소가 곧 인증이다 | 보조 수단일 뿐이다 |
+| 하나면 충분하다 | 가용성을 위해 여러 개 필요하다 |
+| 노출돼도 무해하다 | 공격 표면이 된다 |
+
+## 어떻게 구성하는가
+
+| 항목 | 권장 |
+| --- | --- |
+| 개수 | 가용 영역마다 하나 이상 |
+| 안정성 | 탄력적 주소로 고정 |
+| 문서화 | 주소 목록과 용도를 관리 |
+| 통지 | 변경 시 상대에게 사전 통지 |
+| 인바운드 | 완전 차단 |
+| 대체 | 주소 대신 상호 TLS 나 서명 |
+
+주소 기반 허용은 보조 수단이다. 상대가 요구하면 제공하되, 인증은 별도로 둔다.
+
+## 주소가 늘어나는 것을 관리한다
+
+1. 나가는 주소 목록을 한곳에서 관리한다
+2. 새 리전·가용 영역 추가 시 목록을 갱신한다
+3. 상대에게 알릴 절차와 기한을 정한다
+4. 목록을 공개 가능한 형태로 제공한다 — 문서나 API
+5. 사용하지 않는 주소는 회수한다
+
+\`\`\`bash
+# 지금 나가는 주소 목록 — 상대에게 줄 자료
+aws ec2 describe-nat-gateways \
+  --query 'NatGateways[?State==\`available\`].[NatGatewayId,NatGatewayAddresses[].PublicIp]' \
+  --output text
+
+# 실제로 어떤 주소로 나가는지 확인 — 서버에서
+curl -s https://api.ipify.org; echo
+\`\`\`
+
+여러 서버에서 같은 값이 나와야 고정된 것이다. 다르면 경로가 여러 개다.
 
 ## 참고
 
@@ -424,6 +649,59 @@ curl -s -o /dev/null https://app.example.com/ -H 'X-Forwarded-For: 1.1.1.1'
 tail -3 access.log
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+접속 주소를 헤더에서 그대로 읽은 사례가 있다. 클라이언트가 그 헤더를 직접 보내자 원하는 주소로 위장할 수 있었다. 주소 기반 차단과 한도가 모두 우회됐다.
+
+반대로 프록시를 신뢰하지 않아 모든 접속이 같은 주소로 보인 경우도 있다. 한도가 전체에 걸려 정상 사용자가 막혔다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 헤더에 있는 주소가 실제다 | 클라이언트가 넣을 수 있다 |
+| 첫 번째 값이 실제다 | 신뢰 경계에 따라 다르다 |
+| 마지막 값이 안전하다 | 프록시 수를 알아야 한다 |
+| 프레임워크가 알아서 한다 | 설정해야 동작한다 |
+| 하나만 보면 된다 | 여러 헤더가 섞여 온다 |
+
+## 어떻게 판별하는가
+
+신뢰하는 프록시 수를 알아야 한다. 그 수만큼 뒤에서 세어 가져온다.
+
+| 상황 | 방법 |
+| --- | --- |
+| 프록시 1단 | 헤더의 마지막 값 |
+| 프록시 여러 단 | 신뢰 홉 수만큼 뒤에서 |
+| 클라우드 로드밸런서 | 전용 헤더 사용 |
+| CDN + 로드밸런서 | CDN 전용 헤더 우선 |
+
+가장 확실한 것은 앞단에서 헤더를 덮어쓰는 것이다. 클라이언트가 보낸 값을 지우고 우리가 다시 쓴다.
+
+\`\`\`nginx
+# 클라이언트가 보낸 값을 무시하고 우리가 정한다
+proxy_set_header X-Forwarded-For $remote_addr;      # 덧붙이지 않고 덮어쓴다
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-Proto $scheme;
+\`\`\`
+
+\`\`\`ts
+// 신뢰 홉 수를 명시한다 — 자동 추론에 맡기지 않는다
+app.set('trust proxy', 2)     // CDN + 로드밸런서
+
+// 직접 파싱한다면 뒤에서 세어 온다
+function clientIp(req, trustedHops = 2) {
+  const chain = (req.headers['x-forwarded-for'] ?? '').split(',').map((s) => s.trim())
+  return chain[chain.length - trustedHops] ?? req.socket.remoteAddress
+}
+\`\`\`
+
+\`\`\`bash
+# 헤더를 위조해 보내 봤을 때 그대로 반영되는지
+curl -s https://stg.example.com/api/whoami -H 'X-Forwarded-For: 1.2.3.4'
+# 응답에 1.2.3.4 가 나오면 위조가 가능하다
+\`\`\`
+
 ## 참고
 
 - RFC 7239 — Forwarded HTTP Extension
@@ -505,6 +783,68 @@ ss -tlnp | awk '$1=="LISTEN" {print $4, $6}' | sort
 ip6tables -S 2>/dev/null | head -20 || echo 'IPv6 규칙 없음'
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+방화벽 규칙을 IPv4 로만 만든 사례가 있다. 서버에 IPv6 주소가 자동으로 붙었고, 그 경로로는 아무 규칙이 없었다. 관리 포트가 그대로 열려 있었다.
+
+자산 목록에도 IPv4 만 있던 경우가 흔하다. 스캔 대상에서 빠져 몇 년간 점검되지 않았다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| IPv6 를 쓰지 않는다 | 자동으로 붙어 있는 경우가 많다 |
+| 규칙은 함께 적용된다 | 대부분 별도 규칙이다 |
+| 주소 공간이 넓어 스캔이 안 된다 | 여러 방법으로 찾힌다 |
+| 자산 목록에 있다 | IPv4 만 있는 경우가 많다 |
+| 내부에서만 쓴다 | 공인 주소가 붙기도 한다 |
+
+## 어떻게 찾는가
+
+무작위 스캔은 어렵지만 다른 경로로 찾을 수 있다.
+
+| 방법 | 찾는 것 |
+| --- | --- |
+| DNS AAAA 레코드 | 이름이 붙은 자산 |
+| 인증서 투명성 로그 | 호스트명 목록 |
+| 클라우드 API | 할당된 주소 전체 |
+| 서버 인터페이스 조회 | 실제 붙어 있는 주소 |
+| 흐름 로그 | 실제 통신하는 주소 |
+
+## 점검 절차
+
+\`\`\`bash
+# 서버에 실제로 붙어 있는 공인 IPv6 주소
+for h in $(cat hosts.txt); do
+  ssh "$h" "ip -6 addr show scope global | grep -oE '([0-9a-f]{1,4}:){2,}[0-9a-f]{0,4}'" 2>/dev/null |
+    sed "s|^|$h |"
+done
+
+# 그 주소에 관리 포트가 열려 있는지
+nmap -6 -Pn -p 22,3389,5985,6443 --open $(cat ipv6-hosts.txt)
+
+# 클라우드에서 할당된 주소
+aws ec2 describe-instances \
+  --query 'Reservations[].Instances[].[InstanceId,Ipv6Address,NetworkInterfaces[].Ipv6Addresses[].Ipv6Address]' \
+  --output text | grep -v '^\s*$'
+\`\`\`
+
+## 무엇을 정리하는가
+
+1. 쓰지 않으면 끈다 — 가장 확실하다
+2. 쓴다면 IPv4 와 같은 규칙을 만든다
+3. 자산 목록에 IPv6 컬럼을 추가한다
+4. 정기 스캔 대상에 포함한다
+5. 로그와 차단 목록이 IPv6 를 처리하는지 확인한다
+
+마지막 항목을 놓치기 쉽다. 차단 목록이 IPv4 만 지원하면 IPv6 로 우회된다.
+
+\`\`\`bash
+# 방화벽에 IPv6 규칙이 있는지
+ip6tables -L -n | head -20
+# 비어 있거나 기본 정책이 ACCEPT 면 검토 대상이다
+\`\`\`
+
 ## 참고
 
 - CIS Controls v8, 1 기업 자산 목록과 12 네트워크 인프라 관리
@@ -584,6 +924,56 @@ done
 tail -3 /var/log/app/app.log | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(Z|[+-][0-9:]+)'
 # 오프셋 없이 지역 시각만 남으면 다른 시스템 로그와 이어 붙이기 어렵다
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+서버 시각이 어긋나 인증이 실패한 사례가 있다. 토큰 유효 구간을 벗어난 것으로 판정됐고, 원인을 찾는 데 하루가 걸렸다. 로그에는 서로 다른 시각이 찍혀 있어 순서를 세울 수도 없었다.
+
+반대로 시각을 임의로 조작해 로그를 흐린 침해 사례도 있다. 시각 동기화가 없으면 그것을 알아채지 못한다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 시각은 알아서 맞는다 | 동기화가 깨진 서버가 늘 있다 |
+| 몇 초 차이는 무해하다 | 인증과 서명에 영향을 준다 |
+| 시간대만 맞으면 된다 | UTC 로 통일해야 순서가 맞는다 |
+| 시각 서버는 아무거나 쓴다 | 신뢰할 수 있는 출처여야 한다 |
+| 보안과 무관하다 | 인증·로그·증거의 기반이다 |
+
+## 무엇이 영향을 받는가
+
+| 대상 | 영향 |
+| --- | --- |
+| 토큰 유효 구간 | 인증 실패 또는 만료된 토큰 통과 |
+| 서명 검증 | 시각 창을 벗어남 |
+| 인증서 | 유효 기간 판정 |
+| 일회용 번호 | 시각 기반이면 실패 |
+| 로그 순서 | 조사 불가 |
+| 증거 능력 | 시각 신뢰성 |
+
+## 무엇을 확인하는가
+
+1. 모든 서버가 동기화돼 있는가
+2. 시간대가 UTC 로 통일돼 있는가
+3. 같은 시각 서버를 보고 있는가
+4. 동기화 실패가 경보로 오는가
+5. 오차 허용 범위가 서비스별로 적절한가
+
+\`\`\`bash
+# 동기화 상태와 오차 — 어긋난 서버를 찾는다
+for h in $(cat hosts.txt); do
+  printf '%-24s ' "$h"
+  ssh "$h" "timedatectl show -p NTPSynchronized -p Timezone --value 2>/dev/null | tr '\n' ' '; \
+            chronyc tracking 2>/dev/null | awk '/System time/{print \$4, \$5}'"
+  echo
+done | grep -vE 'yes UTC'
+
+# 우리 시각과 공인 시각의 차이
+ntpdate -q time.google.com 2>/dev/null | tail -1
+\`\`\`
+
+동기화 실패를 경보로 두는 것이 중요하다. 조용히 어긋나면 사고가 난 뒤에야 안다.
 
 ## 참고
 
@@ -682,6 +1072,56 @@ nmap -Pn -p 22,3306,5432,6379,9200 10.20.0.0/24 --open
 # 경보가 없으면 침해 후 탐색을 놓치는 구성이다
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+노출 포트를 줄이는 대신 스캔 탐지에만 투자한 사례가 있다. 경보는 하루 수백 건 왔지만 아무 조치도 없었다. 인터넷은 항상 스캔되고 있으므로 탐지 자체는 정보가 아니다.
+
+반대로 포트를 줄이고 나서 스캔 경보가 의미를 갖게 된 경우도 있다. 열린 포트가 세 개뿐이니 다른 포트로 오는 연결은 명백한 탐색이었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 스캔 탐지가 방어다 | 노출을 줄이는 것이 먼저다 |
+| 포트를 옮기면 안전하다 | 전 포트를 훑는다 |
+| 스캔은 공격의 전조다 | 상시 일어난다 |
+| 차단하면 막힌다 | 주소를 바꿔 다시 온다 |
+| 우리는 표적이 아니다 | 무차별 스캔이 대부분이다 |
+
+## 순서
+
+1. 열린 포트를 전수 조사한다 — 우리가 모르는 것이 있다
+2. 필요 없는 것을 닫는다
+3. 남은 것에 인증과 한도를 건다
+4. 관리 포트는 관문 뒤로 옮긴다
+5. 그다음 스캔 탐지를 의미 있게 쓴다
+
+## 무엇을 탐지에 쓰는가
+
+노출을 줄인 뒤에는 이런 신호가 의미를 갖는다.
+
+| 신호 | 의미 |
+| --- | --- |
+| 닫힌 포트로의 연결 시도 | 탐색 |
+| 짧은 시간 다수 포트 | 스캔 |
+| 서비스 배너 수집 시도 | 정찰 |
+| 알려진 경로 탐색 | 취약점 탐색 |
+| 내부에서의 스캔 | 침해 후 정찰 — 가장 중요 |
+
+마지막 항목이 실질적으로 유용하다. 외부 스캔은 일상이지만 내부에서 나가는 스캔은 정상이 아니다.
+
+\`\`\`bash
+# 우리 대역에서 실제로 열린 포트 전수 조사
+nmap -Pn -sS --top-ports 1000 --open -oG - $(cat cidrs.txt) |
+  awk '/Ports:/ {print $2, $0}' | sed 's/Ignored.*//' | head -30
+
+# 내부에서 나가는 스캔 탐지 — 한 출발지가 여러 대상에 접속 시도
+psql -Atc "
+  SELECT src_ip, count(DISTINCT dst_ip) AS targets, count(DISTINCT dst_port) AS ports
+  FROM flow_logs WHERE at > now() - interval '1 hour' AND action = 'REJECT'
+  GROUP BY 1 HAVING count(DISTINCT dst_ip) > 50 ORDER BY targets DESC"
+\`\`\`
+
 ## 참고
 
 - CIS Controls v8, 4 안전한 설정과 13 네트워크 모니터링
@@ -760,6 +1200,53 @@ done
 grep -E 'admin-[a-z]+@example\\.com' sso-access.log \\
   | awk '{print $5}' | sort | uniq -c | sort -rn | head
 # 업무 애플리케이션이 목록에 있으면 계정 분리가 지켜지지 않는 것이다
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+관리 도구가 업무망에 있던 조직에서, 직원 노트북 한 대가 침해되자 모니터링·배포·인프라 콘솔에 모두 닿았다. 관리 도구는 인증이 약했고 내부라 안전하다고 여겨졌다.
+
+관리 평면을 분리했는데 우회 경로가 남은 경우도 있다. 배포 파이프라인이 업무망에서 관리망으로 직접 연결됐다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 관리 도구는 내부용이다 | 가장 강한 권한을 가진 표적이다 |
+| 분리하면 불편하다 | 사고 범위가 크게 준다 |
+| VPN 안이면 관리망이다 | VPN 계정 하나가 전부다 |
+| 도구별로 인증하면 된다 | 경로 자체를 분리해야 한다 |
+| 한 번 나누면 끝이다 | 우회 경로가 계속 생긴다 |
+
+## 무엇을 관리 평면에 두는가
+
+| 대상 | 이유 |
+| --- | --- |
+| 클라우드·가상화 콘솔 | 인프라 전체 권한 |
+| 배포 파이프라인 | 코드 실행 권한 |
+| 비밀 관리 | 자격 증명 전체 |
+| 모니터링·로그 | 조사 능력, 은폐 가능 |
+| 디렉터리·신원 | 계정 전체 |
+| 데이터베이스 관리 도구 | 데이터 전체 |
+
+## 어떻게 분리하는가
+
+1. 관리 도구 목록을 만든다 — 대개 예상보다 많다
+2. 별도 도메인·별도 신원으로 옮긴다
+3. 전용 관리 단말에서만 접근하게 한다
+4. 다단계를 하드웨어 키로 강제한다
+5. 모든 접근을 기록하고 세션을 녹화한다
+6. 업무망에서 관리망으로의 직접 경로를 닫는다
+
+전용 관리 단말이 핵심이다. 그 단말은 메일과 웹 브라우징을 하지 않는다. 침해 경로의 대부분이 그 둘이다.
+
+\`\`\`bash
+# 관리 도구가 업무망에서 접근되는지 (업무망 단말에서)
+for u in https://console.cloud.example.com https://ci.example.com https://vault.example.com; do
+  printf '%-40s ' "$u"
+  curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 "$u"
+done
+# 200 이나 302 가 나오면 업무망에서 닿는 것이다
 \`\`\`
 
 ## 참고
@@ -851,6 +1338,58 @@ curl -s "https://crt.sh/?q=%25.example.com&output=json" \\
   | python3 -c 'import sys,json;[print(r["name_value"]) for r in json.load(sys.stdin)]' \\
   | tr '\\n' '\\n' | sort -u | head -30
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+경로 탈취로 트래픽이 우회된 사례가 있다. 공격자가 우리 대역을 더 구체적인 경로로 광고했고, 일부 지역의 트래픽이 그쪽으로 흘렀다. 인증서까지 발급받아 중간에서 복호할 수 있었다.
+
+대부분의 조직은 자체 대역이 없어 직접 대상은 아니다. 그러나 우리가 의존하는 서비스가 당하면 영향은 같다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 우리와 무관하다 | 의존하는 서비스가 당하면 영향받는다 |
+| HTTPS 면 안전하다 | 인증서를 새로 발급받을 수 있다 |
+| 통신사가 알아서 막는다 | 검증이 보편적이지 않다 |
+| 드문 일이다 | 정기적으로 관측된다 |
+| 할 수 있는 것이 없다 | 도메인 쪽에서 할 수 있다 |
+
+## 우리가 할 수 있는 것
+
+자체 대역이 없어도 도메인과 인증서 쪽에서 방어할 수 있다.
+
+| 조치 | 막는 것 |
+| --- | --- |
+| CAA 레코드 | 지정한 기관만 인증서 발급 |
+| 인증서 투명성 감시 | 우리 이름의 새 인증서 탐지 |
+| 인증서 고정 | 다른 인증서 거부 |
+| DNSSEC | DNS 응답 위조 |
+| 다중 경로 확인 | 여러 지역에서 응답 비교 |
+| RPKI (대역 보유 시) | 경로 광고 검증 |
+
+CAA 와 인증서 투명성 감시가 비용 대비 효과가 크다. 둘 다 설정과 알림 등록으로 끝난다.
+
+\`\`\`bash
+# CAA 레코드 확인 — 없으면 아무 기관이나 발급할 수 있다
+dig +short CAA example.com
+# 예: 0 issue "letsencrypt.org"
+
+# 우리 이름으로 발급된 인증서 목록 — 모르는 것이 있는지
+curl -s "https://crt.sh/?q=%25.example.com&output=json" |
+  python3 -c 'import sys,json
+for r in sorted(json.load(sys.stdin), key=lambda x: x["entry_timestamp"], reverse=True)[:15]:
+    print(r["entry_timestamp"][:10], r["issuer_name"][:40], r["common_name"])'
+\`\`\`
+
+인증서 투명성 로그에 모르는 인증서가 나타나면 즉시 확인한다. 발급 자체가 신호다.
+
+## 감시를 자동화한다
+
+1. CAA 레코드를 설정한다
+2. 인증서 투명성 알림을 등록한다 — 새 발급 시 메일
+3. 여러 지역에서 응답을 비교하는 감시를 둔다
+4. 이상 시 확인 절차를 절차서에 적는다
 
 ## 참고
 
