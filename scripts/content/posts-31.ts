@@ -1510,7 +1510,7 @@ aws backup list-recovery-points-by-backup-vault --backup-vault-name Default \\
 
 마지막 항목이 실질적이다. 전부 옮기는 계획은 실행되지 않는다. 핵심만 옮기는 최소 계획이 있어야 한다.
 
-## 종속을 줄이는 설계
+## 종속을 낮추는 방법
 
 | 방법 | 효과 |
 | --- | --- |

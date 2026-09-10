@@ -117,7 +117,7 @@ aws guardduty describe-organization-configuration --detector-id "$DET" \\
 
 자격 증명 관련 탐지에 가장 먼저 대응 절차를 붙인다. 오탐이 적고 영향이 크다.
 
-## 비용은 어떻게 붙는가
+## 데이터 소스별 과금 기준
 
 데이터 소스별로 처리량 기준이다. 무엇을 켜느냐가 비용을 정한다.
 
@@ -277,7 +277,7 @@ aws securityhub describe-standards-controls \\
 
 하나로 시작해 지적을 소화한 뒤 다음을 켜는 것이 유지된다.
 
-## 비용은 어떻게 붙는가
+## 검사 수 기준 과금
 
 | 항목 | 기준 |
 | --- | --- |
@@ -436,7 +436,7 @@ aws configservice select-resource-config \\
 | 규정 위반이 언제부터인가 | 규칙 평가 이력 |
 | 지금 위반 자원이 몇 개인가 | 규칙 대시보드 |
 
-## 비용은 어떻게 붙는가
+## 기록 항목 수와 비용
 
 | 항목 | 기준 |
 | --- | --- |
@@ -592,7 +592,7 @@ aws s3api get-object-lock-configuration --bucket "$LOG_BUCKET" 2>/dev/null \\
 
 데이터 이벤트를 전 버킷에 켜면 비용이 크다. 개인정보나 백업이 있는 버킷만 선별한다.
 
-## 비용은 어떻게 붙는가
+## 이벤트 유형별 과금
 
 | 항목 | 기준 |
 | --- | --- |
@@ -755,7 +755,7 @@ aws inspector2 list-findings \\
 | 컨테이너 이미지 | 저장소 푸시 시 |
 | 함수 | 코드와 의존성 |
 
-## 비용은 어떻게 붙는가
+## 대상 수 기준 과금
 
 | 대상 | 기준 |
 | --- | --- |

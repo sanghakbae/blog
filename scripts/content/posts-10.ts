@@ -836,7 +836,7 @@ grep -rE '(root:|admin:|BEGIN (RSA|OPENSSH) PRIVATE KEY)' _firmware.bin.extracte
 | 기능이 단순해 위험이 적다 | 인증이 없는 경우가 많다 |
 | 제조사가 관리한다 | 지원 종료 후에는 아무도 안 한다 |
 
-## 최소 요건
+## 최소한 갖출 것
 
 | 항목 | 기준 |
 | --- | --- |
@@ -969,7 +969,7 @@ dig +short TXT _dmarc.example.com
 
 DMARC 가 핵심이다. 앞의 둘이 통과해도 화면에 보이는 보낸이와 일치하지 않으면 사칭이므로, 그 정렬을 보는 것이 DMARC 다.
 
-## 단계적 적용
+## 적용 순서
 
 1. DMARC 를 p=none 으로 두고 보고서를 받는다 — 2~4주
 2. 보고서에서 우리 도메인으로 보내는 시스템을 전부 찾는다
