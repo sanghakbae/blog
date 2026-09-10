@@ -76,6 +76,66 @@ app.use((req, res, next) => {
 })
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+요청 출처를 그대로 응답에 돌려주고 자격 증명 허용까지 켠 사례가 있다. 여러 협력사 도메인을 허용해야 해서 목록 대신 요청 헤더를 반사한 것이다. 그러면 모든 사이트가 허용된 것과 같고, 피해자가 그 사이트를 방문하는 순간 우리 API 를 피해자 권한으로 호출할 수 있다.
+
+접두 일치로 검증한 경우도 뚫린다. 우리 도메인으로 시작하는지만 확인하면 공격자가 그 문자열을 포함한 도메인을 등록하면 된다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| CORS 는 서버를 보호한다 | 브라우저의 읽기를 제한할 뿐이다 |
+| 출처를 반사해도 안전하다 | 전체 허용과 같다 |
+| 접두 일치면 충분하다 | 문자열을 포함한 도메인 등록이 가능하다 |
+| null 출처는 무해하다 | 샌드박스 프레임이 보낸다 |
+| 사전 요청이 막아 준다 | 단순 요청에는 사전 요청이 없다 |
+
+## 위험한 조합
+
+| 출처 설정 | 자격 증명 허용 | 결과 |
+| --- | --- | --- |
+| 정확한 목록 | 허용 | 안전 |
+| 정확한 목록 | 미허용 | 안전 |
+| 반사 | 허용 | 전면 노출 |
+| 와일드카드 | 허용 | 브라우저가 거부(설정 오류) |
+| 와일드카드 | 미허용 | 공개 API 로만 |
+
+반사와 자격 증명 허용이 만나는 지점이 사고다. 둘 중 하나만 있으면 피해가 제한된다.
+
+## 올바른 구현
+
+\`\`\`ts
+const ALLOWED = new Set(['https://app.example.com', 'https://admin.example.com'])
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  // 정확히 일치하는 것만. 반사도 접두 비교도 하지 않는다.
+  if (origin && ALLOWED.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Vary', 'Origin')          // 캐시가 출처별로 나뉘게
+  }
+  next()
+})
+\`\`\`
+
+Vary 헤더가 빠지면 캐시가 한 출처의 응답을 다른 출처에 준다.
+
+## 점검 절차
+
+\`\`\`bash
+# 임의 출처를 반사하는지
+for o in https://evil.example https://app.example.com.evil.example null; do
+  printf '%-36s ' "$o"
+  curl -sI https://api.example.com/me -H "Origin: $o" |
+    grep -i 'access-control-allow-origin' | tr -d '\r'
+  echo
+done
+# 첫 번째나 두 번째가 그대로 돌아오면 취약하다
+\`\`\`
+
 ## 참고
 
 - MDN — Cross-Origin Resource Sharing (CORS)
@@ -146,6 +206,53 @@ done
 <!-- 로컬 파일로 열어 화면이 뜨면 방어가 없는 것이다 -->
 <iframe src="https://app.example.com/settings" width="800" height="600"></iframe>
 \`\`\`
+
+## 실제로 이렇게 터진다
+
+관리자 화면이 프레임 차단 없이 열려 있던 사례가 있다. 공격자는 투명한 프레임으로 그 화면을 덮고 그 위에 다른 버튼을 놓았다. 관리자가 무해해 보이는 버튼을 누르면 실제로는 프레임 안의 권한 부여 버튼이 눌렸다.
+
+헤더를 붙였는데 효과가 없던 경우도 있다. 옛 헤더만 설정하고 새 정책 지시어를 빼서, 일부 브라우저에서만 동작했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 로그인해야 보이는 화면은 안전하다 | 피해자가 로그인 상태다 |
+| 옛 헤더 하나면 충분하다 | 정책 지시어가 표준이다 |
+| 프레임 안에서 못 읽으니 무해하다 | 클릭을 훔치는 것이 목적이다 |
+| 시각적으로 눈치챈다 | 투명하게 겹친다 |
+| 모바일 앱은 무관하다 | 웹뷰가 같은 문제를 갖는다 |
+
+## 무엇을 설정하는가
+
+| 설정 | 역할 |
+| --- | --- |
+| frame-ancestors | 표준, 어느 사이트가 프레임에 넣을 수 있는지 |
+| X-Frame-Options | 옛 브라우저 대비 |
+| SameSite 쿠키 | 프레임 안 요청에 쿠키가 안 붙게 |
+| 민감 동작 재인증 | 클릭만으로 끝나지 않게 |
+
+프레임을 막는 것과 함께, 되돌릴 수 없는 동작에 재인증을 붙이면 한 번의 클릭으로 끝나지 않는다.
+
+\`\`\`
+Content-Security-Policy: frame-ancestors 'self';
+X-Frame-Options: SAMEORIGIN
+\`\`\`
+
+## 점검 절차
+
+\`\`\`bash
+# 주요 경로에서 프레임 차단이 실제로 붙는지
+for p in / /admin /admin/users /settings; do
+  printf '%-16s ' "$p"
+  h=$(curl -sI "https://example.com$p")
+  echo "$h" | grep -qi 'frame-ancestors' && printf 'CSP ' || printf '--- '
+  echo "$h" | grep -qi 'x-frame-options' && printf 'XFO' || printf '---'
+  echo
+done
+\`\`\`
+
+정적 페이지와 오류 페이지에서 빠지는 경우가 많으니 대표 경로를 여럿 확인한다.
 
 ## 참고
 
@@ -221,6 +328,66 @@ function redirectAfterLogin(key: string | undefined) {
 }
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+로그인 후 원래 페이지로 돌려보내는 파라미터가 검증되지 않은 사례가 있다. 우리 도메인으로 시작하는 링크라 사용자는 믿었고, 로그인 뒤 공격자 사이트로 이동했다. 그 사이트는 우리 로그인 화면을 그대로 흉내 냈다.
+
+토큰이 함께 새는 경우도 있다. 리다이렉트 시 쿼리에 있던 값이 리퍼러로 전달됐다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 리다이렉트는 피해가 없다 | 피싱의 신뢰를 빌려준다 |
+| 우리 도메인으로 시작하면 안전하다 | 문자열 검사로는 부족하다 |
+| 상대 경로만 받으면 된다 | 두 슬래시로 시작하면 절대 주소다 |
+| 인코딩을 풀면 걸러진다 | 이중 인코딩이 있다 |
+| 경고 페이지를 두면 된다 | 사용자는 대개 넘긴다 |
+
+## 검증 방법
+
+목록 방식이 가장 안전하다. 자유 입력을 받아야 한다면 파싱해서 호스트를 비교한다.
+
+\`\`\`ts
+const ALLOWED_HOSTS = new Set(['example.com', 'app.example.com'])
+
+function safeRedirect(next: string, fallback = '/'): string {
+  // 상대 경로만 허용하는 것이 가장 단순하고 안전하다
+  if (/^\/(?!\/)/.test(next)) return next
+
+  try {
+    const u = new URL(next, 'https://example.com')
+    if (u.protocol !== 'https:') return fallback
+    if (!ALLOWED_HOSTS.has(u.hostname)) return fallback     // 정확히 일치
+    return u.toString()
+  } catch {
+    return fallback
+  }
+}
+\`\`\`
+
+정규식 \`^\/(?!\/)\` 가 핵심이다. 슬래시 하나로 시작하되 둘은 아닌 것만 상대 경로다.
+
+## 어디를 확인하는가
+
+| 자리 | 흔한 이름 |
+| --- | --- |
+| 로그인 후 이동 | next, redirect, return, continue |
+| 로그아웃 후 | logout_redirect |
+| 외부 연동 콜백 | callback, redirect_uri |
+| 단축 링크 | url, target |
+| 오류 후 복귀 | back, from |
+
+\`\`\`bash
+# 리다이렉트가 검증되는지 시험한다
+for n in '//evil.example' 'https://evil.example' '/\evil.example' 'https:/\/\evil.example'; do
+  printf '%-30s ' "$n"
+  curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' \
+    "https://stg.example.com/login?next=$(printf %s "$n" | jq -sRr @uri)"
+done
+# 외부 주소가 redirect_url 에 나오면 취약하다
+\`\`\`
+
 ## 참고
 
 - OWASP Cheat Sheet — Unvalidated Redirects and Forwards
@@ -294,6 +461,58 @@ for m in GET PATCH DELETE; do
   curl -s -o /dev/null -w '%{http_code}\\n' -X $m \\
     -H "Authorization: Bearer $B" "https://api.example.com/orders/$ID"
 done
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+파일 다운로드 주소가 순차 번호였던 사례가 있다. 자기 파일을 내려받은 뒤 번호를 하나씩 바꾸자 다른 회사의 계약서가 나왔다. 인증은 통과했고 파일 소유 확인만 빠져 있었다.
+
+식별자를 무작위로 바꿔 해결했다고 판단한 경우도 있다. 추측은 어려워졌지만 유출된 식별자에는 여전히 무력했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 무작위 식별자면 해결된다 | 늦출 뿐, 소유 확인이 필요하다 |
+| 목록에 없으면 접근 못 한다 | 상세 조회는 별개 경로다 |
+| 조회만 막으면 된다 | 수정·삭제·다운로드가 남는다 |
+| 프런트에서 필터링한다 | 응답은 이미 나갔다 |
+| 관리자 API 는 숨겨져 있다 | 번들에 경로가 있다 |
+
+## 어디에 검사를 두는가
+
+| 방식 | 안전성 | 이유 |
+| --- | --- | --- |
+| 조회 후 소유 비교 | 낮음 | 빠뜨리기 쉽고 존재가 노출된다 |
+| 질의 조건에 소유 포함 | 높음 | 없으면 결과가 0건 |
+| 데이터 계층에서 강제 | 매우 높음 | 우회 질의도 덮인다 |
+| 데이터베이스 정책 | 가장 높음 | 애플리케이션 밖에서도 적용 |
+
+질의 조건에 넣는 방식이 실무적 최선이다. 조회 후 비교는 검사를 빠뜨린 코드가 그대로 통과한다.
+
+\`\`\`ts
+// 위험 — 먼저 가져오고 나중에 비교한다
+const file = await db.file.findUnique({ where: { id } })
+if (file.ownerId !== actor.id) throw new Forbidden()
+
+// 안전 — 소유 조건이 질의에 들어간다
+const file = await db.file.findFirst({ where: { id, ownerId: actor.id } })
+if (!file) return res.status(404).end()      // 존재 여부도 숨긴다
+\`\`\`
+
+404 를 주는 것도 의도적이다. 403 은 그 식별자의 자원이 존재한다는 정보를 준다.
+
+## 회귀를 막는 시험
+
+\`\`\`bash
+# 다른 사용자의 자원에 접근되는지 — 메서드별로 확인한다
+for m in GET PUT PATCH DELETE; do
+  printf '%-7s ' "$m"
+  curl -s -o /dev/null -w '%{http_code}\n' -X "$m" \
+    "https://stg.example.com/api/files/$OTHER_USERS_FILE_ID" \
+    -H "Authorization: Bearer $TOKEN_A"
+done
+# 전부 404 여야 한다. 200 이나 403 이 나오면 검토 대상이다
 \`\`\`
 
 ## 참고
@@ -374,6 +593,63 @@ app.patch('/me', async (req, res) => {
 })
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+프로필 수정 API 가 요청 본문을 그대로 모델에 넘긴 사례가 있다. 화면에는 이름과 소개만 있었지만, 요청에 역할 필드를 추가하자 그대로 반영됐다. 사용자가 스스로 관리자가 됐다.
+
+결제 관련 필드가 노출된 경우도 있다. 주문 생성 시 금액 필드를 함께 보내면 서버가 받아들였다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 화면에 없으면 안 보낸다 | 요청은 직접 만든다 |
+| 모델이 알아서 걸러 준다 | 기본은 전부 허용이다 |
+| 필요한 것만 검증하면 된다 | 허용 목록이어야 한다 |
+| 생성만 조심하면 된다 | 수정이 더 위험하다 |
+| 중첩 객체는 안 넘어간다 | 관계까지 함께 반영되는 경우가 있다 |
+
+## 허용 목록으로 바꾸기
+
+받을 필드를 명시하는 것이 유일한 해법이다. 제외 목록은 필드가 늘어날 때마다 빠진다.
+
+\`\`\`ts
+// 위험 — 요청 본문 전체를 넘긴다
+await db.user.update({ where: { id }, data: req.body })
+
+// 안전 — 스키마로 받을 것만 정의하고, 그 밖은 거부한다
+const Patch = z.object({
+  name: z.string().min(1).max(60),
+  bio: z.string().max(500).optional(),
+}).strict()                       // 정의되지 않은 키가 오면 실패
+
+const data = Patch.parse(req.body)
+await db.user.update({ where: { id: actor.id }, data })
+\`\`\`
+
+\`.strict()\` 가 중요하다. 모르는 필드를 조용히 무시하면 공격 시도가 로그에도 안 남는다.
+
+## 응답에도 같은 원칙
+
+입력만 좁히고 출력을 열어 두면 정보가 샌다.
+
+\`\`\`ts
+const PUBLIC_FIELDS = ['id', 'name', 'bio', 'avatarUrl'] as const
+return res.json(pick(user, PUBLIC_FIELDS))
+\`\`\`
+
+## 점검 절차
+
+\`\`\`bash
+# 권한 필드를 함께 보내 반영되는지 확인한다
+curl -s -X PATCH https://stg.example.com/api/me \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name":"test","role":"admin","emailVerified":true,"credits":999999}'
+curl -s https://stg.example.com/api/me -H "Authorization: Bearer $TOKEN" |
+  python3 -c 'import sys,json;d=json.load(sys.stdin);print({k:d.get(k) for k in ("role","emailVerified","credits")})'
+# 값이 바뀌었으면 대량 할당이 가능한 것이다
+\`\`\`
+
 ## 참고
 
 - OWASP API Security Top 10 — API6 Mass Assignment
@@ -440,6 +716,48 @@ printf 'POST / HTTP/1.1\\r\\nHost: stg.example.com\\r\\nTransfer-Encoding : chun
 \`\`\`
 
 응답 시간이 비정상적으로 길어지는 방식이 표준적인 탐지법이다. 시간 기반 확인은 다른 사용자에게 영향을 줄 수 있어 반드시 격리 환경에서 한다.
+
+## 실제로 이렇게 터진다
+
+앞단 프록시와 뒷단 서버가 요청 경계를 다르게 해석한 사례가 있다. 하나는 길이 헤더를, 다른 하나는 청크 인코딩을 우선했다. 공격자가 두 헤더를 모두 넣은 요청을 보내자, 뒷단은 요청 하나를 둘로 봤다. 남은 절반이 다음 사용자의 요청 앞에 붙어 그 사용자의 응답을 오염시켰다.
+
+관리자 경로 접근에 쓰인 경우도 있다. 앞단에서 차단하는 경로를 밀반입한 절반에 담으면 뒷단이 그대로 처리했다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 프록시가 있으면 안전하다 | 해석 차이가 원인이다 |
+| HTTPS 면 막힌다 | 종단 간이 아니라 구간별이다 |
+| 드문 공격이다 | 계층이 많을수록 흔해진다 |
+| 앞단 차단으로 충분하다 | 밀반입된 요청은 앞단을 안 거친다 |
+| 한 번 고치면 끝이다 | 구성 요소를 바꾸면 다시 본다 |
+
+## 무엇이 원인인가
+
+| 상황 | 해석 차이 |
+| --- | --- |
+| 두 헤더가 모두 존재 | 어느 것을 우선하는가 |
+| 헤더 이름 변형 | 공백·대소문자 처리 |
+| 청크 크기 표기 변형 | 관대한 파서와 엄격한 파서 |
+| 헤더 중복 | 첫 값과 마지막 값 |
+
+## 어떻게 막는가
+
+1. 앞단과 뒷단의 HTTP 파서를 같은 계열로 맞춘다
+2. 두 헤더가 함께 오면 거부한다 — 정상 요청에는 없다
+3. 앞단에서 뒷단으로 HTTP/2 를 쓰면 경계 모호성이 줄어든다
+4. 연결 재사용을 끄면 영향이 줄지만 성능 비용이 있다
+5. 비정상 요청을 거부하고 로그로 남긴다
+
+\`\`\`bash
+# 두 헤더를 함께 보냈을 때 거부하는지 확인한다 (스테이징에서만)
+printf 'POST /api/echo HTTP/1.1\r\nHost: stg.example.com\r\nContent-Length: 6\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\nX' |
+  openssl s_client -quiet -connect stg.example.com:443 2>/dev/null | head -1
+# 400 이 나와야 한다. 200 이면 둘 중 하나를 골라 처리한 것이다
+\`\`\`
+
+이 시험은 운영에서 하지 않는다. 다른 사용자의 요청에 영향을 줄 수 있다.
 
 ## 참고
 
@@ -521,6 +839,58 @@ UPDATE accounts
    AND balance >= $1;
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+쿠폰 한 장을 여러 번 쓴 사례가 있다. 사용 여부를 조회하고 처리한 뒤 사용 표시를 하는 순서였는데, 동시에 열 번 요청하면 열 번 모두 조회 시점에 미사용이었다. 잔액 차감, 재고 감소, 초대 코드에서 같은 일이 생긴다.
+
+인출 한도를 우회한 경우도 있다. 한도 확인과 차감 사이에 다른 요청이 끼어들었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 트랜잭션이면 안전하다 | 격리 수준에 따라 다르다 |
+| 조회 후 검사면 충분하다 | 그 사이에 바뀐다 |
+| 사용자가 그렇게 못 보낸다 | 도구로 동시에 보낸다 |
+| 애플리케이션 잠금이면 된다 | 인스턴스가 여럿이면 무의미하다 |
+| 재시도로 해결된다 | 중복이 늘어난다 |
+
+## 무엇으로 막는가
+
+| 방법 | 적합 | 주의 |
+| --- | --- | --- |
+| 유일 제약 | 중복 생성 방지 | 가장 확실하다 |
+| 조건부 갱신 | 잔액·재고 차감 | 영향 행 수를 확인 |
+| 행 잠금 | 복잡한 갱신 | 교착 상태 주의 |
+| 분산 잠금 | 외부 자원 | 만료와 재진입 처리 |
+| 멱등 키 | 요청 중복 | 저장과 조회 필요 |
+
+데이터베이스가 보장하게 만드는 것이 가장 안전하다. 애플리케이션에서 순서를 맞추려는 시도는 인스턴스가 늘면 깨진다.
+
+\`\`\`sql
+-- 조건부 갱신 — 영향 행이 0이면 이미 쓰인 것이다
+UPDATE coupons SET used_by = $1, used_at = now()
+WHERE code = $2 AND used_by IS NULL;
+
+-- 잔액 차감 — 음수가 되지 않게 조건에 넣는다
+UPDATE accounts SET balance = balance - $1
+WHERE id = $2 AND balance >= $1;
+\`\`\`
+
+애플리케이션은 영향 행 수를 반드시 확인해야 한다. 0이면 실패로 처리한다.
+
+## 시험 방법
+
+\`\`\`bash
+# 동시에 보내 중복이 생기는지 — 순차 시험으로는 안 잡힌다
+for i in $(seq 1 20); do
+  curl -s -o /dev/null -w '%{http_code}\n' -X POST https://stg.example.com/api/coupons/use \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"code":"TESTCODE"}' &
+done; wait
+# 200 이 하나만 나와야 한다
+\`\`\`
+
 ## 참고
 
 - CWE-362: Concurrent Execution using Shared Resource
@@ -594,6 +964,68 @@ f.setXIncludeAware(false);
 f.setExpandEntityReferences(false);
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+문서 업로드 기능에서 서버 파일이 유출된 사례가 있다. 사무용 문서 형식이 내부적으로 XML 이었고, 파서가 외부 엔티티를 처리하도록 기본 설정돼 있었다. 문서 안에 파일 경로를 참조하는 엔티티를 넣자 그 내용이 응답에 포함됐다.
+
+이미지 업로드에서도 나온다. 벡터 이미지 형식이 XML 이라 같은 문제를 갖는다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| XML 을 안 쓴다 | 문서·이미지 형식 내부가 XML 이다 |
+| 파서가 알아서 막는다 | 오래된 기본값이 허용이다 |
+| 읽기만 가능하니 피해가 작다 | 키 파일 하나면 충분하다 |
+| 응답에 안 보이면 안전하다 | 외부로 내보내는 방식이 있다 |
+| 스키마 검증하면 막힌다 | 파싱은 검증 전에 일어난다 |
+
+## 어디에 XML 이 숨어 있는가
+
+| 형식 | 비고 |
+| --- | --- |
+| 사무용 문서 | 압축 안에 XML |
+| 벡터 이미지 | 그 자체가 XML |
+| 설정·연동 | 인증 응답, 피드 |
+| 이미지 메타데이터 | 내장된 XML 조각 |
+| 지도·도면 | 좌표 데이터 |
+
+## 무엇을 끄는가
+
+파서마다 이름은 다르지만 끄는 것은 같다 — 외부 엔티티, 외부 DTD, 엔티티 확장.
+
+\`\`\`python
+# 파이썬 — 방어적 파서를 쓰는 것이 가장 간단하다
+from defusedxml.ElementTree import parse
+tree = parse(fp)
+\`\`\`
+
+\`\`\`java
+// 자바 — 기능을 명시적으로 끈다
+var f = DocumentBuilderFactory.newInstance();
+f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+f.setFeature("http://xml.org/sax/features/external-general-entities", false);
+f.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+f.setXIncludeAware(false);
+f.setExpandEntityReferences(false);
+\`\`\`
+
+가장 확실한 것은 DOCTYPE 선언 자체를 거부하는 것이다. 대부분의 업무 문서에는 필요 없다.
+
+## 점검 절차
+
+\`\`\`bash
+# 외부 엔티티가 처리되는지 — 우리가 통제하는 주소로 확인한다
+cat > /tmp/xxe.xml <<'X'
+<?xml version="1.0"?>
+<!DOCTYPE r [<!ENTITY e SYSTEM "http://canary.example.net/xxe-probe">]>
+<r>&e;</r>
+X
+curl -s -X POST https://stg.example.com/api/import -H 'Content-Type: application/xml' \
+  --data-binary @/tmp/xxe.xml -o /dev/null
+# canary 서버에 요청이 도착하면 외부 엔티티가 처리된 것이다
+\`\`\`
+
 ## 참고
 
 - OWASP Cheat Sheet — XML External Entity Prevention
@@ -663,6 +1095,53 @@ curl -s -m 5 https://old.example.com | grep -iE "no such|not found|unclaimed|doe
 \`\`\`
 
 인증서 투명성 로그로 우리가 모르는 이름을 찾는 것도 효과적이다. 자산 목록에 없는 이름이 나오면 그 자체가 점검 대상이다.
+
+## 실제로 이렇게 터진다
+
+마케팅용으로 만든 서브도메인이 탈취된 사례가 있다. 외부 호스팅 서비스를 가리키던 별칭 레코드였는데, 그 서비스 계정을 해지하면서 레코드만 남았다. 누군가 같은 이름으로 그 서비스에 가입하자 우리 서브도메인이 그 사람의 페이지가 됐다.
+
+피해는 페이지 위조에서 끝나지 않는다. 우리 도메인의 쿠키를 읽을 수 있고, 우리 이름으로 인증서를 받을 수 있다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 안 쓰는 서브도메인은 무해하다 | 탈취 대상이 된다 |
+| 레코드가 남아도 응답이 없다 | 대상 서비스에서 다시 만들면 응답한다 |
+| 서브도메인은 별개 사이트다 | 쿠키와 신뢰를 공유한다 |
+| 우리는 서브도메인이 적다 | 인증서 로그를 보면 많다 |
+| 한 번 정리하면 끝이다 | 계속 생긴다 |
+
+## 위험한 레코드 유형
+
+| 상황 | 위험 |
+| --- | --- |
+| 별칭이 없어진 서비스 자원을 가리킴 | 매우 높음 |
+| A 레코드가 회수된 IP 를 가리킴 | 높음 |
+| 위임이 만료된 영역 | 높음 |
+| 사용 중인 서비스, 계정 유효 | 낮음 |
+
+## 정리 절차
+
+1. 인증서 투명성 로그로 우리 이름 전체를 모은다 — 목록보다 많다
+2. 각 이름의 해석 대상을 확인한다
+3. 대상이 없거나 오류를 주는 것을 후보로 뺀다
+4. 소유자를 찾아 아직 필요한지 확인한다
+5. 필요 없으면 레코드를 삭제한다 — 서비스만 지우지 말고 레코드까지
+6. 정기 점검을 자동화한다
+
+\`\`\`bash
+# 인증서 로그로 이름을 모으고, 대상이 사라진 것을 찾는다
+curl -s "https://crt.sh/?q=%25.example.com&output=json" |
+  python3 -c 'import sys,json;print("\n".join(sorted({r["common_name"] for r in json.load(sys.stdin)})))' |
+while read -r n; do
+  cname=$(dig +short CNAME "$n" | head -1)
+  [ -z "$cname" ] && continue
+  dig +short "$cname" | grep -q . || echo "$n -> $cname (대상 없음)"
+done
+\`\`\`
+
+레코드를 만들 때 소유자와 만료일을 함께 기록하는 규칙을 두면, 이 점검이 대조 작업으로 바뀐다.
 
 ## 참고
 
@@ -739,6 +1218,50 @@ curl -sI https://stg.example.com/api/search | grep -iE 'ratelimit|retry-after'
 경보 2  단일 계정에 서로 다른 IP 20개 이상에서 시도
 경보 3  로그인 실패율이 기준선의 3배 초과
 경보 4  가입 후 결제 전환율이 급락 — 자동 가입 신호
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+한도를 IP 기준으로만 건 서비스에서 재고가 전부 봇에게 넘어간 사례가 있다. 주거용 프록시를 쓰니 요청마다 주소가 달랐고, 한도는 아무것도 막지 못했다.
+
+반대로 차단을 세게 걸어 정상 사용자가 막힌 경우도 있다. 회사 네트워크에서 나오는 트래픽이 한 주소로 보여 대량 요청으로 판정됐다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| IP 로 구분할 수 있다 | 프록시와 공용 주소가 있다 |
+| 자동화 확인 문제로 해결된다 | 우회 서비스가 있다 |
+| 봇은 전부 나쁘다 | 검색 엔진과 모니터링도 봇이다 |
+| 차단이 목표다 | 비용을 올리는 것이 목표다 |
+| 한 번 막으면 끝이다 | 우회하고 다시 온다 |
+
+## 층을 겹친다
+
+한 가지로는 막히지 않는다. 각 층이 우회 비용을 조금씩 올린다.
+
+| 층 | 막는 것 | 우회 난도 |
+| --- | --- | --- |
+| 요청 수 한도 | 단순 반복 | 낮음 |
+| 계정·대상 기준 한도 | 주소 변경 우회 | 중간 |
+| 기기 지문 | 도구 재사용 | 중간 |
+| 행위 분석 | 사람 같지 않은 패턴 | 높음 |
+| 작업 증명 | 대량 시도의 비용 | 높음 |
+| 자동화 확인 | 마지막 관문 | 우회 서비스 존재 |
+
+## 정상 사용자를 막지 않는 방법
+
+1. 의심 점수를 매기고 점수에 따라 다르게 대응한다 — 즉시 차단은 최후
+2. 낮은 점수는 통과, 중간은 추가 확인, 높은 것만 차단
+3. 로그인한 사용자에게는 완화된 기준을 적용한다
+4. 차단 시 이유와 해제 경로를 알린다
+5. 오탐 신고 창구를 두고 지표로 관찰한다
+
+\`\`\`bash
+# 실제로 봇인지 판단할 재료 — 요청 특성을 집계한다
+awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -10
+awk -F'"' '{print $6}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -10
+# 한 주소에서 온 요청의 시간 간격이 일정하면 자동화다
 \`\`\`
 
 ## 참고
