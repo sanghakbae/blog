@@ -83,6 +83,57 @@ app.use((req, res, next) => {
 })
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+정책은 있는데 인라인 허용이 들어 있어 효과가 없던 사례가 흔하다. 도입 당시 화면이 깨져서 임시로 넣었고, 그대로 몇 년이 지났다. 점검 도구에서는 정책이 있다고 나오니 아무도 다시 보지 않았다.
+
+nonce 를 쓰면서 값을 고정한 경우도 있다. 요청마다 새로 만들어야 하는데 설정 파일에 상수로 박아 두었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 정책이 있으면 보호된다 | 인라인 허용이 있으면 무력하다 |
+| nonce 는 비밀값이다 | 예측 불가능하면 된다, 매 요청 새로 |
+| 해시 방식이 더 간단하다 | 스크립트가 바뀌면 매번 갱신해야 한다 |
+| strict-dynamic 은 위험하다 | 오히려 목록 관리를 없애 준다 |
+| 한 번 켜면 끝이다 | 화면이 바뀌면 다시 본다 |
+
+## 왜 nonce 로 옮기는가
+
+출처 목록 방식은 그 출처 안의 아무 파일이나 허용한다. 공개 CDN 하나를 허용하면 그 CDN 의 모든 스크립트가 실행 가능해진다. nonce 는 우리가 넣은 것만 허용한다.
+
+| 방식 | 허용 범위 | 관리 |
+| --- | --- | --- |
+| 출처 목록 | 그 출처 전체 | 목록 유지 |
+| 해시 | 그 내용 정확히 | 변경 시 갱신 |
+| nonce | 우리가 표시한 것 | 요청마다 생성 |
+| nonce + strict-dynamic | 표시된 것과 그것이 부른 것 | 목록 불필요 |
+
+## 옮기는 순서
+
+1. 보고 전용으로 nonce 정책을 함께 내려 본다 — 기존 정책은 유지
+2. 위반 보고에서 인라인 스크립트 위치를 찾는다
+3. 인라인을 외부 파일로 빼거나 nonce 를 붙인다
+4. 인라인 이벤트 속성을 제거한다 — 이것이 가장 오래 걸린다
+5. unsafe-inline 을 빼고 차단으로 전환한다
+6. strict-dynamic 을 추가해 출처 목록을 없앤다
+
+\`\`\`
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'nonce-{요청마다-무작위}' 'strict-dynamic';
+  object-src 'none';
+  base-uri 'self';
+  report-uri /csp-report
+\`\`\`
+
+\`\`\`bash
+# 인라인 이벤트 속성이 남아 있는지 — nonce 로도 못 막는다
+grep -rnoE 'on(click|load|error|submit|change|mouseover)=' \
+  --include='*.html' --include='*.jsx' --include='*.tsx' src/ | head -20
+\`\`\`
+
 ## 참고
 
 - MDN — Content Security Policy
@@ -167,6 +218,53 @@ curl -sI https://app.example.com/login -X POST \\
 
 \`\`\`js
 document.cookie.split('; ').map((c) => c.split('=')[0])
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+세션 쿠키에 도메인을 상위로 지정한 사례가 있다. 편의를 위해 전 서브도메인에서 쓰려고 했는데, 그중 하나가 외부 서비스에 위임돼 있었다. 그 서비스가 우리 세션 쿠키를 받게 됐다.
+
+Secure 를 빼고 개발한 뒤 그대로 배포한 경우도 있다. 로컬에서 HTTPS 가 아니라 붙였다가 잊은 것이다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| HttpOnly 면 안전하다 | 요청 위조는 그대로다 |
+| 도메인을 넓히면 편하다 | 서브도메인 전체가 읽는다 |
+| Secure 는 HTTPS 면 자동이다 | 명시하지 않으면 평문으로도 간다 |
+| SameSite 기본값이 있으니 된다 | 명시하는 편이 안전하다 |
+| 경로 제한은 보안 기능이다 | 격리 수단이 아니다 |
+
+## 속성별 판단
+
+| 속성 | 권장 | 이유 |
+| --- | --- | --- |
+| HttpOnly | 인증 쿠키에 필수 | 스크립트 접근 차단 |
+| Secure | 항상 | 평문 전송 방지 |
+| SameSite | Lax 이상 | 교차 사이트 전송 제한 |
+| Domain | 지정하지 않음 | 정확한 호스트로 한정된다 |
+| Path | 필요한 경로만 | 격리 목적은 아님 |
+| Max-Age | 짧게 | 세션 쿠키는 생략도 고려 |
+| 접두사 | __Host- 사용 | 속성 강제 |
+
+Domain 을 지정하지 않는 것이 핵심이다. 지정하면 하위 도메인 전체로 넓어진다.
+
+## 접두사를 쓰면 강제된다
+
+이름에 접두사를 붙이면 브라우저가 속성을 강제한다. 실수로 속성이 빠지는 것을 막는다.
+
+\`\`\`
+Set-Cookie: __Host-session=abc; Path=/; Secure; HttpOnly; SameSite=Lax
+\`\`\`
+
+이 접두사는 Secure 필수, Domain 금지, Path 는 루트를 요구한다. 하나라도 어기면 브라우저가 쿠키를 저장하지 않는다.
+
+\`\`\`bash
+# 지금 내려가는 쿠키의 속성 확인
+curl -sI -X POST https://stg.example.com/api/login -d 'id=t&pw=t' |
+  grep -i '^set-cookie' | tr ';' '\n' | sed 's/^ //'
+# HttpOnly, Secure, SameSite 가 모두 있어야 한다. Domain 이 있으면 검토 대상
 \`\`\`
 
 ## 참고
@@ -263,6 +361,56 @@ window.addEventListener('message', (event) => {
 frameRef.current?.contentWindow?.postMessage({ type: 'ready' }, 'https://pay.example.com')
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+프레임 간 통신에서 출처를 확인하지 않은 사례가 있다. 어떤 사이트든 우리 페이지를 프레임에 넣고 메시지를 보내면 그대로 처리됐다. 그 메시지로 화면 내용을 바꾸거나 요청을 유발할 수 있었다.
+
+반대로 보낼 때 대상 출처를 와일드카드로 둔 경우도 있다. 프레임이 다른 사이트로 이동하면 그 사이트가 메시지를 받는다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 우리 프레임끼리만 통신한다 | 누구나 메시지를 보낼 수 있다 |
+| 형식이 맞아야 처리된다 | 형식은 흉내 낼 수 있다 |
+| 대상 출처는 편의 설정이다 | 와일드카드는 유출 경로다 |
+| 받는 쪽만 확인하면 된다 | 보내는 쪽도 대상을 지정해야 한다 |
+| 내부 메시지는 신뢰한다 | 출처 확인 없이는 내부가 아니다 |
+
+## 양쪽에서 확인한다
+
+\`\`\`ts
+// 보낼 때 — 대상 출처를 명시한다. '*' 는 쓰지 않는다.
+frame.contentWindow?.postMessage(payload, 'https://widget.example.com')
+
+// 받을 때 — 출처와 형식을 모두 확인한다
+window.addEventListener('message', (e) => {
+  if (e.origin !== 'https://widget.example.com') return     // 출처
+  if (e.source !== frame.contentWindow) return              // 보낸 창까지 확인
+  const msg = Schema.safeParse(e.data)                      // 형식
+  if (!msg.success) return
+  handle(msg.data)
+})
+\`\`\`
+
+보낸 창까지 확인하는 것이 좋다. 같은 출처의 다른 창이 보낸 메시지를 구분할 수 있다.
+
+## 무엇을 주고받지 않는가
+
+| 항목 | 이유 |
+| --- | --- |
+| 인증 토큰 | 프레임이 이동하면 새어 나간다 |
+| 개인정보 | 로그와 확장 프로그램에 노출 |
+| 실행 가능한 코드 | 문자열을 평가하는 구조는 금지 |
+| 권한 판정 결과 | 위조 가능, 서버가 판정 |
+
+\`\`\`bash
+# 출처 검증 없는 수신 처리기 찾기
+grep -rnA5 "addEventListener('message'" src/ |
+  grep -B2 -A5 'message' | grep -L 'origin' | head
+grep -rn "postMessage(.*, *'\*'" src/ | head
+\`\`\`
+
 ## 참고
 
 - MDN — Window.postMessage
@@ -351,6 +499,65 @@ const Settings = z.object({ theme: z.enum(['light', 'dark']), density: z.number(
 const parsed = Settings.parse(req.body)     // 정의되지 않은 키는 거부
 const store = Object.create(null)           // 조상이 없는 객체
 Object.assign(store, parsed)
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+설정 병합 함수를 통해 전역 객체가 오염된 사례가 있다. 사용자가 보낸 JSON 에 특수 키가 들어 있었고, 깊은 병합 과정에서 그 값이 모든 객체의 기본값이 됐다. 이후 권한 확인 코드가 그 값을 참조하면서 우회가 성립했다.
+
+라이브러리를 통해 들어온 경우도 있다. 우리 코드에는 병합이 없었는데 의존성 안에 있었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 우리는 병합을 안 쓴다 | 라이브러리가 쓴다 |
+| JSON 파싱은 안전하다 | 파싱은 안전하나 이후 처리가 문제다 |
+| 특수 키만 막으면 된다 | 다른 경로도 있다 |
+| 서버에서만 문제다 | 클라이언트에서 스크립팅으로 이어진다 |
+| 영향이 제한적이다 | 전역에 영향을 준다 |
+
+## 어디에서 생기는가
+
+| 패턴 | 위험 |
+| --- | --- |
+| 깊은 병합 | 가장 흔하다 |
+| 경로 문자열로 값 설정 | 경로에 특수 키 |
+| 쿼리 문자열 파싱 | 중첩 표기 지원 시 |
+| 객체 복제 | 재귀 복사 |
+| 템플릿 데이터 병합 | 사용자 값과 기본값 결합 |
+
+## 어떻게 막는가
+
+1. 병합 대상 키를 허용 목록으로 제한한다
+2. 특수 키를 명시적으로 거부한다
+3. 프로토타입이 없는 객체를 쓴다
+4. 스키마로 검증한 뒤에만 병합한다
+5. 라이브러리를 최신으로 유지한다
+
+\`\`\`ts
+const BLOCKED = new Set(['__proto__', 'constructor', 'prototype'])
+
+function safeMerge(target: Record<string, unknown>, src: Record<string, unknown>) {
+  for (const k of Object.keys(src)) {
+    if (BLOCKED.has(k)) continue                    // 특수 키 거부
+    const v = src[k]
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      target[k] = safeMerge((target[k] as Record<string, unknown>) ?? Object.create(null), v as Record<string, unknown>)
+    } else {
+      target[k] = v
+    }
+  }
+  return target
+}
+
+// 사용자 입력을 담는 객체는 프로토타입 없이 만든다
+const params = Object.assign(Object.create(null), req.query)
+\`\`\`
+
+\`\`\`bash
+# 위험한 병합 패턴 찾기
+grep -rnE '(deepMerge|merge\(|extend\(|_\.merge|Object\.assign\(.*req\.(body|query))' src/ | head -20
 \`\`\`
 
 ## 참고
@@ -449,6 +656,58 @@ grep -rnE '\\(\\S*[+*]\\)[+*]' --include='*.ts' --include='*.js' src/ | head -20
 grep -rn 'new RegExp(' --include='*.ts' --include='*.js' src/
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+입력 검증용 정규식 하나로 서버가 멈춘 사례가 있다. 이메일 형식을 확인하는 패턴이었고, 특정 형태의 긴 문자열에서 시간이 기하급수적으로 늘어났다. 요청 몇 개로 CPU 가 포화됐다.
+
+라이브러리 안의 정규식이 원인인 경우도 있다. 우리 코드에는 없었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 정규식은 빠르다 | 역추적이 폭발할 수 있다 |
+| 짧은 패턴은 안전하다 | 길이와 무관하다 |
+| 입력 길이를 제한하면 된다 | 짧은 입력으로도 가능하다 |
+| 우리 정규식만 보면 된다 | 라이브러리 안에도 있다 |
+| 타임아웃을 걸면 해결된다 | 언어에 따라 지원하지 않는다 |
+
+## 위험한 패턴
+
+| 형태 | 문제 |
+| --- | --- |
+| 중첩된 수량자 | 조합이 폭발한다 |
+| 겹치는 선택 + 수량자 | 여러 경로로 일치 시도 |
+| 앞뒤로 열린 와일드카드 | 시작 위치마다 시도 |
+
+핵심은 같은 문자열을 여러 방식으로 일치시킬 수 있는 구조다. 실패할 때 그 모든 조합을 시도한다.
+
+## 어떻게 막는가
+
+1. 정규식 대신 문자열 함수를 쓴다 — 대부분 가능하다
+2. 필요하면 역추적이 없는 엔진을 쓴다
+3. 입력 길이를 먼저 제한한다 — 완전하진 않지만 도움이 된다
+4. 사용자 입력을 정규식으로 컴파일하지 않는다
+5. 검사 도구로 위험 패턴을 찾는다
+6. 타임아웃을 걸 수 있으면 건다
+
+\`\`\`bash
+# 위험한 정규식 패턴 찾기 — 중첩 수량자
+grep -rnE '\([^)]*[+*][^)]*\)[+*]' --include='*.ts' --include='*.js' src/ | head -20
+
+# 사용자 입력으로 정규식을 만드는 자리 — 더 위험하다
+grep -rnE 'new RegExp\((?!/)[^)]*(req|input|param|query)' --include='*.ts' src/ | head
+\`\`\`
+
+\`\`\`ts
+// 실제 소요 시간을 재 본다 — 스테이징에서
+const re = /^([a-zA-Z0-9_.-]+)+@example\.com$/
+const bad = 'a'.repeat(30) + '!'
+const t = performance.now()
+re.test(bad)
+console.log(performance.now() - t, 'ms')   // 수백 ms 를 넘으면 위험하다
+\`\`\`
+
 ## 참고
 
 - OWASP — Regular expression Denial of Service (ReDoS)
@@ -538,6 +797,62 @@ A=<사용자A 세션>; B=<사용자B 세션>
 ID=$(curl -s -H "Cookie: session=$A" https://app.example.com/api/files | head -c 200)
 curl -s -o /dev/null -w '%{http_code}\\n' -H "Cookie: session=$B" \\
   "https://app.example.com/files/$ID"
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+파일 이름을 그대로 헤더에 넣은 사례가 있다. 이름에 줄바꿈이 들어 있었고, 헤더 주입으로 응답이 조작됐다. 다른 헤더를 덧붙여 캐시를 오염시킬 수 있었다.
+
+콘텐츠 형식을 추론에 맡긴 경우도 있다. 업로드된 HTML 이 브라우저에서 실행되면서 우리 도메인의 스크립트가 됐다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 내려받기만 하니 안전하다 | 브라우저가 실행할 수 있다 |
+| 파일 이름은 표시용이다 | 헤더 주입 경로다 |
+| 형식은 추론하면 편하다 | 추론이 실행으로 이어진다 |
+| 인증된 사용자만 받는다 | 주소가 공유되면 끝이다 |
+| 같은 도메인이 편하다 | 쿠키와 스크립트 출처를 공유한다 |
+
+## 응답 헤더로 무엇을 정하는가
+
+| 헤더 | 값 | 이유 |
+| --- | --- | --- |
+| Content-Type | 검증된 형식 고정 | 추론 방지 |
+| X-Content-Type-Options | nosniff | 브라우저 추론 차단 |
+| Content-Disposition | attachment + 인코딩된 이름 | 실행 대신 저장 |
+| Content-Security-Policy | sandbox | 실행돼도 갇힌다 |
+| Cache-Control | private | 공용 캐시 방지 |
+
+## 파일 이름을 어떻게 넣는가
+
+이름에 특수 문자가 들어갈 수 있으므로 인코딩이 필요하다. 한글 이름도 마찬가지다.
+
+\`\`\`ts
+function contentDisposition(name: string): string {
+  // 제어 문자를 제거하고, 아스키 대체와 인코딩된 이름을 함께 준다
+  const clean = name.replace(/[\r\n"\\]/g, '').slice(0, 200)
+  const ascii = clean.replace(/[^\x20-\x7e]/g, '_')
+  return \`attachment; filename="\${ascii}"; filename*=UTF-8''\${encodeURIComponent(clean)}\`
+}
+
+res.setHeader('Content-Type', verifiedMime)          // 추론에 맡기지 않는다
+res.setHeader('X-Content-Type-Options', 'nosniff')
+res.setHeader('Content-Disposition', contentDisposition(file.name))
+res.setHeader('Cache-Control', 'private, no-store')
+\`\`\`
+
+제어 문자 제거가 헤더 주입을 막는 부분이다.
+
+## 별도 도메인으로 옮기는 이유
+
+같은 도메인에서 사용자 파일을 서빙하면, 실행 가능한 파일 하나가 우리 출처의 스크립트가 된다. 등록 가능한 다른 도메인에서 서빙하면 그 위험이 사라진다.
+
+\`\`\`bash
+# 서빙 헤더 확인
+curl -sI "https://files.example.com/d/abc123" |
+  grep -iE 'content-type|content-disposition|x-content-type-options|cache-control'
 \`\`\`
 
 ## 참고
@@ -632,6 +947,69 @@ for (const entry of archive.entries) {
     await sink.write(chunk)
   }
 }
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+압축 파일 업로드 기능에서 디스크가 가득 찬 사례가 있다. 42KB 파일이 압축을 풀자 수 기가바이트가 됐다. 크기 제한은 업로드 파일에만 있었고 해제 결과에는 없었다.
+
+메모리에서 처리하다 프로세스가 죽은 경우도 있다. 전체를 메모리로 읽는 구현이었다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 업로드 크기를 제한하면 된다 | 해제 후 크기가 문제다 |
+| 압축률을 보면 안다 | 미리 알 수 없는 형식도 있다 |
+| 디스크가 크면 괜찮다 | 동시 요청이면 금방 찬다 |
+| 압축 파일만 위험하다 | 이미지·문서도 확장될 수 있다 |
+| 가용성 문제일 뿐이다 | 서비스 중단이 사고다 |
+
+## 무엇을 제한하는가
+
+| 항목 | 이유 |
+| --- | --- |
+| 업로드 크기 | 첫 관문 |
+| 해제 후 총 크기 | 실제 위험 |
+| 항목당 크기 | 하나가 거대한 경우 |
+| 항목 수 | 작은 파일 수십만 개 |
+| 중첩 깊이 | 압축 안의 압축 |
+| 처리 시간 | 시간 초과로 차단 |
+| 동시 처리 수 | 자원 고갈 방지 |
+
+## 스트리밍으로 처리한다
+
+전체를 읽지 않고 읽으면서 누적 크기를 확인해 중단한다.
+
+\`\`\`ts
+const MAX_TOTAL = 200 * 1024 * 1024
+const MAX_ENTRY = 50 * 1024 * 1024
+const MAX_FILES = 2000
+
+let total = 0
+let count = 0
+
+for await (const entry of archive) {
+  if (++count > MAX_FILES) throw new Error('항목이 너무 많습니다')
+  if (entry.isDirectory) continue
+  if (entry.size > MAX_ENTRY) throw new Error('항목이 너무 큽니다')
+
+  let written = 0
+  for await (const chunk of entry.stream()) {
+    written += chunk.length
+    total += chunk.length
+    if (written > MAX_ENTRY || total > MAX_TOTAL) throw new Error('압축 해제 한도 초과')
+    await out.write(chunk)
+  }
+}
+\`\`\`
+
+선언된 크기를 믿지 않고 실제로 쓴 바이트를 세는 것이 핵심이다. 헤더의 크기 값은 위조할 수 있다.
+
+\`\`\`bash
+# 압축률이 비정상적으로 높은 파일 확인
+unzip -l suspicious.zip | tail -3
+# 압축 크기 대비 해제 크기 비율이 100배를 넘으면 검토 대상이다
 \`\`\`
 
 ## 참고
@@ -734,6 +1112,62 @@ if (type === 'image/svg+xml') {
 if (!RASTER.includes(type) && type !== 'image/svg+xml') throw new BadRequest('형식')
 \`\`\`
 
+## 실제로 이렇게 터진다
+
+프로필 이미지로 SVG 를 허용한 사례가 있다. 이미지 형식이라 이미지 처리 경로를 그대로 통과했고, 같은 도메인에서 서빙됐다. 그 안의 스크립트가 실행되면서 우리 출처의 스크립트가 됐다.
+
+외부 자원을 참조하는 SVG 도 문제가 된다. 열람자의 주소가 외부로 전달된다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| SVG 는 이미지다 | XML 문서이고 스크립트를 담는다 |
+| 이미지 태그로 넣으면 안전하다 | 직접 열면 실행된다 |
+| 검사 도구가 잡는다 | 이미지로 분류돼 통과한다 |
+| 스크립트만 지우면 된다 | 이벤트 속성과 외부 참조가 남는다 |
+| 아이콘만 받으니 괜찮다 | 확장자로는 구분되지 않는다 |
+
+## 무엇이 위험한가
+
+| 요소 | 위험 |
+| --- | --- |
+| script 요소 | 코드 실행 |
+| 이벤트 속성 | 코드 실행 |
+| foreignObject | HTML 삽입 |
+| use 외부 참조 | 외부 자원 로드 |
+| image 외부 참조 | 주소 유출 |
+| 외부 엔티티 | 파일 읽기 |
+| CSS import | 외부 로드 |
+
+## 어떻게 처리하는가
+
+세 가지 중 하나를 고른다. 위로 갈수록 안전하다.
+
+1. **래스터로 변환** — SVG 를 받되 PNG 로 바꿔 저장한다. 가장 안전하다
+2. **정제 후 저장** — 허용 요소·속성 목록으로 걸러 낸다
+3. **별도 도메인 + 다운로드 강제** — 실행돼도 우리 출처가 아니다
+
+\`\`\`ts
+// 정제 방식 — 허용 목록으로 남길 것만 정한다
+import createDOMPurify from 'dompurify'
+import { JSDOM } from 'jsdom'
+
+const DOMPurify = createDOMPurify(new JSDOM('').window)
+const clean = DOMPurify.sanitize(svgSource, {
+  USE_PROFILES: { svg: true, svgFilters: true },
+  FORBID_TAGS: ['script', 'foreignObject', 'use'],
+  FORBID_ATTR: ['onload', 'onerror', 'onclick', 'href', 'xlink:href'],
+})
+\`\`\`
+
+정제를 쓰더라도 서빙은 별도 도메인에서 하고 nosniff 와 sandbox 를 함께 건다.
+
+\`\`\`bash
+# 이미 저장된 SVG 에 위험 요소가 있는지 확인
+grep -rlE '<script|on[a-z]+ *=|foreignObject|xlink:href *= *"https?:' /srv/uploads --include='*.svg' | head
+\`\`\`
+
 ## 참고
 
 - OWASP Cheat Sheet — File Upload
@@ -820,6 +1254,58 @@ grep -rn 'sanitize\\|DOMPurify' --include='*.ts' src/
 container.innerHTML = '<a id="appConfig" name="apiBase" href="https://evil.test"></a>'
 console.log(typeof window.appConfig, String(window.appConfig?.apiBase))
 // 'object' 와 주소가 나오면 덮인 것이다
+\`\`\`
+
+## 실제로 이렇게 터진다
+
+사용자가 지정한 요소 이름이 전역 변수를 덮어쓴 사례가 있다. 게시글 본문에 특정 이름의 요소를 넣자, 스크립트가 참조하던 설정 객체가 그 요소로 바뀌었다. 값 비교가 예상과 다르게 동작하면서 검사가 우회됐다.
+
+이 공격은 스크립트를 실행하지 않고도 성립한다. 그래서 스크립트를 막는 정책으로는 잡히지 않는다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 스크립트를 막으면 안전하다 | 이 공격은 스크립트가 없다 |
+| HTML 만 넣으니 무해하다 | 이름 속성이 전역을 만든다 |
+| 새니타이저가 막는다 | 기본 설정은 이름 속성을 허용한다 |
+| 드문 공격이다 | 사용자 HTML 을 허용하면 언제나 가능 |
+| 최신 브라우저는 다르다 | 표준 동작이다 |
+
+## 어떻게 성립하는가
+
+HTML 요소에 이름이나 식별자를 주면 전역 이름이 만들어진다. 스크립트가 같은 이름의 변수를 확인 없이 쓰면 그 요소를 참조하게 된다.
+
+| 코드 패턴 | 위험 |
+| --- | --- |
+| 전역 변수 존재 확인 | 요소로 대체돼 참으로 평가 |
+| 설정 객체 참조 | 속성 접근이 예상과 다름 |
+| 함수 존재 확인 후 호출 | 오류 또는 우회 |
+| 값 비교 | 문자열 변환 결과가 다름 |
+
+## 어떻게 막는가
+
+1. 새니타이저에서 이름·식별자 속성을 제거한다
+2. 전역 변수를 쓰지 않는다 — 모듈 범위로
+3. 존재 확인 대신 타입을 확인한다
+4. 설정은 전역이 아니라 불러오는 함수로 제공한다
+5. 사용자 HTML 을 별도 출처의 프레임에 넣는다
+
+\`\`\`ts
+// 위험 — 요소로 대체될 수 있다
+if (window.APP_CONFIG) use(window.APP_CONFIG)
+
+// 안전 — 타입까지 확인하고, 애초에 전역을 쓰지 않는다
+import { config } from './config'
+use(config)
+
+// 사용자 HTML 을 넣어야 한다면 이름 속성을 제거한다
+DOMPurify.sanitize(html, { FORBID_ATTR: ['id', 'name'] })
+\`\`\`
+
+\`\`\`bash
+# 전역 존재 확인 패턴 찾기
+grep -rnE 'if *\( *window\.[A-Za-z_]+ *\)|typeof window\.[A-Za-z_]+ *!== *.undefined' src/ | head
 \`\`\`
 
 ## 참고
@@ -912,6 +1398,61 @@ done
 \`\`\`
 
 이 구분이 생기면 SameSite 와 리소스 격리로 막는다.
+
+## 실제로 이렇게 터진다
+
+응답 내용은 못 읽지만 크기와 시간으로 정보가 샌 사례가 있다. 로그인 여부에 따라 응답 크기가 달랐고, 외부 사이트에서 이미지 로드 성공 여부로 그것을 알 수 있었다.
+
+프레임 개수로 정보가 샌 경우도 있다. 검색 결과 수에 따라 프레임 안의 하위 프레임 수가 달랐다.
+
+## 흔한 오해
+
+| 오해 | 실제 |
+| --- | --- |
+| 동일 출처 정책이 다 막는다 | 읽기만 막는다 |
+| 내용을 못 읽으면 안전하다 | 크기·시간·오류로 샌다 |
+| CORS 를 안 열면 된다 | 다른 경로가 있다 |
+| 부수 채널은 이론적이다 | 실제로 쓰인다 |
+| 브라우저가 알아서 막는다 | 설계상 허용되는 동작이다 |
+
+## 무엇이 새어 나가는가
+
+| 관측 대상 | 알 수 있는 것 |
+| --- | --- |
+| 응답 시간 | 조건 분기, 존재 여부 |
+| 오류 발생 여부 | 상태 코드 대략 |
+| 리소스 로드 성공 | 인증 상태 |
+| 프레임 개수 | 결과 수 |
+| 창 크기·이동 | 리다이렉트 여부 |
+| 캐시 적중 | 방문 이력 |
+
+## 어떻게 줄이는가
+
+| 조치 | 막는 것 |
+| --- | --- |
+| Cross-Origin-Resource-Policy | 다른 출처의 리소스 포함 |
+| Cross-Origin-Opener-Policy | 창 참조를 통한 관측 |
+| frame-ancestors | 프레임 삽입 |
+| SameSite 쿠키 | 인증 상태 차이 |
+| 응답 길이 균일화 | 크기 관측 |
+| 응답 시간 균일화 | 시간 관측 |
+
+앞의 네 개가 실무적으로 효과가 크다. 뒤의 둘은 비용이 크므로 정말 민감한 응답에만 적용한다.
+
+\`\`\`
+Cross-Origin-Resource-Policy: same-origin
+Cross-Origin-Opener-Policy: same-origin
+Content-Security-Policy: frame-ancestors 'self'
+\`\`\`
+
+\`\`\`bash
+# 인증 상태에 따라 응답 크기가 다른지 — 부수 채널 후보
+for c in '' "session=$SESSION"; do
+  printf '%-10s ' "\${c:+로그인}"
+  curl -s -o /dev/null -w '크기 %{size_download} 시간 %{time_total}\n' \
+    https://example.com/api/profile \${c:+-H "Cookie: $c"}
+done
+\`\`\`
 
 ## 참고
 
