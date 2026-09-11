@@ -16,6 +16,7 @@ export type AuditAction =
   | 'image.upload'
   | 'tags.analyze'
   | 'settings.update'
+  | 'index.mark'
 
 export type AuditEntry = {
   id: string
@@ -38,6 +39,7 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   'image.upload': '이미지 업로드',
   'tags.analyze': '태그 분석',
   'settings.update': '보안 설정 변경',
+  'index.mark': '색인 기록',
 }
 
 const auditCol = collection(db, 'audit')

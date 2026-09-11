@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listAllPosts, type Post } from '../lib/posts'
+import { listAllPosts, setIndexStatus, type Post } from '../lib/posts'
 import { auditAll, summarize, type IssueArea, type PostAudit } from '../lib/seo'
 import {
   ENGINES, ENGINE_LABEL, confirmedOn, searchUrl,
@@ -56,6 +56,34 @@ export default function AdminSeo() {
   const area = filter?.kind === 'area' ? filter.v : null
   // 색인 상태는 CI 가 Search Console API 로 채운 값을 그대로 보여준다
   const [status, setStatus] = useState<Record<string, IndexStatus>>({})
+  /** 검색 창을 띄운 뒤 "있었나?" 를 묻고 있는 배지. 한 번에 하나만 묻는다. */
+  const [asking, setAsking] = useState<{ id: string; engine: Engine } | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  /**
+   * 관리자가 눈으로 본 결과를 기록한다.
+   *
+   * 화면을 먼저 바꾸고 저장한다 — 기록은 사람이 이미 확인한 사실이라 되돌릴 일이
+   * 거의 없고, 500편을 훑는 동안 매번 왕복을 기다리면 손이 멈춘다. 실패하면
+   * 되돌려 놓아 화면이 거짓말을 하지 않게 한다.
+   */
+  async function mark(id: string, engine: Engine, on: boolean) {
+    const before = status[id] ?? {}
+    const next = { ...before }
+    if (on) next[engine] = new Date().toISOString()
+    else delete next[engine]
+    setStatus((m) => ({ ...m, [id]: next }))
+    setAsking(null)
+    setSaving(true)
+    try {
+      await setIndexStatus(id, engine, on)
+    } catch (err) {
+      setStatus((m) => ({ ...m, [id]: before }))
+      alert(`색인 기록을 저장하지 못했습니다: ${(err as Error).message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     listAllPosts()
@@ -93,8 +121,9 @@ export default function AdminSeo() {
           아래 앞 네 칸은 <strong className="font-medium text-[var(--ink)]">남은 지적 수</strong>라
           0 이 좋은 상태이고, 뒤 세 칸은{' '}
           <strong className="font-medium text-[var(--ink)]">색인이 확인된 글 수</strong>라 클수록
-          좋습니다. 구글은 12시간마다 자동으로 확인하고, 네이버·빙은 확인 API 가 없어 배지를 눌러
-          직접 봐야 합니다.
+          좋습니다. 구글은 12시간마다 자동으로 확인합니다. 네이버·빙은 확인 API 가 없어, 배지를 누르면
+          site: 검색이 열리고 결과를 보고 <strong className="font-medium text-[var(--ink)]">있음 / 없음</strong>을
+          누르면 그 자리에 기록됩니다.
         </p>
       </header>
 
@@ -176,19 +205,28 @@ export default function AdminSeo() {
                 {a.title}
               </Link>
 
-              {/* 누르면 site: 검색이 팝업 창으로 열린다. 누르는 것으로 상태가 바뀌지는
-                  않는다. 노란 배지와 날짜는 scripts/index-status.mts 가 Search Console
-                  API 로 확인해 기록한 것이다. */}
+              {/* 누르면 site: 검색이 팝업 창으로 열린다.
+                  구글의 노란 배지는 scripts/index-status.mts 가 Search Console API 로
+                  확인해 기록한 것이라 눌러도 바뀌지 않는다. 네이버·빙은 그런 API 가
+                  없어, 팝업에서 본 결과를 바로 옆에서 있음/없음으로 남긴다. */}
               <span className="flex items-center gap-1.5">
                 <span className="text-[10px] text-[var(--muted)]">색인</span>
                 {ENGINES.map((e) => {
                   const on = !!status[a.id]?.[e]
+                  const auto = e === 'google'
                   return (
                     <button
                       key={e}
                       type="button"
-                      onClick={() => openSearch(e, a.id)}
-                      title={`${ENGINE_LABEL[e]}에서 site: 검색을 팝업으로 엽니다`}
+                      onClick={() => {
+                        openSearch(e, a.id)
+                        if (!auto) setAsking({ id: a.id, engine: e })
+                      }}
+                      title={
+                        auto
+                          ? `${ENGINE_LABEL[e]} site: 검색을 엽니다 (상태는 API 가 자동으로 채웁니다)`
+                          : `${ENGINE_LABEL[e]} site: 검색을 열고, 본 결과를 기록합니다`
+                      }
                       className={`rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
                         on
                           ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
@@ -200,6 +238,36 @@ export default function AdminSeo() {
                     </button>
                   )
                 })}
+
+                {asking?.id === a.id && (
+                  <span className="flex items-center gap-1 text-[10px] text-[var(--muted)]">
+                    <span>{ENGINE_LABEL[asking.engine]} 결과에</span>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => mark(a.id, asking.engine, true)}
+                      className="rounded border border-amber-400 bg-amber-300/60 px-1.5 py-0.5 font-medium text-amber-900 disabled:opacity-50"
+                    >
+                      있음
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => mark(a.id, asking.engine, false)}
+                      className="rounded border border-[var(--line)] px-1.5 py-0.5 hover:border-[var(--accent)] disabled:opacity-50"
+                    >
+                      없음
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAsking(null)}
+                      className="px-1 text-[var(--muted)] hover:text-[var(--ink)]"
+                      aria-label="기록하지 않고 닫기"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
               </span>
 
               <span className="ml-auto flex items-center gap-2 font-mono text-[10px] text-[var(--muted)]">

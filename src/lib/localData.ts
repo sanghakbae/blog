@@ -143,6 +143,16 @@ export async function localDeletePost(id: string): Promise<void> {
   notifyTags(s)
 }
 
+export async function localSetIndexStatus(id: string, engine: string, iso: string | null): Promise<void> {
+  const s = await load()
+  const post = s.posts.find((p) => p.id === id)
+  if (!post) return
+  const next = { ...(post.indexStatus ?? {}) }
+  if (iso) next[engine] = iso
+  else delete next[engine]
+  post.indexStatus = next
+}
+
 // ── 태그 ────────────────────────────────────────────────────────────────────
 
 export async function localSubscribeTags(cb: (tags: Tag[]) => void) {

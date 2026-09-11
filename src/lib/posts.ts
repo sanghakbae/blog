@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp,
-  setDoc, deleteDoc, where, writeBatch, increment, type Timestamp,
+  setDoc, updateDoc, deleteField, deleteDoc, where, writeBatch, increment, type Timestamp,
 } from 'firebase/firestore'
 import { db, isConfigured } from './firebase'
 import { MAX_TAGS, makeExcerpt, normalizeTag } from './tags'
@@ -414,6 +414,29 @@ export async function savePost(
   await batch.commit()
   invalidate()
   return postRef.id
+}
+
+/**
+ * 포털별 색인 확인 기록.
+ *
+ * 구글은 scripts/index-status.mts 가 Search Console API 로 채운다. 네이버·빙은
+ * 색인 여부를 알려주는 공개 API 가 없어, 관리자가 site: 검색으로 눈으로 보고
+ * 남긴다. 켤 때는 확인한 날짜를 적고, 끌 때는 항목 자체를 지워 "확인한 적 없음"과
+ * "확인해 보니 없었음"을 같은 상태로 둔다 — 다시 확인하면 그때 날짜가 새로 붙는다.
+ */
+export async function setIndexStatus(id: string, engine: string, on: boolean): Promise<void> {
+  const detail = `${engine} ${on ? '색인됨' : '해제'}`
+  if (USE_LOCAL) {
+    const local = await import('./localData')
+    await local.localSetIndexStatus(id, engine, on ? new Date().toISOString() : null)
+    return logAudit('index.mark', id, detail)
+  }
+
+  await updateDoc(doc(postsCol, id), {
+    [`indexStatus.${engine}`]: on ? new Date().toISOString() : deleteField(),
+  })
+  invalidate()
+  await logAudit('index.mark', id, detail)
 }
 
 export async function deletePost(id: string, title = ''): Promise<void> {
