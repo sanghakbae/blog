@@ -135,6 +135,8 @@ function buildPage(
 
   const head = [
     `<link rel="canonical" href="${esc(url)}" />`,
+    // 피드 자동 발견 — 네이버·피드 리더가 HTML 만 보고 찾아간다
+    `<link rel="alternate" type="application/rss+xml" title="sanghak" href="${SITE}/rss.xml" />`,
     ...jsonLd.map(
       (o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`,
     ),
@@ -283,7 +285,8 @@ for (const [tag, list] of tags) {
   // 서버가 경로를 디코딩해 찾을 때 일치하지 않아 404 가 된다.
   const url = `${SITE}/tags/${encodeURIComponent(tag)}/`
   const content = `<h1>${esc(tag)}</h1><ul>${list
-    .map((p) => `<li><a href="/posts/${p.id}">${esc(p.title)}</a></li>`)
+    // 끝 슬래시가 없으면 링크마다 301 이 한 번 더 돈다. 정규 주소와 같은 형태로 건다.
+    .map((p) => `<li><a href="/posts/${p.id}/">${esc(p.title)}</a></li>`)
     .join('')}</ul>`
   mkdirSync(`${DIST}/tags/${tag}`, { recursive: true })
   writeFileSync(
@@ -392,6 +395,7 @@ writeFileSync(
     'Disallow: /admin',
     '',
     `Sitemap: ${SITE}/sitemap.xml`,
+    `Sitemap: ${SITE}/rss.xml`,
     '',
   ].join('\n'),
 )
@@ -418,6 +422,38 @@ writeFileSync(
   ].join('\n'),
 )
 
+// rss.xml — 네이버 서치어드바이저는 사이트맵과 별개로 RSS 를 따로 받는다.
+// 사이트맵만 내면 수집 요청 항목 하나가 비어 있는 채로 남는다.
+const RSS_ITEMS = 50
+const rssDate = (v?: string) => (v ? new Date(v).toUTCString() : new Date().toUTCString())
+writeFileSync(
+  `${DIST}/rss.xml`,
+  `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>sanghak — 보안 실무 기록</title>
+  <link>${SITE}/</link>
+  <description>웹 취약점부터 클라우드·컴플라이언스까지. 글마다 바로 실행할 수 있는 점검 명령과 근거 표준을 함께 싣습니다.</description>
+  <language>ko</language>
+  <lastBuildDate>${rssDate(posts[0]?.updatedAt || posts[0]?.createdAt)}</lastBuildDate>
+  <atom:link href="${SITE}/rss.xml" rel="self" type="application/rss+xml"/>
+${posts
+  .slice(0, RSS_ITEMS)
+  .map(
+    (p) => `  <item>
+    <title>${esc(p.title)}</title>
+    <link>${SITE}/posts/${p.id}/</link>
+    <guid isPermaLink="true">${SITE}/posts/${p.id}/</guid>
+    <description>${esc(p.excerpt.replace(/\s+/g, ' '))}</description>
+    <pubDate>${rssDate(p.createdAt)}</pubDate>
+  </item>`,
+  )
+  .join('\n')}
+</channel>
+</rss>
+`,
+)
+
 console.log(
-  `정적 페이지 생성: 글 ${posts.length}편, 태그 ${tags.size}종, sitemap·robots·llms.txt 포함`,
+  `정적 페이지 생성: 글 ${posts.length}편, 태그 ${tags.size}종, sitemap·rss·robots·llms.txt 포함`,
 )
