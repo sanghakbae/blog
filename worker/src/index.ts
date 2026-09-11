@@ -1,6 +1,5 @@
 import { requireAdmin, requireUser } from './auth'
 import { notifyComment } from './notify'
-import { dispatchReindex } from './reindex'
 
 // Env 는 `wrangler types` 가 worker-configuration.d.ts 에 만든 전역 타입을 쓴다.
 // wrangler.jsonc 를 바꾸면 다시 생성해야 한다.
@@ -80,18 +79,6 @@ export default {
         return json(r.body, r.status, headers)
       } catch (err) {
         console.error('notify-comment', err)
-        return json({ error: (err as Error).message }, 500, headers)
-      }
-    }
-
-    if (url.pathname === '/reindex') {
-      try {
-        const admin = await requireAdmin(req, env)
-        if (!admin) return json({ error: '관리자만 요청할 수 있습니다' }, 401, headers)
-        const r = await dispatchReindex(env)
-        return json(r.body, r.status, headers)
-      } catch (err) {
-        console.error('reindex', err)
         return json({ error: (err as Error).message }, 500, headers)
       }
     }
