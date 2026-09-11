@@ -1263,7 +1263,7 @@ aws s3api get-bucket-policy --bucket "$B" --query Policy --output text 2>/dev/nu
   },
   {
     slug: 'admin-plane-separation',
-    title: '관리자 화면 분리와 접근 경로 통제',
+    title: '관리자 화면을 단계적으로 분리하는 순서',
     body: `관리자 기능은 전체 데이터를 다루고 다른 사용자를 대신할 수 있다. 그런데 같은 도메인, 같은 애플리케이션, 같은 인증 경로에 얹혀 있는 경우가 많다. 그러면 일반 사용자용 취약점 하나가 관리 기능까지 닿는다. 관리 평면을 분리하는 것은 구조로 위험을 줄이는 대표적인 방법이다.
 
 ## 어디까지 분리하는가?

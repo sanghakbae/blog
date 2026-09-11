@@ -1085,7 +1085,7 @@ grep -rniE 'xlsx|docx|pptx|svg|opendocument' src/ | head -10
   },
   {
     slug: 'open-redirect-chains',
-    title: '열린 리다이렉트가 다른 공격으로 이어지는 방식',
+    title: '되돌아올 주소 검증과 인가 코드 유출',
     body: `주소를 그대로 받아 이동시키는 기능은 그 자체로는 피해가 작아 보인다. 문제는 이 기능이 다른 취약점의 연결 고리로 쓰인다는 점이다. 인증 흐름과 결합하면 토큰이 외부로 나간다.
 
 ## 무엇과 연결되나?

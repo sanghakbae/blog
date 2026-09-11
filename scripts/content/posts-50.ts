@@ -4,7 +4,7 @@ import type { SeedPost } from './types'
 export const posts50: SeedPost[] = [
   {
     slug: 'browser-extension-risk',
-    title: '브라우저 확장 프로그램이 만드는 위험',
+    title: '조직에서 확장 프로그램을 통제하는 법',
     body: `확장 프로그램은 사용자가 보는 모든 페이지에 접근할 수 있다. 업무용 브라우저에 설치된 확장 하나가 사내 시스템의 화면과 입력을 전부 볼 수 있다는 뜻이다.
 
 ## 무엇에 접근할 수 있나?
@@ -320,7 +320,7 @@ ls ~/Library/Application\ Support/Google/Chrome/*/Extensions 2>/dev/null | head 
   },
   {
     slug: 'security-headers-checklist',
-    title: '보안 헤더를 적용할 때의 우선순위',
+    title: '보안 헤더 적용 순서와 되돌리기 어려운 것',
     body: `응답 헤더 몇 줄로 여러 공격을 완화할 수 있다. 다만 잘못 설정하면 화면이 깨지므로, 효과가 크고 부작용이 적은 것부터 적용한다.
 
 ## 어떤 순서로 적용하나?

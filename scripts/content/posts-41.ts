@@ -491,7 +491,7 @@ psql -Atc "SELECT source, count(*) AS 전체,
   },
   {
     slug: 'security-metrics-that-matter',
-    title: '보안 지표를 고를 때 피해야 할 것',
+    title: '행동을 왜곡하는 보안 지표 피하기',
     body: `측정하기 쉬운 것을 지표로 삼으면 그 숫자를 올리는 활동이 생긴다. 차단 건수나 교육 이수율이 오르는 동안 실제 위험은 그대로일 수 있다.
 
 ## 어떤 지표가 행동을 왜곡하는가?
@@ -644,7 +644,7 @@ psql -Atc "SELECT date_trunc('week', at) w, count(*)
   },
   {
     slug: 'threat-hunting-hypothesis',
-    title: '위협 헌팅을 가설로 시작하는 방법',
+    title: '헌팅 가설을 어디서 얻을 것인가',
     body: `데이터를 열어 놓고 이상한 것을 찾는 방식은 시간만 쓰고 결과가 없다. 무엇을 찾을지 가설을 먼저 세우고 그것을 확인하는 방식이 실제로 성과를 낸다.
 
 ## 가설을 어디서 가져오나?
@@ -958,7 +958,7 @@ psql -Atc "SELECT rule_name, count(*) c,
   },
   {
     slug: 'canary-token-usage',
-    title: '카나리 토큰으로 침해를 조기에 아는 법',
+    title: '카나리 토큰을 어디에 심을 것인가',
     body: `정상 업무에서는 절대 쓰이지 않는 값을 곳곳에 심어 두고, 그것이 사용되면 경보를 받는다. 오탐이 거의 없고 만드는 비용도 낮아, 탐지 예산이 적은 조직에 특히 유용하다.
 
 ## 어디에 심는가?

@@ -486,7 +486,7 @@ psql -Atc "SELECT date_trunc('quarter', at) q,
   },
   {
     slug: 'social-engineering-defense',
-    title: '사회공학 공격에 절차로 대응하기',
+    title: '거절할 수 있게 만드는 확인 절차 설계',
     body: `사람의 판단에 기대는 방어는 언젠가 뚫린다. 급하다는 압박과 권위를 내세운 요청 앞에서 개인이 거절하기는 어렵다. 절차가 대신 거절해 주어야 한다.
 
 ## 어떤 수법이 쓰이나?
@@ -637,7 +637,7 @@ psql -Atc "SELECT date_trunc('quarter', at) q,
   },
   {
     slug: 'offboarding-checklist',
-    title: '퇴사 처리에서 빠지는 항목들',
+    title: '퇴사 처리에서 외부 서비스 계정이 남는 이유',
     body: `계정 비활성화는 대부분 잘 처리된다. 문제는 그 외의 것들이다. 외부 서비스 계정, 물리 출입, 개인 명의 자산, 협력사 시스템 접근이 남아 있는 경우가 흔하다.
 
 ## 퇴사자 계정 회수에서 무엇이 남는가?

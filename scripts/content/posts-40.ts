@@ -316,7 +316,7 @@ kubectl get clusterroles -o json | jq -r '
   },
   {
     slug: 'container-image-minimal',
-    title: '컨테이너 이미지를 작게 만들면 얻는 것',
+    title: '컨테이너 이미지 최소화로 취약점 줄이기',
     body: `이미지에 들어 있는 모든 패키지가 취약점 목록에 오른다. 애플리케이션이 쓰지 않는 셸, 패키지 관리자, 디버깅 도구가 그대로 들어 있으면 공격자에게도 그것이 도구가 된다.
 
 ## 무엇이 줄어드나?

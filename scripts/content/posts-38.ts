@@ -1432,7 +1432,7 @@ psql -Atc "SELECT request_id, target, sink, done_at FROM deletion_tasks
   },
   {
     slug: 'backup-encryption-keys',
-    title: '백업 암호화 키를 어디에 보관할 것인가',
+    title: '재해 복구 때 백업 키에 접근할 수 있나',
     body: `백업을 암호화하면 유출 시 안전하지만, 복구해야 할 때 키가 없으면 백업도 없는 것과 같다. 재해 상황에서 키에 접근할 수 있는가가 백업 설계의 핵심 질문이다.
 
 ## 왜 어려운 문제인가?

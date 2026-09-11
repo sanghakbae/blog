@@ -4,7 +4,7 @@ import type { SeedPost } from './types'
 export const posts45: SeedPost[] = [
   {
     slug: 'dns-security-operations',
-    title: 'DNS 를 보안 관점에서 운영하는 법',
+    title: '도메인과 DNS 레코드를 상시 관리하는 법',
     body: `이름 확인은 모든 통신의 출발점이다. 이 지점이 무너지면 인증서도 방화벽도 소용이 없다. 그런데 대부분의 조직에서 DNS 는 네트워크 담당의 일이고 보안 점검 대상에서 빠져 있다.
 
 ## 무엇이 위험한가?
@@ -166,7 +166,7 @@ curl -s "https://crt.sh/?q=%25.example.com&output=json" \
   },
   {
     slug: 'bastion-host-operations',
-    title: '점프 서버를 운영하는 실무 기준',
+    title: '점프 서버 우회 경로를 막는 방법',
     body: `내부 시스템에 직접 접근하지 못하게 하고 하나의 경로로 모으면 통제와 기록이 쉬워진다. 다만 그 서버가 단일 실패 지점이자 최우선 공격 대상이 된다.
 
 ## 무엇을 얻고 무엇을 감수하나?
@@ -319,7 +319,7 @@ aws ec2 describe-security-groups \
   },
   {
     slug: 'zero-trust-migration',
-    title: '제로 트러스트를 단계적으로 도입하는 법',
+    title: 'VPN 에서 애플리케이션 접근으로 옮기기',
     body: `제로 트러스트는 제품이 아니라 접근 방식이다. 한 번에 전환할 수 없고, 무엇부터 바꿀지 순서를 정해야 한다. 대개 신원 관리부터 시작하는 것이 현실적이다.
 
 ## 무엇이 달라지는가?
@@ -475,7 +475,7 @@ VPN 을 없애는 것이 목적이 아니다. 네트워크 접근을 애플리�
   },
   {
     slug: 'ddos-response-plan',
-    title: '서비스 거부 공격에 대비하는 실무 준비',
+    title: '디도스 공격 중 무엇을 포기할 것인가',
     body: `공격이 시작된 뒤 대응 방법을 찾으면 늦다. 무엇을 누가 어떻게 할지 미리 정하고, 방어 수단을 켜는 절차를 연습해 두어야 한다.
 
 ## 어떤 유형이 있나?
@@ -637,7 +637,7 @@ aws cloudwatch get-metric-statistics --namespace AWS/ApplicationELB \
   },
   {
     slug: 'asset-inventory-automation',
-    title: '자산 목록을 자동으로 유지하는 방법',
+    title: '자산 목록의 사각지대를 찾아내는 법',
     body: `손으로 관리하는 자산 목록은 만든 날부터 낡기 시작한다. 몇 달이면 현실과 크게 달라지고, 그 목록을 근거로 한 모든 판단이 어긋난다.
 
 ## 왜 목록이 중요한가?

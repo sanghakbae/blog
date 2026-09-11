@@ -313,7 +313,7 @@ psql -Atc "SELECT round(100.0 * count(*) FILTER (WHERE ip_changed) / count(*), 1
   },
   {
     slug: 'token-revocation-strategy',
-    title: '무상태 토큰을 어떻게 폐기할 것인가',
+    title: '접근 토큰 수명과 갱신 토큰 재사용 탐지',
     body: `서명만 확인하는 토큰은 서버가 상태를 갖지 않아 확장에 유리하지만, 발급한 뒤에는 만료 전까지 무효화할 수단이 없다. 계정 정지나 권한 회수가 즉시 반영되지 않는다는 뜻이다.
 
 ## 왜 폐기가 어려운가?
@@ -617,7 +617,7 @@ curl -s -w '\n%{http_code}\n' -X POST -H "Authorization: Bearer $TOKEN" \
   },
   {
     slug: 'account-recovery-design',
-    title: '계정 복구가 가장 약한 고리가 되는 이유',
+    title: '계정 복구 경로를 설계하는 기준',
     body: `인증을 아무리 강하게 만들어도 복구 경로가 약하면 공격자는 그쪽으로 들어온다. 복구는 정의상 정상 인증 수단이 없는 사람을 통과시키는 절차이므로, 설계가 어렵고 가장 자주 뚫린다.
 
 ## 왜 약해지는가?
@@ -925,7 +925,7 @@ psql -Atc "SELECT
   },
   {
     slug: 'service-account-lifecycle',
-    title: '서비스 계정의 수명 주기를 관리하는 법',
+    title: '쓰지 않는 서비스 계정을 안전하게 지우기',
     body: `사람 계정은 입사와 퇴사로 수명이 정해지지만, 서비스 계정은 만들어진 뒤 아무도 없애지 않는다. 몇 년이 지나면 누가 왜 만들었는지 모르는 계정이 넓은 권한을 들고 남아 있게 된다.
 
 ## 왜 정리되지 않는가?
@@ -1082,7 +1082,7 @@ psql -Atc "SELECT id, owner_team, created_at, last_used_at
   },
   {
     slug: 'impersonation-audit',
-    title: '관리자 대리 접속을 안전하게 만드는 조건',
+    title: '대리 접속 기록으로 열람 범위 남기기',
     body: `고객 문의를 처리하려고 관리자가 사용자 화면을 그대로 보는 기능은 지원 품질을 크게 높인다. 동시에 모든 계정에 들어갈 수 있는 통로이기도 하므로, 조건과 기록 없이 두면 가장 위험한 기능이 된다.
 
 ## 무엇이 위험한가?

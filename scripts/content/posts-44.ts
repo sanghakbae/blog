@@ -162,7 +162,7 @@ jq -r '.runs[].results[].locations[].physicalLocation.artifactLocation.uri' sari
   },
   {
     slug: 'code-review-security-checklist',
-    title: '코드 리뷰에서 보안을 보는 관점',
+    title: '코드 리뷰에서 던져야 할 세 가지 질문',
     body: `리뷰에서 보안 문제를 잡으려면 무엇을 볼지 알아야 한다. 전체 코드를 정독하는 방식은 지속되지 않는다. 위험이 몰리는 지점 몇 곳을 정해 두고 그곳을 집중해서 본다.
 
 ## 어디를 보나?
@@ -316,7 +316,7 @@ git log --merges --since='3 months ago' --format='%H' \
   },
   {
     slug: 'secret-scanning-pipeline',
-    title: '비밀 값 유출을 저장소 단계에서 막기',
+    title: '커밋 전부터 막는 비밀 값 검사 계층',
     body: `자격 증명이 저장소에 커밋되는 사고는 계속 일어난다. 발견 시점에는 이미 이력에 남아 있고, 공개 저장소라면 몇 분 안에 자동 도구가 찾아낸다. 커밋 전에 막는 것이 유일하게 확실한 방법이다.
 
 ## 어디서 막을 수 있나?
@@ -640,7 +640,7 @@ npm audit --json 2>/dev/null \
   },
   {
     slug: 'test-data-management',
-    title: '시험 데이터에서 개인정보를 없애는 법',
+    title: '시험 데이터에서 관계를 유지하며 가명처리',
     body: `운영 데이터를 복사해 시험 환경에 쓰면 편하다. 문제는 시험 환경의 접근 통제가 운영보다 약하고, 개발자 노트북까지 데이터가 퍼진다는 점이다.
 
 ## 왜 운영 데이터를 쓰나?
@@ -1106,7 +1106,7 @@ done
   },
   {
     slug: 'rate-limiting-design',
-    title: '요청 수 제한을 설계할 때 정할 것',
+    title: '속도 제한을 요청자와 대상으로 나누기',
     body: `속도 제한은 자동화 공격을 막는 가장 효과적인 수단이지만, 잘못 설계하면 정상 사용자가 막히고 공격자는 우회한다. 무엇을 기준으로 얼마나 제한할지가 설계의 전부다.
 
 ## 무엇을 기준으로 세나?
@@ -1420,7 +1420,7 @@ psql -Atc "SELECT left(operation_name, 40), max(depth) 최대깊이,
   },
   {
     slug: 'mass-assignment-prevention',
-    title: '대량 할당으로 권한이 바뀌는 문제',
+    title: '대량 할당을 막는 입출력 구조 분리',
     body: `요청 본문을 객체에 그대로 대입하면, 클라이언트가 보내지 말아야 할 필드까지 들어간다. 사용자 정보 수정 요청에 권한 필드를 끼워 넣어 관리자가 되는 사례가 여기서 나온다.
 
 ## 어떻게 일어나나?
