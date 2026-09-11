@@ -17,6 +17,7 @@ export type AuditAction =
   | 'tags.analyze'
   | 'settings.update'
   | 'index.mark'
+  | 'index.refresh'
 
 export type AuditEntry = {
   id: string
@@ -40,6 +41,7 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   'tags.analyze': '태그 분석',
   'settings.update': '보안 설정 변경',
   'index.mark': '색인 기록',
+  'index.refresh': '색인 갱신 요청',
 }
 
 const auditCol = collection(db, 'audit')
