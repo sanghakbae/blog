@@ -75,7 +75,10 @@ export default function PostView() {
       </Link>
 
       <div className="mt-3 flex items-start gap-4">
-        <h1 className="min-w-0 flex-1 text-[clamp(1.4rem,4.5vw,3.25rem)] font-semibold leading-[1.2] tracking-[-0.03em]">
+        {/* 본문(17px)의 두 배에서 멈춘다. 4.5vw 로 두면 넓은 화면에서 52px 까지
+            자라 본문의 세 배가 되고, 제목만 포스터처럼 커져 본문이 각주처럼 보였다.
+            vw 계수를 낮춰 좁은 화면에서도 완만하게 오르내리게 한다. */}
+        <h1 className="min-w-0 flex-1 text-[clamp(1.375rem,1.1rem_+_1.4vw,2.125rem)] font-semibold leading-[1.25] tracking-[-0.03em]">
           {post.title}
         </h1>
         <PostActions post={post} />

@@ -92,8 +92,12 @@ function isIndexed(r: Inspection['inspectionResult']): boolean {
   const s = r?.indexStatusResult
   if (!s) return false
   if (s.verdict === 'PASS') return true
+  // languageCode 를 ko 로 물으므로 coverageState 도 한국어로 온다. 영어 문구만
+  // 보던 탓에 PASS 가 아닌 채로 색인된 글(PARTIAL)이 전부 미색인으로 잡혔다.
   const state = (s.coverageState ?? '').toLowerCase()
-  return state.includes('indexed') && !state.includes('not indexed')
+  const no = state.includes('not indexed') || state.includes('색인이 생성되지 않')
+  const yes = state.includes('indexed') || state.includes('색인이 생성되었')
+  return yes && !no
 }
 
 // ── 대상 글 ─────────────────────────────────────────────────────────────────
@@ -229,10 +233,19 @@ rows.forEach((r) => byState.set(r.state, (byState.get(r.state) ?? 0) + 1))
 
 // ── 기록 ────────────────────────────────────────────────────────────────────
 
-const changed = rows.filter((r) => r.indexed !== r.had)
-if (changed.length) {
-  console.log(`\n상태가 바뀐 글 ${changed.length}편`)
-  changed.slice(0, 20).forEach((r) =>
+/**
+ * 확인한 날짜를 다시 적어야 하는 글.
+ *
+ * 상태가 바뀐 글만 쓰면, 7일이 지나 다시 확인했는데 여전히 색인돼 있는 글은
+ * 아무것도 기록되지 않는다. 그러면 날짜가 처음 확인한 날에 멈춰 그 글이 매번
+ * 조회 대상에 남고, 한도는 계속 쓰면서 배지의 날짜는 영영 낡은 채로 남는다.
+ * 색인된 글은 날짜를 새로 적고, 색인에서 빠진 글은 항목을 지운다.
+ */
+const changed = rows.filter((r) => r.indexed || r.had)
+const flipped = rows.filter((r) => r.indexed !== r.had)
+if (flipped.length) {
+  console.log(`\n상태가 바뀐 글 ${flipped.length}편`)
+  flipped.slice(0, 20).forEach((r) =>
     console.log(`  ${r.indexed ? '색인됨  ' : '해제    '} ${r.title.slice(0, 40)}`),
   )
 }
@@ -243,7 +256,7 @@ if (dry) {
 }
 
 if (!changed.length) {
-  console.log('\n바뀐 것이 없어 쓰지 않았습니다.')
+  console.log('\n기록할 것이 없습니다.')
   process.exit(0)
 }
 
@@ -261,5 +274,5 @@ for (let i = 0; i < changed.length; i += 400) {
   await batch.commit()
 }
 
-console.log(`\n갱신 ${changed.length}편`)
+console.log(`\n갱신 ${changed.length}편 (상태 변화 ${flipped.length}편)`)
 process.exit(0)
