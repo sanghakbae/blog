@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Pretendard Variable", Pretendard, ui-sans-serif, system-ui, -apple-system,
-    "Apple SD Gothic Neo", sans-serif;
+  /* 애플 기기에서는 진짜 Apple SD 산돌고딕 Neo 를 쓴다 — 독점 폰트라 배포할 수
+     없으니 깔려 있는 곳에서만 쓸 수 있다. 나머지 환경은 그 자리를 메우려고 만들어진
+     Pretendard 로 받는다. 글자 폭과 획 굵기가 거의 같아 줄바꿈 위치까지 비슷하다. */
+  --font-sans: "Apple SD Gothic Neo", "Pretendard Variable", Pretendard, ui-sans-serif,
+    system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --font-display: "Instrument Serif", "Pretendard Variable", Pretendard, Georgia, serif;
 }
@@ -319,8 +322,20 @@ body {
   border: 1px solid var(--line);
 }
 .prose hr { border: 0; border-top: 1px solid var(--line); margin: 2.6em 0; }
-.prose table { width: 100%; border-collapse: collapse; font-size: 0.94em; }
-.prose th, .prose td { border-bottom: 1px solid var(--line); padding: 0.65em 0.85em; text-align: left; }
+/* 좌우 외곽선까지 둘러 표의 경계를 분명히 한다. 가운데 정렬은 값의 자릿수가
+   제각각일 때 왼쪽 정렬보다 열이 정돈돼 보인다. */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94em;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.prose th, .prose td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.65em 0.85em;
+  text-align: center;
+}
 
 /* ── 모바일 ──────────────────────────────────────────────────────────────
    좁은 화면에서는 글자를 최대한 줄여 한 화면에 더 많은 내용이 들어가게 한다.
