@@ -91,6 +91,9 @@ export default function PrivacyContent() {
       <li>
         <strong>주식회사 카카오 (카카오 애드핏)</strong> — 사이드바 광고 노출
       </li>
+      <li>
+        <strong>Google LLC (구글 애드센스)</strong> — 사이드바 광고 노출 및 광고 성과 측정
+      </li>
 
     </ul>
     <p>
@@ -131,9 +134,21 @@ export default function PrivacyContent() {
 
     <h2>9. 광고</h2>
     <p>
-      사이트는 글 하단에 <strong>쿠팡 파트너스</strong> 제휴 배너를, 사이드바에{' '}
-      <strong>카카오 애드핏</strong> 광고를 표시합니다. 쿠팡 파트너스 배너를 통해 구매가
+      사이트는 글 하단에 <strong>쿠팡 파트너스</strong> 제휴 상품을, 사이드바에{' '}
+      <strong>구글 애드센스</strong> 광고를 표시합니다. 제휴 상품을 통해 구매가
       이루어지면 운영자가 일정액의 수수료를 받습니다.
+    </p>
+    <p>
+      <strong>구글 애드센스</strong>는 광고를 고르기 위해 쿠키를 사용하며, 이를 통해 방문
+      기록에 기반한 맞춤 광고가 표시될 수 있습니다. 맞춤 광고는{' '}
+      <a href="https://myadcenter.google.com/" target="_blank" rel="noopener noreferrer">
+        구글 광고 설정
+      </a>
+      에서, 제3자 사업자의 광고는{' '}
+      <a href="https://optout.aboutads.info/" target="_blank" rel="noopener noreferrer">
+        aboutads.info
+      </a>
+      에서 거부할 수 있습니다.
     </p>
     <ul>
       <li>
@@ -141,9 +156,14 @@ export default function PrivacyContent() {
         그 정보를 받거나 보관하지 않습니다.
       </li>
       <li>
-        쿠팡 파트너스 영역은 상품 이름·사진·가격만 받아 와 사이트가 직접 표시합니다. 쿠팡의
-        스크립트가 사이트에서 실행되지 않으므로 화면 내용이나 로그인 상태에 접근하지 않으며,
-        상품을 누르기 전에는 쿠팡으로 어떤 정보도 전달되지 않습니다.
+        쿠팡 파트너스 영역은 상품 이름·사진·가격만 미리 받아 두어 사이트가 직접 표시합니다.
+        쿠팡의 스크립트가 사이트에서 실행되지 않으므로 화면 내용이나 로그인 상태에 접근하지
+        않으며, 상품을 누르기 전에는 쿠팡으로 어떤 정보도 전달되지 않습니다.
+      </li>
+      <li>
+        구글 애드센스는 광고를 고르기 위해 사이트에서 자체 스크립트를 실행합니다. 이때
+        수집되는 정보는 구글이 자신의 기준에 따라 처리하며, 사이트는 그 정보를 받거나
+        보관하지 않습니다.
       </li>
       <li>
         광고 식별자 기반 맞춤 광고는 각 사업자의 설정 또는 기기의 광고 식별자 초기화·제한

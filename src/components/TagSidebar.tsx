@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AdSenseUnit from './AdSenseUnit'
 import AdFitUnit from './AdFitUnit'
 import { NavLink } from 'react-router-dom'
 import { subscribeTags, type Tag } from '../lib/posts'
@@ -72,7 +73,10 @@ export default function TagSidebar({ onNavigate }: { onNavigate?: () => void }) 
         ))}
       </ul>
 
-      {/* 태그 목록 아래 — 본문을 건드리지 않는 자리다 */}
+      {/* 태그 목록 아래 — 본문을 건드리지 않는 자리다.
+          둘 다 설정이 없으면 아무것도 그리지 않으므로 나란히 두어도 된다.
+          애드핏은 제휴 승인이 나야 쓸 수 있어 지금은 애드센스만 동작한다. */}
+      <AdSenseUnit />
       <AdFitUnit />
     </nav>
   )

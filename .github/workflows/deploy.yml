@@ -52,6 +52,9 @@ jobs:
           VITE_COUPANG_PARTNER_ID: ${{ vars.VITE_COUPANG_PARTNER_ID }}
           VITE_COUPANG_TRACKING_CODE: ${{ vars.VITE_COUPANG_TRACKING_CODE }}
           VITE_ADFIT_UNIT_ID: ${{ vars.VITE_ADFIT_UNIT_ID }}
+          # 애드센스 — 게시자 ID 는 ads.txt 생성에도 쓰인다.
+          VITE_ADSENSE_CLIENT: ${{ vars.VITE_ADSENSE_CLIENT }}
+          VITE_ADSENSE_SLOT: ${{ vars.VITE_ADSENSE_SLOT }}
 
       # GitHub Pages 는 서버 라우팅이 없다. 404 응답에도 앱 셸이 실려야
       # /tags/:tag 같은 클라이언트 경로가 새로고침에도 살아남는다.
