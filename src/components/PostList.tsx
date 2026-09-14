@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { Post } from '../lib/posts'
 import { formatDate } from '../lib/date'
 import { readingStats } from '../lib/editorCommands'
+import AdSenseUnit from './AdSenseUnit'
 
 /**
  * 글마다 만들어 둔 도식을 곁들인 카드 격자.
@@ -36,6 +37,11 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
         <p className="text-sm text-[var(--muted)]">{empty}</p>
       </div>
     )
+
+  /* 목록 중간에 한 자리를 둔다. 사이드바는 넓은 화면에만 있어 모바일에서는
+     광고가 하나도 보이지 않았다. 첫 화면을 밀지 않도록 여섯 번째 뒤에 넣고,
+     목록이 짧으면 넣지 않는다 — 글 두 편 사이에 광고가 끼면 목록이 아니다. */
+  const adAfter = posts.length >= 10 ? 5 : -1
 
   return (
     <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
@@ -109,6 +115,11 @@ export default function PostList({ posts, empty }: { posts: Post[]; empty: strin
                 </div>
               </Link>
             </article>
+            {i === adAfter && (
+              <div className="mt-2.5 sm:mt-3">
+                <AdSenseUnit minHeight={110} format="fluid" />
+              </div>
+            )}
           </li>
         )
       })}

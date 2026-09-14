@@ -7,6 +7,7 @@ import CommentSection from '../components/CommentSection'
 import PostActions from '../components/PostActions'
 import PostEngagement from '../components/PostEngagement'
 import CoupangBanner from '../components/CoupangBanner'
+import AdSenseUnit from '../components/AdSenseUnit'
 import TableOfContents from '../components/TableOfContents'
 import PostNav from '../components/PostNav'
 import { readingStats } from '../lib/editorCommands'
@@ -116,8 +117,11 @@ export default function PostView() {
         dangerouslySetInnerHTML={{ __html: html }}
       />
 
-      {/* 본문과 댓글 사이 — 다 읽은 뒤라 이탈 부담이 적고 첫 화면을 밀지 않는다 */}
+      {/* 본문과 댓글 사이 — 다 읽은 뒤라 이탈 부담이 적고 첫 화면을 밀지 않는다.
+          쿠팡은 프레임 없이 우리가 그리므로 앱 웹뷰에서도 뜨고, 애드센스는 그렇지
+          않다. 둘을 함께 두면 한쪽이 막힌 환경에서도 빈자리가 남지 않는다. */}
       <CoupangBanner />
+      <AdSenseUnit minHeight={200} />
 
       <PostNav post={post} />
 
