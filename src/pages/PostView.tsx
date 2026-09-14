@@ -5,6 +5,7 @@ import { getPost, type Post } from '../lib/posts'
 import { formatDate } from '../lib/date'
 import CommentSection from '../components/CommentSection'
 import PostActions from '../components/PostActions'
+import PostEngagement from '../components/PostEngagement'
 import TableOfContents from '../components/TableOfContents'
 import PostNav from '../components/PostNav'
 import { readingStats } from '../lib/editorCommands'
@@ -100,6 +101,10 @@ export default function PostView() {
             {tag}
           </Link>
         ))}
+        {/* 인쇄물에는 뜻이 없는 값이라 뺀다 */}
+        <div className="no-print ml-auto">
+          <PostEngagement postId={post.id} />
+        </div>
       </div>
       <div className="mt-6 sm:mt-8">
         <TableOfContents headings={headings} />
