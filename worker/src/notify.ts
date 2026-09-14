@@ -7,6 +7,7 @@
  * 보이고 지울 수 있다. 같은 댓글로 두 번 보내지 않도록 R2 에 표식을 남긴다.
  */
 import type { Claims } from './auth'
+import { sendWebhook } from './webhook'
 
 type FsValue = { stringValue?: string; timestampValue?: string }
 type FsDoc = { fields?: Record<string, FsValue> }
@@ -80,5 +81,18 @@ export async function notifyComment(
   await env.BUCKET.put(marker, result.messageId ?? '1', {
     httpMetadata: { contentType: 'text/plain' },
   })
+
+  // 메일과 별개로 웹훅에도 알린다. 실패해도 메일은 이미 나갔으므로 기다리지 않는다.
+  await sendWebhook(env, {
+    event: 'comment',
+    text: `[댓글] ${title} — ${author}: ${text.slice(0, 200)}`,
+    postId,
+    commentId,
+    title,
+    author,
+    body: text,
+    url: link,
+  })
+
   return { status: 200, body: { ok: true, messageId: result.messageId } }
 }

@@ -73,6 +73,8 @@ export async function signIn(): Promise<Viewer> {
   notify()
   void start()
   logAudit('auth.signin')
+  // 알림은 로그인 흐름을 붙잡지 않는다 — 실패해도 로그인은 이미 끝났다
+  void import('./notifyAuth').then((m) => m.notifyAuth())
   return viewer
 }
 

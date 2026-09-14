@@ -1,5 +1,6 @@
 import { requireAdmin, requireUser } from './auth'
 import { notifyComment } from './notify'
+import { sendWebhook } from './webhook'
 
 // Env 는 `wrangler types` 가 worker-configuration.d.ts 에 만든 전역 타입을 쓴다.
 // wrangler.jsonc 를 바꾸면 다시 생성해야 한다.
@@ -79,6 +80,30 @@ export default {
         return json(r.body, r.status, headers)
       } catch (err) {
         console.error('notify-comment', err)
+        return json({ error: (err as Error).message }, 500, headers)
+      }
+    }
+
+    // 누가 로그인했는지 알린다. 브라우저 말을 믿지 않고 토큰에서 신원을 꺼낸다 —
+    // 그래야 남의 이메일로 가짜 알림을 보낼 수 없다.
+    if (url.pathname === '/notify-auth') {
+      try {
+        const user = await requireUser(req, env)
+        if (!user) return json({ error: '로그인이 필요합니다' }, 401, headers)
+        const email = user.email ?? '(이메일 없음)'
+        const isAdmin = env.ADMIN_EMAILS.split(',')
+          .map((s) => s.trim().toLowerCase())
+          .includes(email.toLowerCase())
+        await sendWebhook(env, {
+          event: 'login',
+          text: `[로그인] ${email}${isAdmin ? ' (관리자)' : ''}`,
+          email,
+          uid: user.sub,
+          isAdmin,
+        })
+        return json({ ok: true }, 200, headers)
+      } catch (err) {
+        console.error('notify-auth', err)
         return json({ error: (err as Error).message }, 500, headers)
       }
     }

@@ -34,6 +34,22 @@ function b64urlToBytes(s: string): Uint8Array {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
 }
 
+/**
+ * 토큰 조각 하나를 JSON 으로 읽는다. 읽히지 않으면 null 이다.
+ *
+ * 아무 문자열이나 점 두 개로 나뉘어 있으면 여기까지 온다. 그대로 atob/JSON.parse
+ * 를 부르면 예외가 던져져 401 이어야 할 응답이 500 으로 나가고, 내부 파서의 오류
+ * 문구까지 그대로 밖으로 나간다. 형식이 틀린 토큰은 그냥 틀린 토큰이다.
+ */
+function readPart(part: string): Record<string, unknown> | null {
+  try {
+    const value = JSON.parse(new TextDecoder().decode(b64urlToBytes(part)))
+    return value && typeof value === 'object' ? (value as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
+}
+
 export type Claims = { sub: string; email?: string; email_verified?: boolean }
 
 /** 검증에 성공하면 claims 를, 실패하면 null 을 돌려준다. */
@@ -41,21 +57,28 @@ export async function verifyIdToken(token: string, projectId: string): Promise<C
   const parts = token.split('.')
   if (parts.length !== 3) return null
 
-  const header = JSON.parse(new TextDecoder().decode(b64urlToBytes(parts[0])))
-  if (header.alg !== 'RS256' || !header.kid) return null
+  const header = readPart(parts[0])
+  if (!header || header.alg !== 'RS256' || typeof header.kid !== 'string') return null
 
   const key = await getKey(header.kid)
   if (!key) return null
 
-  const ok = await crypto.subtle.verify(
-    'RSASSA-PKCS1-v1_5',
-    key,
-    b64urlToBytes(parts[2]),
-    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
-  )
+  let ok = false
+  try {
+    ok = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      b64urlToBytes(parts[2]),
+      new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+    )
+  } catch {
+    // 서명 자리가 base64 조차 아닌 경우 — 검증 실패와 같게 다룬다
+    return null
+  }
   if (!ok) return null
 
-  const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(parts[1])))
+  const payload = readPart(parts[1])
+  if (!payload) return null
   const now = Math.floor(Date.now() / 1000)
   if (payload.aud !== projectId) return null
   if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null
@@ -63,7 +86,7 @@ export async function verifyIdToken(token: string, projectId: string): Promise<C
   if (typeof payload.iat !== 'number' || payload.iat > now + 60) return null
   if (!payload.sub) return null
 
-  return payload as Claims
+  return payload as unknown as Claims
 }
 
 /** Authorization 헤더에서 토큰을 꺼내 관리자 여부까지 확인한다. */
