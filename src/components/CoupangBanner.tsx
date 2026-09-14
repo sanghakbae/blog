@@ -14,7 +14,14 @@ import { useEffect, useState } from 'react'
  * 공정거래위원회 추천·보증 심사지침상 대가를 받는다는 사실을 소비자가 쉽게 알
  * 수 있게 표시해야 한다. 상품 아래에 적는다.
  */
-const ENDPOINT = import.meta.env.VITE_UPLOAD_ENDPOINT ?? ''
+/**
+ * 같은 출처의 정적 파일 하나만 읽는다.
+ *
+ * 워커를 거치면 다른 출처라 CORS·차단 목록·회선 정책에 걸릴 자리가 생긴다.
+ * 실제로 모바일에서 계속 비어 보였다. 빌드할 때 scripts/coupang.mts 가 받아
+ * 넣어 두므로 글 본문과 똑같은 경로로 읽으면 된다.
+ */
+const SOURCE = '/coupang.json'
 
 type Item = {
   name: string
@@ -30,9 +37,8 @@ export default function CoupangBanner() {
   const [items, setItems] = useState<Item[] | null>(null)
 
   useEffect(() => {
-    if (!ENDPOINT) return
     let alive = true
-    fetch(`${ENDPOINT}/coupang?width=680`)
+    fetch(SOURCE)
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { items?: Item[] } | null) => {
         if (alive && d?.items?.length) setItems(d.items)

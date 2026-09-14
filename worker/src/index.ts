@@ -2,7 +2,6 @@ import { requireAdmin, requireUser } from './auth'
 import { notifyComment } from './notify'
 import { sendWebhook } from './webhook'
 import { recordVisit } from './visit'
-import { fetchCoupangItems, CACHE_SECONDS } from './coupang'
 
 // Env 는 `wrangler types` 가 worker-configuration.d.ts 에 만든 전역 타입을 쓴다.
 // wrangler.jsonc 를 바꾸면 다시 생성해야 한다.
@@ -52,22 +51,6 @@ export default {
     const url = new URL(req.url)
 
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers })
-
-    // 쿠팡 추천 상품. 프레임도 외부 스크립트도 쓰지 않으려고 데이터만 넘긴다.
-    // R2 서빙보다 먼저 본다 — 아래 분기는 모든 GET 을 버킷 키로 취급한다.
-    if (req.method === 'GET' && url.pathname === '/coupang') {
-      try {
-        const w = Math.min(Math.max(Number(url.searchParams.get('width')) || 680, 200), 1200)
-        const r = await fetchCoupangItems(env, w)
-        return json(r.body, r.status, {
-          ...headers,
-          ...(r.cache ? { 'Cache-Control': `public, max-age=${CACHE_SECONDS}` } : {}),
-        })
-      } catch (err) {
-        console.error('coupang', err)
-        return json({ error: (err as Error).message }, 502, headers)
-      }
-    }
 
     // 업로드된 이미지 서빙 — 별도 도메인이나 공개 버킷 없이 이 워커가 직접 내려준다
     if (req.method === 'GET') {
