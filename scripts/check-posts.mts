@@ -7,6 +7,7 @@
  *
  *   npx tsx scripts/check-posts.mts 26 27
  */
+import { existsSync } from 'node:fs'
 import { analyzeContent } from '../src/lib/localTagger.js'
 import { auditPost } from '../src/lib/seo.js'
 import type { SeedPost } from './content/types.js'
@@ -14,13 +15,21 @@ import type { SeedPost } from './content/types.js'
 const want = process.argv.slice(2).map(Number).filter((n) => n > 0)
 
 const groups: { n: number; posts: SeedPost[] }[] = []
+let broken = 0
 for (let n = 1; n <= 60; n++) {
+  // 파일이 없는 것과 있는데 못 읽는 것을 구분한다. 예전에는 둘 다 조용히
+  // 넘겼는데, 본문에 인라인 코드용 백틱을 그냥 써서 템플릿 문자열이 끊긴 파일이
+  // 통째로 빠진 채 "문제 0편" 이 나왔다. 점검을 통과한 것이 아니라 점검 대상에서
+  // 빠진 것이었다.
+  if (!existsSync(`scripts/content/posts-${n}.ts`)) continue
   try {
     const mod = (await import(`./content/posts-${n}.js`)) as Record<string, SeedPost[]>
     const posts = mod[`posts${n}`]
     if (posts) groups.push({ n, posts })
-  } catch {
-    // 없는 파일은 넘어간다
+    else console.error(`✗ posts-${n}.ts — posts${n} 을 내보내지 않습니다`)
+  } catch (err) {
+    broken++
+    console.error(`✗ posts-${n}.ts 를 읽지 못했습니다 — ${(err as Error).message.split('\n')[0]}`)
   }
 }
 
@@ -85,5 +94,8 @@ for (const g of groups) {
   }
 }
 
-console.log(`\n점검 ${shown}편 · 문제 ${bad}편`)
-process.exit(bad ? 1 : 0)
+console.log(
+  `\n점검 ${shown}편 · 문제 ${bad}편` + (broken ? ` · 읽지 못한 파일 ${broken}개` : ''),
+)
+// 읽지 못한 파일이 있으면 그 안의 글은 점검되지 않았다. 통과로 볼 수 없다.
+process.exit(bad || broken ? 1 : 0)
