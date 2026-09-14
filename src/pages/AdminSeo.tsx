@@ -3,32 +3,10 @@ import { Link } from 'react-router-dom'
 import { listAllPosts, setIndexStatus, type Post } from '../lib/posts'
 import { auditAll, summarize, type IssueArea, type PostAudit } from '../lib/seo'
 import {
-  ENGINES, ENGINE_LABEL, confirmedOn, searchUrl,
+  ENGINES, ENGINE_LABEL, confirmedOn,
   type Engine, type IndexStatus,
 } from '../lib/indexStatus'
-
-/**
- * 포털 검색을 팝업 창으로 연다.
- *
- * iframe 으로 감싸면 구글·네이버·빙 모두 결과 화면을 띄우지 못하게 막아 흰 칸만
- * 남는다. 별도 창은 그 제약을 받지 않으므로 결과가 그대로 보인다.
- * 창 이름을 고정해 여러 번 눌러도 창이 계속 늘어나지 않는다.
- * 팝업이 막혀 있으면 창이 열리지 않으므로 새 탭으로 대신 연다.
- */
-function openSearch(engine: Engine, postId: string) {
-  const url = searchUrl(engine, postId)
-  const width = Math.min(1100, Math.round(window.screen.availWidth * 0.8))
-  const height = Math.min(900, Math.round(window.screen.availHeight * 0.85))
-  const left = Math.round((window.screen.availWidth - width) / 2)
-  const top = Math.round((window.screen.availHeight - height) / 2)
-  const win = window.open(
-    url,
-    'index-check',
-    `popup=yes,width=${width},height=${height},left=${left},top=${top},noopener,noreferrer`,
-  )
-  if (!win) window.open(url, '_blank', 'noopener,noreferrer')
-  else win.focus()
-}
+import IndexCheckModal from '../components/IndexCheckModal'
 
 const AREAS: IssueArea[] = ['SEO', 'GEO', '이미지', '에디토리얼']
 
@@ -56,8 +34,10 @@ export default function AdminSeo() {
   const area = filter?.kind === 'area' ? filter.v : null
   // 색인 상태는 CI 가 Search Console API 로 채운 값을 그대로 보여준다
   const [status, setStatus] = useState<Record<string, IndexStatus>>({})
-  /** 검색 창을 띄운 뒤 "있었나?" 를 묻고 있는 배지. 한 번에 하나만 묻는다. */
-  const [asking, setAsking] = useState<{ id: string; engine: Engine } | null>(null)
+  /** 열려 있는 색인 확인 팝업. 한 번에 하나만 연다. */
+  const [checking, setChecking] = useState<{ id: string; title: string; engine: Engine } | null>(
+    null,
+  )
   const [saving, setSaving] = useState(false)
 
   /**
@@ -73,7 +53,7 @@ export default function AdminSeo() {
     if (on) next[engine] = new Date().toISOString()
     else delete next[engine]
     setStatus((m) => ({ ...m, [id]: next }))
-    setAsking(null)
+    setChecking(null)
     setSaving(true)
     try {
       await setIndexStatus(id, engine, on)
@@ -122,8 +102,8 @@ export default function AdminSeo() {
           0 이 좋은 상태이고, 뒤 세 칸은{' '}
           <strong className="font-medium text-[var(--ink)]">색인이 확인된 글 수</strong>라 클수록
           좋습니다. 구글은 12시간마다 자동으로 확인합니다. 네이버·빙은 확인 API 가 없어, 배지를 누르면
-          site: 검색이 열리고 결과를 보고 <strong className="font-medium text-[var(--ink)]">있음 / 없음</strong>을
-          누르면 그 자리에 기록됩니다.
+          site: 검색이 팝업으로 열리고 아래의{' '}
+          <strong className="font-medium text-[var(--ink)]">있음 / 없음</strong>으로 기록합니다.
         </p>
       </header>
 
@@ -205,10 +185,9 @@ export default function AdminSeo() {
                 {a.title}
               </Link>
 
-              {/* 누르면 site: 검색이 팝업 창으로 열린다.
-                  구글의 노란 배지는 scripts/index-status.mts 가 Search Console API 로
-                  확인해 기록한 것이라 눌러도 바뀌지 않는다. 네이버·빙은 그런 API 가
-                  없어, 팝업에서 본 결과를 바로 옆에서 있음/없음으로 남긴다. */}
+              {/* 누르면 같은 화면 안에 검색 결과 팝업이 뜬다. 별도 창을 띄우면
+                  500편을 훑는 동안 창이 계속 쌓여 어느 글의 것인지 알 수 없게 된다.
+                  구글 배지는 Search Console API 가 채운 값이라 눌러도 바뀌지 않는다. */}
               <span className="flex items-center gap-1.5">
                 <span className="text-[10px] text-[var(--muted)]">색인</span>
                 {ENGINES.map((e) => {
@@ -218,10 +197,7 @@ export default function AdminSeo() {
                     <button
                       key={e}
                       type="button"
-                      onClick={() => {
-                        openSearch(e, a.id)
-                        if (!auto) setAsking({ id: a.id, engine: e })
-                      }}
+                      onClick={() => setChecking({ id: a.id, title: a.title, engine: e })}
                       title={
                         auto
                           ? `${ENGINE_LABEL[e]} site: 검색을 엽니다 (상태는 API 가 자동으로 채웁니다)`
@@ -238,36 +214,6 @@ export default function AdminSeo() {
                     </button>
                   )
                 })}
-
-                {asking?.id === a.id && (
-                  <span className="flex items-center gap-1 text-[10px] text-[var(--muted)]">
-                    <span>{ENGINE_LABEL[asking.engine]} 결과에</span>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => mark(a.id, asking.engine, true)}
-                      className="rounded border border-amber-400 bg-amber-300/60 px-1.5 py-0.5 font-medium text-amber-900 disabled:opacity-50"
-                    >
-                      있음
-                    </button>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => mark(a.id, asking.engine, false)}
-                      className="rounded border border-[var(--line)] px-1.5 py-0.5 hover:border-[var(--accent)] disabled:opacity-50"
-                    >
-                      없음
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAsking(null)}
-                      className="px-1 text-[var(--muted)] hover:text-[var(--ink)]"
-                      aria-label="기록하지 않고 닫기"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
               </span>
 
               <span className="ml-auto flex items-center gap-2 font-mono text-[10px] text-[var(--muted)]">
@@ -313,6 +259,21 @@ export default function AdminSeo() {
         ))}
       </ul>
 
+      {checking && (
+        <IndexCheckModal
+          postId={checking.id}
+          title={checking.title}
+          engine={checking.engine}
+          saving={saving}
+          // 구글은 API 가 채우므로 기록 단추를 주지 않는다
+          onMark={
+            checking.engine === 'google'
+              ? undefined
+              : (on) => mark(checking.id, checking.engine, on)
+          }
+          onClose={() => setChecking(null)}
+        />
+      )}
     </div>
   )
 }
