@@ -30,6 +30,29 @@ const ID = import.meta.env.VITE_COUPANG_PARTNER_ID || TRACKING.replace(/\D/g, ''
 const MAX_WIDTH = 680
 const HEIGHT = 140
 
+/** 스크립트도 프레임도 필요 없는 추적 링크. 어디서나 동작한다. */
+const HOME_LINK =
+  `https://link.coupang.com/re/AFFHOMEWW?lptag=${encodeURIComponent(TRACKING)}&subid=&subparam=&tsource=`
+
+/**
+ * 앱 안에서 열린 브라우저인가.
+ *
+ * 카카오톡·인스타그램·네이버 앱 등이 띄우는 화면은 일반 브라우저가 아니라
+ * 앱에 박힌 웹뷰다. 서드파티 프레임과 저장소를 막는 경우가 많아 쿠팡 위젯이
+ * 그 안에서는 아무것도 그리지 못한다. 그런 곳에서는 프레임을 포기하고 링크만
+ * 보여 준다 — 링크는 스크립트도 프레임도 쓰지 않아 어디서나 동작한다.
+ *
+ * 판별은 완전할 수 없다. 못 알아본 웹뷰에서는 예전처럼 빈 칸이 되고, 잘못
+ * 알아본 일반 브라우저에서는 링크가 보인다. 둘 중 뒤쪽이 덜 나쁘므로 넓게 잡는다.
+ */
+function isInAppBrowser(ua: string): boolean {
+  if (/KAKAOTALK|Instagram|FBAN|FBAV|FB_IAB|Line\/|NAVER|DaumApps|everytimeApp|BAND|Snapchat|Twitter/i.test(ua))
+    return true
+  // 안드로이드 웹뷰는 UA 에 ' wv' 가 붙는다. 앱 안에서 열린 화면이라는 뜻이다.
+  if (/Android/i.test(ua) && /; wv\)/i.test(ua)) return true
+  return false
+}
+
 export default function CoupangBanner() {
   const box = useRef<HTMLDivElement>(null)
   /**
@@ -81,6 +104,26 @@ export default function CoupangBanner() {
 
   // 설정이 없으면 자리 자체를 만들지 않는다. 빈 칸이 남으면 본문이 끊겨 보인다.
   if (!ID || !TRACKING) return null
+
+  if (typeof navigator !== 'undefined' && isInAppBrowser(navigator.userAgent)) {
+    return (
+      <aside className="no-print mt-10 border-t border-[var(--line)] pt-6">
+        <a
+          href={HOME_LINK}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          className="mx-auto flex max-w-[680px] items-center justify-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] px-4 py-3 text-[13px] font-medium text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        >
+          쿠팡에서 오늘의 추천 상품 보기
+          <span aria-hidden>→</span>
+        </a>
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
+          이 링크는 쿠팡 파트너스 활동의 일환으로, 이를 통해 구매가 이루어지면
+          운영자가 일정액의 수수료를 제공받습니다.
+        </p>
+      </aside>
+    )
+  }
 
   const src =
     `https://ads-partners.coupang.com/widgets.html?id=${encodeURIComponent(ID)}` +
