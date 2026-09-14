@@ -435,7 +435,9 @@ export async function setIndexStatus(id: string, engine: string, on: boolean): P
   await updateDoc(doc(postsCol, id), {
     [`indexStatus.${engine}`]: on ? new Date().toISOString() : deleteField(),
   })
-  invalidate()
+  // 캐시를 비우지 않는다. 목록 스냅샷에는 indexStatus 가 없고, 관리 화면은
+  // 캐시를 거치지 않고 Firestore 를 직접 읽는다. 비워 봐야 다음 이동에서
+  // 500편을 다시 받게 할 뿐 화면에 달라지는 것이 없다.
   await logAudit('index.mark', id, detail)
 }
 

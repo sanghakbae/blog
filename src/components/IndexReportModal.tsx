@@ -37,8 +37,10 @@ export default function IndexReportModal({
     closing.current = false
     const dialog = ref.current
     if (dialog && !dialog.open) dialog.showModal()
+    document.body.style.overflow = 'hidden'
     return () => {
       closing.current = true
+      document.body.style.overflow = ''
     }
   }, [])
 

@@ -13,6 +13,7 @@
  *   npx tsx scripts/naver-draft.mts              # 오늘 몫 3편
  *   npx tsx scripts/naver-draft.mts --count=5
  *   npx tsx scripts/naver-draft.mts --full       # 본문까지 (중복 문서를 감수할 때)
+ *   npx tsx scripts/naver-draft.mts --dry        # 기록에 남기지 않고 보기만
  *   npx tsx scripts/naver-draft.mts --reset      # 올린 기록을 지운다
  *
  * 어디까지 올렸는지는 .naver-posted.json 에 남는다. 오래된 글부터 차례로 나간다.
@@ -74,8 +75,12 @@ for (const [i, p] of queue.entries()) {
   console.log(`\n태그: ${p.tags.map((t) => `#${t}`).join(' ')}`)
 }
 
-writeFileSync(LEDGER, `${JSON.stringify([...done, ...queue.map((p) => p.id)], null, 2)}\n`)
+// 실수로 두 번 돌리면 올리지도 않은 글이 올린 것으로 남아 영영 건너뛴다.
+// 확인만 하고 싶을 때를 위해 기록하지 않는 길을 둔다.
+if (!has('dry'))
+  writeFileSync(LEDGER, `${JSON.stringify([...done, ...queue.map((p) => p.id)], null, 2)}\n`)
+
 console.log(
   `\n${'─'.repeat(72)}\n${queue.length}편 · 남은 글 ${list.length - done.length - queue.length}편` +
-    ` · 기록: ${LEDGER}`,
+    (has('dry') ? ' · --dry 라 기록하지 않았습니다' : ` · 기록: ${LEDGER}`),
 )
