@@ -17,12 +17,12 @@ export default function Admin() {
             <li key={post.id} className="flex items-center gap-3 py-4">
               <Link to={`/admin/edit/${post.id}`} className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{post.title}</span>
-                <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+                <span className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-[var(--muted)]">
                   <span>{formatDate(post.updatedAt)}</span>
                   {post.tags.map((t) => (
                     <span
                       key={t}
-                      className="rounded-md border border-[var(--line)] px-2 py-0.5 text-[10px]"
+                      className="rounded-md border border-[var(--line)] px-2 py-0.5 text-[11px]"
                     >
                       {t}
                     </span>
@@ -30,7 +30,7 @@ export default function Admin() {
                 </span>
               </Link>
               <span
-                className={`shrink-0 rounded-md px-2 py-0.5 text-xs ${
+                className={`shrink-0 rounded-md px-2 py-0.5 text-[13px] ${
                   post.published
                     ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
                     : 'border border-[var(--line)] text-[var(--muted)]'

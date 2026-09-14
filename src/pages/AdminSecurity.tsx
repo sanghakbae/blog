@@ -15,7 +15,7 @@ function Row({
     <div className="flex items-start gap-4 border-b border-[var(--line)] py-4 last:border-0">
       <div className="min-w-0 flex-1">
         <h3 className="text-sm font-medium">{title}</h3>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">{desc}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--muted)]">{desc}</p>
       </div>
       <div className="shrink-0 pt-0.5">{children}</div>
     </div>
@@ -61,7 +61,7 @@ export default function AdminSecurity() {
 
       <section>
         <h2 className="text-sm font-semibold">글쓰기 권한을 가진 계정</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">
+        <p className="mt-1 text-[13px] text-[var(--muted)]">
           이 목록은 Firestore 보안 규칙에도 함께 적혀 있어야 실제로 적용됩니다.
           브라우저 설정만으로는 바꿀 수 없습니다.
         </p>
@@ -70,7 +70,7 @@ export default function AdminSecurity() {
             <li key={e} className="flex items-center gap-2">
               <span>{e}</span>
               {e === user?.email?.toLowerCase() && (
-                <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-xs text-[var(--accent)]">
+                <span className="rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[13px] text-[var(--accent)]">
                   현재 계정
                 </span>
               )}
@@ -81,7 +81,7 @@ export default function AdminSecurity() {
 
       <section>
         <h2 className="text-sm font-semibold">보안 설정</h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">
+        <p className="mt-1 text-[13px] text-[var(--muted)]">
           아래 설정은 Firestore 보안 규칙이 직접 읽어 서버에서 강제합니다.
         </p>
 
@@ -117,7 +117,7 @@ export default function AdminSecurity() {
                 onBlur={() => patch({ reauthAfterMinutes: s.reauthAfterMinutes })}
                 className="w-20 rounded-lg border border-[var(--line)] bg-transparent px-2 py-1.5 text-right text-sm outline-none focus:border-[var(--accent)]"
               />
-              <span className="text-xs text-[var(--muted)]">분</span>
+              <span className="text-[13px] text-[var(--muted)]">분</span>
             </div>
           </Row>
 
@@ -139,7 +139,7 @@ export default function AdminSecurity() {
           </Row>
         </div>
 
-        <p className="mt-3 text-xs text-[var(--muted)]">{status}</p>
+        <p className="mt-3 text-[13px] text-[var(--muted)]">{status}</p>
       </section>
     </div>
   )

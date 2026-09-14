@@ -59,14 +59,14 @@ export default function AdminAudit() {
               key={g.id}
               type="button"
               onClick={() => setGroup(g.id)}
-              className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-md border px-2.5 py-1 text-[13px] font-medium transition-colors ${
                 group === g.id
                   ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                   : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--ink)]'
               }`}
             >
               {g.label}
-              <span className="ml-1.5 font-mono text-[10px] opacity-70">{counts[g.id]}</span>
+              <span className="ml-1.5 font-mono text-[11px] opacity-70">{counts[g.id]}</span>
             </button>
           ))}
         </div>
@@ -81,32 +81,35 @@ export default function AdminAudit() {
         <p className="text-sm text-[var(--muted)]">이 묶음에는 기록이 없습니다.</p>
       )}
 
+      {/* 좌우로 밀지 않는다. 최소 폭을 주면 좁은 화면에서 표가 넘쳐 스크롤이
+          생기는데, 감사 로그는 훑어 보는 화면이라 옆으로 미는 순간 못 읽는다.
+          대신 내용 칸을 줄바꿈시켜 세로로 늘어나게 한다. */}
       {shown.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
+        <div>
+          <table className="w-full table-fixed border-collapse text-sm">
             <thead>
-              <tr className="border-b border-[var(--line)] text-center text-xs text-[var(--muted)]">
-                <th className="py-2 pr-4 font-medium">시각</th>
-                <th className="py-2 pr-4 font-medium">행위</th>
-                <th className="py-2 pr-4 font-medium">수행자</th>
-                <th className="py-2 pr-4 font-medium">대상</th>
+              <tr className="border-b border-[var(--line)] text-center text-[13px] text-[var(--muted)]">
+                <th className="w-[9.5rem] py-2 pr-3 font-medium">시각</th>
+                <th className="w-[5.5rem] py-2 pr-3 font-medium">행위</th>
+                <th className="hidden w-[11rem] py-2 pr-3 font-medium sm:table-cell">수행자</th>
+                <th className="w-[9rem] py-2 pr-3 font-medium">대상</th>
                 <th className="py-2 font-medium">내용</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((e) => (
                 <tr key={e.id} className="border-b border-[var(--line)] align-top text-left">
-                  <td className="py-2.5 pr-4 text-xs whitespace-nowrap tabular-nums text-[var(--muted)]">
+                  <td className="py-2.5 pr-3 text-[13px] tabular-nums text-[var(--muted)]">
                     {formatAt(e)}
                   </td>
-                  <td className="py-2.5 pr-4 whitespace-nowrap">
-                    {AUDIT_LABELS[e.action] ?? e.action}
+                  <td className="py-2.5 pr-3 text-[13px]">{AUDIT_LABELS[e.action] ?? e.action}</td>
+                  <td className="hidden py-2.5 pr-3 text-[13px] break-all text-[var(--muted)] sm:table-cell">
+                    {e.actorEmail}
                   </td>
-                  <td className="py-2.5 pr-4 text-xs text-[var(--muted)]">{e.actorEmail}</td>
-                  <td className="max-w-[16rem] truncate py-2.5 pr-4 text-xs text-[var(--muted)]">
+                  <td className="py-2.5 pr-3 text-[13px] break-all text-[var(--muted)]">
                     {e.target || <span className="opacity-40">—</span>}
                   </td>
-                  <td className="py-2.5 text-xs text-[var(--muted)]">
+                  <td className="py-2.5 text-[13px] break-words text-[var(--muted)]">
                     {e.detail || <span className="opacity-40">—</span>}
                   </td>
                 </tr>

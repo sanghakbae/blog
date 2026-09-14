@@ -89,8 +89,8 @@ export default function AdminSeo() {
   return (
     <div>
       <header className="mb-5">
-        <h2 className="text-base font-semibold tracking-tight">SEO / GEO 상태</h2>
-        <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+        <h2 className="text-xl font-semibold tracking-tight">SEO / GEO 상태</h2>
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--muted)]">
           GEO 는 Generative Engine Optimization — 답변 엔진이 인용할 수 있는 구조 신호를 뜻합니다.
           점수가 낮은 글이 위에 옵니다.
         </p>
@@ -120,7 +120,7 @@ export default function AdminSeo() {
                 : 'border-[var(--line)] bg-[var(--bg-elev)] hover:border-[var(--accent)]'
             }`}
           >
-            <span className="block truncate text-[9px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
+            <span className="block truncate text-[11px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
               <span className={AREA_SHORT[a] ? 'sm:hidden' : ''}>{AREA_SHORT[a] ?? a}</span>
               {AREA_SHORT[a] && <span className="hidden sm:inline">{a}</span>}
             </span>
@@ -147,17 +147,17 @@ export default function AdminSeo() {
                 : 'border-[var(--line)] bg-[var(--bg-elev)] hover:border-[var(--accent)]'
             }`}
           >
-            <span className="block truncate text-[9px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
+            <span className="block truncate text-[11px] font-bold tracking-tight text-[var(--muted)] sm:text-[13px]">
               {ENGINE_LABEL[e]}
               {/* 구글만 API 로 확인된다. 나머지는 사람이 눌러 확인한 기록이다. */}
-              <span className="ml-1 hidden font-normal text-[10px] sm:inline">
+              <span className="ml-1 hidden font-normal text-[11px] sm:inline">
                 {e === 'google' ? '자동' : '수동'}
               </span>
             </span>
             <span className="mt-0.5 block text-center text-[13px] font-semibold tabular-nums sm:text-xl">
               {indexed(e)}
               {/* 좁은 화면에서는 아래로 내린다. 한 줄에 붙이면 7칸이 넘친다. */}
-              <span className="block text-[9px] font-normal text-[var(--muted)] sm:inline sm:text-xs">
+              <span className="block text-[11px] font-normal text-[var(--muted)] sm:inline sm:text-[13px]">
                 <span className="hidden sm:inline">{' / '}</span>
                 <span className="sm:hidden">/</span>
                 {posts?.length ?? 0}
@@ -167,9 +167,9 @@ export default function AdminSeo() {
         ))}
       </div>
 
-      {!posts && <p className="text-xs text-[var(--muted)]">불러오는 중…</p>}
+      {!posts && <p className="text-[13px] text-[var(--muted)]">불러오는 중…</p>}
       {posts && shown.length === 0 && (
-        <p className="rounded-xl border border-dashed border-[var(--line)] py-12 text-center text-xs text-[var(--muted)]">
+        <p className="rounded-xl border border-dashed border-[var(--line)] py-12 text-center text-[13px] text-[var(--muted)]">
           해당하는 글이 없습니다.
         </p>
       )}
@@ -189,10 +189,10 @@ export default function AdminSeo() {
                   구글은 팝업에 담을 것이 없다 — iframe 을 막는 데다 배지 값을
                   API 가 채우므로 기록할 것도 없어서, 검색만 새 탭으로 연다. */}
               <span className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[var(--muted)]">색인</span>
+                <span className="text-[11px] text-[var(--muted)]">색인</span>
                 {ENGINES.map((e) => {
                   const on = !!status[a.id]?.[e]
-                  const style = `rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
+                  const style = `rounded border px-1.5 py-0.5 text-[11px] transition-colors ${
                     on
                       ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
                       : 'border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
@@ -229,7 +229,7 @@ export default function AdminSeo() {
                 })}
               </span>
 
-              <span className="ml-auto flex items-center gap-2 font-mono text-[10px] text-[var(--muted)]">
+              <span className="ml-auto flex items-center gap-2 font-mono text-[11px] text-[var(--muted)]">
                 <span>FAQ {a.faq}</span>
                 <span>· 인용 {a.citations}</span>
                 <span>· 키워드 {a.keywords}</span>
@@ -256,13 +256,13 @@ export default function AdminSeo() {
                       className="col-span-3 grid grid-cols-subgrid items-baseline"
                     >
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${AREA_STYLE[i.area]} ${
+                        className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${AREA_STYLE[i.area]} ${
                           i.level === 'fail' ? 'ring-1 ring-red-500/40' : ''
                         }`}
                       >
                         {i.area}
                       </span>
-                      <code className="font-mono text-[10px] text-[var(--muted)]">{i.field}</code>
+                      <code className="font-mono text-[11px] text-[var(--muted)]">{i.field}</code>
                       <span className="min-w-0 text-[var(--ink)]">{i.message}</span>
                     </li>
                   ))}

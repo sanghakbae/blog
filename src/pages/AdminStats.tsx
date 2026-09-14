@@ -17,7 +17,7 @@ const SOFT = 'var(--accent-soft)'
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-elev)] px-4 py-3.5">
-      <div className="text-xs text-[var(--muted)]">{label}</div>
+      <div className="text-[13px] text-[var(--muted)]">{label}</div>
       <div className="mt-1 font-mono text-2xl leading-none tabular-nums">{value}</div>
       {sub && <div className="mt-1.5 text-[11px] text-[var(--muted)]">{sub}</div>}
     </div>
@@ -43,7 +43,7 @@ function ColumnChart({ data }: { data: { label: string; value: number; full: str
     <div className="flex h-44 items-end gap-1.5" role="img" aria-label="월별 발행 글 수">
       {data.map((d) => (
         <div key={d.full} className="group flex min-w-0 flex-1 flex-col items-center gap-1.5">
-          <span className="font-mono text-[10px] tabular-nums text-[var(--muted)] opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="font-mono text-[11px] tabular-nums text-[var(--muted)] opacity-0 transition-opacity group-hover:opacity-100">
             {d.value}
           </span>
           <div
@@ -54,7 +54,7 @@ function ColumnChart({ data }: { data: { label: string; value: number; full: str
             }}
             title={`${d.full} · ${d.value}편`}
           />
-          <span className="w-full truncate text-center font-mono text-[10px] text-[var(--muted)]">
+          <span className="w-full truncate text-center font-mono text-[11px] text-[var(--muted)]">
             {d.label}
           </span>
         </div>
@@ -70,7 +70,7 @@ function BarChart({ data, unit = '편' }: { data: { label: string; value: number
     <div className="flex flex-col gap-2">
       {data.map((d) => (
         <div key={d.label} className="flex items-center gap-3" title={`${d.label} · ${d.value}${unit}`}>
-          <span className="w-20 shrink-0 truncate text-right text-xs text-[var(--ink)]">{d.label}</span>
+          <span className="w-20 shrink-0 truncate text-right text-[13px] text-[var(--ink)]">{d.label}</span>
           <div className="h-[9px] min-w-0 flex-1 overflow-hidden rounded-full" style={{ background: SOFT }}>
             <div
               className="h-full rounded-full"
@@ -104,7 +104,7 @@ function StackedBar({ parts }: { parts: { label: string; value: number; color: s
         {parts.map((p) => (
           <div key={p.label} className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: p.color }} />
-            <span className="text-xs text-[var(--ink)]">{p.label}</span>
+            <span className="text-[13px] text-[var(--ink)]">{p.label}</span>
             <span className="font-mono text-[11px] tabular-nums text-[var(--muted)]">
               {p.value} · {Math.round((p.value / total) * 100)}%
             </span>

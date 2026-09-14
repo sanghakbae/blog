@@ -19,7 +19,7 @@ export default function AdminLayout() {
       <header className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold tracking-tight">관리</h1>
         {/* 로그아웃은 헤더의 계정 아이콘에 있다. 여기서 또 내보내지 않는다. */}
-        <span className="text-xs text-[var(--muted)]">{user?.email}</span>
+        <span className="text-[13px] text-[var(--muted)]">{user?.email}</span>
       </header>
 
       <div className="mb-8 flex items-end gap-3 border-b border-[var(--line)]">
