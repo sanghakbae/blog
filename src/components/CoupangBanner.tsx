@@ -1,171 +1,101 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
- * 본문 끝에 붙는 쿠팡 파트너스 배너.
+ * 본문 끝에 붙는 쿠팡 파트너스 추천 상품.
  *
  * 자리는 본문과 댓글 사이다. 다 읽은 뒤라 이탈 부담이 적고, 첫 화면을 밀어내지
- * 않아 레이아웃이 흔들리지 않는다. 글 위나 목차 아래에 넣으면 단가는 오르지만
- * 본문이 아래로 밀려 첫 화면 평가가 나빠진다.
+ * 않아 레이아웃이 흔들리지 않는다.
  *
- * 쿠팡이 주는 코드는 그들의 자바스크립트를 우리 페이지에 불러오는 형태다.
- * 그러면 그 스크립트가 우리 DOM 과 같은 실행 맥락을 갖는다. 같은 배너를 iframe
- * 주소로도 받을 수 있어 그쪽을 쓴다 — 다른 출처의 프레임이라 우리 페이지의
- * 내용이나 로그인 상태에 접근하지 못한다.
+ * 쿠팡이 주는 배너는 iframe 이나 그들의 스크립트를 쓴다. 둘 다 카카오톡·인스타그램
+ * 같은 앱 안의 웹뷰에서 막혀 아무것도 그려지지 않는다 — 모바일에서 배너가 비어
+ * 보이던 실제 원인이 이것이다. 그래서 워커가 상품 데이터만 받아 오고 화면이 직접
+ * 그린다. 프레임도 외부 스크립트도 없으니 어디서나 뜬다.
  *
  * 공정거래위원회 추천·보증 심사지침상 대가를 받는다는 사실을 소비자가 쉽게 알
- * 수 있게 표시해야 한다. 배너 바로 아래에 적는다.
+ * 수 있게 표시해야 한다. 상품 아래에 적는다.
  */
-const TRACKING = import.meta.env.VITE_COUPANG_TRACKING_CODE ?? ''
+const ENDPOINT = import.meta.env.VITE_UPLOAD_ENDPOINT ?? ''
 
-/**
- * 위젯 주소의 id 는 추적 코드에서 접두사를 뗀 숫자다.
- *
- * 쿠팡이 주는 코드에는 두 값이 따로 적혀 있지만 실제로는 같은 번호다.
- * id=AF5168844 는 400 을 돌려주고 id=5168844 는 정상으로 뜬다. 값을 두 번
- * 넣게 하면 한쪽만 바꿔 놓고 배너가 왜 안 나오는지 찾게 되므로 여기서 뽑는다.
- * 따로 지정해야 하는 경우를 대비해 덮어쓸 길은 남겨 둔다.
- */
-const ID = import.meta.env.VITE_COUPANG_PARTNER_ID || TRACKING.replace(/\D/g, '')
-
-const MAX_WIDTH = 680
-const HEIGHT = 140
-
-/** 스크립트도 프레임도 필요 없는 추적 링크. 어디서나 동작한다. */
-const HOME_LINK =
-  `https://link.coupang.com/re/AFFHOMEWW?lptag=${encodeURIComponent(TRACKING)}&subid=&subparam=&tsource=`
-
-/**
- * 앱 안에서 열린 브라우저인가.
- *
- * 카카오톡·인스타그램·네이버 앱 등이 띄우는 화면은 일반 브라우저가 아니라
- * 앱에 박힌 웹뷰다. 서드파티 프레임과 저장소를 막는 경우가 많아 쿠팡 위젯이
- * 그 안에서는 아무것도 그리지 못한다. 그런 곳에서는 프레임을 포기하고 링크만
- * 보여 준다 — 링크는 스크립트도 프레임도 쓰지 않아 어디서나 동작한다.
- *
- * 판별은 완전할 수 없다. 못 알아본 웹뷰에서는 예전처럼 빈 칸이 되고, 잘못
- * 알아본 일반 브라우저에서는 링크가 보인다. 둘 중 뒤쪽이 덜 나쁘므로 넓게 잡는다.
- */
-function isInAppBrowser(ua: string): boolean {
-  if (/KAKAOTALK|Instagram|FBAN|FBAV|FB_IAB|Line\/|NAVER|DaumApps|everytimeApp|BAND|Snapchat|Twitter/i.test(ua))
-    return true
-  // 안드로이드 웹뷰는 UA 에 ' wv' 가 붙는다. 앱 안에서 열린 화면이라는 뜻이다.
-  if (/Android/i.test(ua) && /; wv\)/i.test(ua)) return true
-  return false
+type Item = {
+  name: string
+  image: string
+  url: string
+  price: number
+  discountRate: number
 }
 
+const won = (n: number) => n.toLocaleString('ko-KR')
+
 export default function CoupangBanner() {
-  const box = useRef<HTMLDivElement>(null)
-  /**
-   * 실제로 그려질 폭을 재서 넘긴다.
-   *
-   * 680 으로 고정해 보내면 좁은 화면에서 위젯이 680px 짜리 배치를 만들고, 그것이
-   * 343px 틀 안에서 잘려 아무것도 보이지 않는다. 모바일에서 배너가 안 뜨던
-   * 이유가 이것이다. 화면에 맞춰 재서 알려 주는 것이 양쪽에서 맞는 유일한 방법이다.
-   *
-   * 한 번만 잰다. 창 크기가 바뀔 때마다 다시 보내면 주소가 바뀌어 iframe 이
-   * 처음부터 다시 로드되고 노출 집계도 그만큼 중복된다.
-   */
-  const [width, setWidth] = useState(0)
+  const [items, setItems] = useState<Item[] | null>(null)
 
   useEffect(() => {
-    const el = box.current
-    if (!el) return
-
-    const measure = (w: number) => {
-      if (w > 0) setWidth((prev) => (prev > 0 ? prev : Math.min(Math.round(w), MAX_WIDTH)))
-    }
-
-    // 첫 배치에서 이미 폭이 나오면 그것을 쓴다.
-    measure(el.getBoundingClientRect().width)
-
-    // 나오지 않을 수도 있다. 본문이 아직 그려지는 중이거나 글꼴이 로드되기 전이면
-    // 첫 측정이 0 으로 나오고, 한 번만 재는 구조에서는 그대로 멈춰 배너가 영영
-    // 뜨지 않는다. 실제로 모바일에서 그렇게 됐다. 폭이 잡힐 때까지 지켜본다.
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? 0
-      if (w > 0) {
-        measure(w)
-        ro.disconnect()
-      }
-    })
-    ro.observe(el)
-
-    // 그래도 못 재는 경우를 대비한 마지막 수단. 화면 폭에서 좌우 여백을 뺀다.
-    const fallback = setTimeout(() => {
-      measure(Math.min(window.innerWidth - 32, MAX_WIDTH))
-      ro.disconnect()
-    }, 1200)
-
+    if (!ENDPOINT) return
+    let alive = true
+    fetch(`${ENDPOINT}/coupang?width=680`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { items?: Item[] } | null) => {
+        if (alive && d?.items?.length) setItems(d.items)
+      })
+      .catch(() => {
+        // 광고를 못 받아 오는 것이 글 읽기를 방해할 이유는 없다
+      })
     return () => {
-      ro.disconnect()
-      clearTimeout(fallback)
+      alive = false
     }
   }, [])
 
-  // 설정이 없으면 자리 자체를 만들지 않는다. 빈 칸이 남으면 본문이 끊겨 보인다.
-  if (!ID || !TRACKING) return null
-
-  if (typeof navigator !== 'undefined' && isInAppBrowser(navigator.userAgent)) {
-    return (
-      <aside className="no-print mt-10 border-t border-[var(--line)] pt-6">
-        <a
-          href={HOME_LINK}
-          target="_blank"
-          rel="noopener noreferrer sponsored"
-          className="mx-auto flex max-w-[680px] items-center justify-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] px-4 py-3 text-[13px] font-medium text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-        >
-          쿠팡에서 오늘의 추천 상품 보기
-          <span aria-hidden>→</span>
-        </a>
-        <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
-          이 링크는 쿠팡 파트너스 활동의 일환으로, 이를 통해 구매가 이루어지면
-          운영자가 일정액의 수수료를 제공받습니다.
-        </p>
-      </aside>
-    )
-  }
-
-  const src =
-    `https://ads-partners.coupang.com/widgets.html?id=${encodeURIComponent(ID)}` +
-    `&template=carousel&trackingCode=${encodeURIComponent(TRACKING)}` +
-    `&subId=&width=${width}&height=${HEIGHT}&tsource=`
+  // 받아 오기 전에는 자리를 만들지 않는다. 빈 칸이 남으면 본문이 끊겨 보이고,
+  // 나중에 채워지며 아래가 밀리는 것보다 아예 없다가 나타나는 편이 덜 거슬린다.
+  if (!items) return null
 
   return (
     <aside className="no-print mt-10 border-t border-[var(--line)] pt-6">
-      {/* 높이를 미리 잡아 둔다. 나중에 채워지면서 아래 내용이 밀리면 레이아웃
-          이동으로 잡혀 페이지 평가가 깎인다. 폭은 URL 에 적은 값과 맞춘다 —
-          늘려 두면 쿠팡이 그 폭을 채우려고 상품을 스무 개 가까이 밀어 넣는다. */}
-      <div
-        ref={box}
-        className="mx-auto max-w-[680px] overflow-hidden rounded-lg"
-        style={{ height: HEIGHT }}
-      >
-        {/* sandbox 에 allow-same-origin 이 필요하다. 없으면 프레임이 불투명한
-            출처를 갖게 되어 그 안의 스크립트가 저장소에 손대는 순간 예외로 죽는다.
-            프레임 내용이 다른 출처(쿠팡)이므로 이 값이 있어도 우리 페이지에는
-            접근하지 못한다 — 위험해지는 조합은 같은 출처를 프레임에 담을 때다.
+      <p className="mb-3 text-[11px] text-[var(--muted)]">쿠팡 추천 상품</p>
 
-            by-user-activation 은 사람이 실제로 누른 경우에만 이동을 허용한다.
-            없으면 모바일에서 쿠팡 앱으로 넘어가는 딥링크가 막혀 수수료 추적이
-            끊기고, 있어도 광고가 스스로 페이지를 옮기지는 못한다. */}
-        {/* 폭을 재기 전에는 만들지 않는다. 0 으로 한 번 부르고 다시 부르면
-            노출이 두 번 집계된다. */}
-        {width > 0 && (
-          <iframe
-            src={src}
-            title="쿠팡 파트너스 추천 상품"
-            width={width}
-            height={HEIGHT}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-            className="block border-0"
-            scrolling="no"
-          />
-        )}
-      </div>
+      {/* 가로로 미는 목록. 좁은 화면에서는 두어 개가 보이고 밀어서 더 본다.
+          세로로 쌓으면 본문 끝에 광고가 길게 눕는다. */}
+      <ul className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1">
+        {items.map((it) => (
+          <li key={it.url} className="w-[150px] shrink-0 snap-start sm:w-[160px]">
+            <a
+              href={it.url}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="group block overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] transition-colors hover:border-[var(--accent)]"
+            >
+              <div className="grid aspect-square place-items-center overflow-hidden bg-white">
+                <img
+                  src={it.image}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  className="size-full object-contain"
+                />
+              </div>
+              <div className="px-2 py-2">
+                <p className="line-clamp-2 text-[11.5px] leading-snug text-[var(--ink)] transition-colors group-hover:text-[var(--accent)]">
+                  {it.name}
+                </p>
+                <p className="mt-1 flex items-baseline gap-1">
+                  {it.discountRate > 0 && (
+                    <span className="font-mono text-[11px] font-semibold text-red-500">
+                      {it.discountRate}%
+                    </span>
+                  )}
+                  <span className="font-mono text-[12px] font-semibold tabular-nums">
+                    {won(it.price)}원
+                  </span>
+                </p>
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+
       <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
-        이 배너는 쿠팡 파트너스 활동의 일환으로, 이를 통해 구매가 이루어지면
+        이 영역은 쿠팡 파트너스 활동의 일환으로, 이를 통해 구매가 이루어지면
         운영자가 일정액의 수수료를 제공받습니다.
       </p>
     </aside>
