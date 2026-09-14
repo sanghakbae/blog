@@ -6,6 +6,7 @@ import { formatDate } from '../lib/date'
 import CommentSection from '../components/CommentSection'
 import PostActions from '../components/PostActions'
 import PostEngagement from '../components/PostEngagement'
+import CoupangBanner from '../components/CoupangBanner'
 import TableOfContents from '../components/TableOfContents'
 import PostNav from '../components/PostNav'
 import { readingStats } from '../lib/editorCommands'
@@ -114,6 +115,9 @@ export default function PostView() {
         className="prose max-w-none"
         dangerouslySetInnerHTML={{ __html: html }}
       />
+
+      {/* 본문과 댓글 사이 — 다 읽은 뒤라 이탈 부담이 적고 첫 화면을 밀지 않는다 */}
+      <CoupangBanner />
 
       <PostNav post={post} />
 

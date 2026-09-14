@@ -47,6 +47,11 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
           VITE_ADMIN_EMAILS: ${{ vars.VITE_ADMIN_EMAILS }}
           VITE_UPLOAD_ENDPOINT: ${{ vars.VITE_UPLOAD_ENDPOINT }}
+          # 광고 — 값이 비어 있으면 배너 자리를 아예 만들지 않는다.
+          # 비밀이 아니라 페이지에 그대로 드러나는 값이라 secrets 가 아닌 vars 다.
+          VITE_COUPANG_PARTNER_ID: ${{ vars.VITE_COUPANG_PARTNER_ID }}
+          VITE_COUPANG_TRACKING_CODE: ${{ vars.VITE_COUPANG_TRACKING_CODE }}
+          VITE_ADFIT_UNIT_ID: ${{ vars.VITE_ADFIT_UNIT_ID }}
 
       # GitHub Pages 는 서버 라우팅이 없다. 404 응답에도 앱 셸이 실려야
       # /tags/:tag 같은 클라이언트 경로가 새로고침에도 살아남는다.

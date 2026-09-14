@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AdFitUnit from './AdFitUnit'
 import { NavLink } from 'react-router-dom'
 import { subscribeTags, type Tag } from '../lib/posts'
 
@@ -70,6 +71,9 @@ export default function TagSidebar({ onNavigate }: { onNavigate?: () => void }) 
           </li>
         ))}
       </ul>
+
+      {/* 태그 목록 아래 — 본문을 건드리지 않는 자리다 */}
+      <AdFitUnit />
     </nav>
   )
 }
