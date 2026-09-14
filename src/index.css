@@ -20,6 +20,9 @@
   --accent: oklch(0.52 0.24 268);
   --accent-ink: oklch(0.99 0 0);
   --accent-soft: oklch(0.94 0.045 268);
+  /* 표 머리 칸 바탕 — 배경보다 아주 조금만 어둡게. 선이 이미 열을 나누고 있어
+     여기서 더 진하게 하면 값보다 머리가 먼저 읽힌다. */
+  --th-bg: oklch(0.955 0.005 85);
   --radius: 16px;
 
   /* 사용 빈도 상위 태그를 구분하는 색.
@@ -48,6 +51,7 @@
     --accent: oklch(0.78 0.17 268);
     --accent-ink: oklch(0.16 0.01 270);
     --accent-soft: oklch(0.28 0.08 268);
+    --th-bg: oklch(0.225 0.012 270);
 
     --rank-1: oklch(0.78 0.13 25);
     --rank-1-soft: oklch(0.29 0.06 25);
@@ -71,6 +75,7 @@
   --accent: oklch(0.78 0.17 268);
   --accent-ink: oklch(0.16 0.01 270);
   --accent-soft: oklch(0.28 0.08 268);
+  --th-bg: oklch(0.225 0.012 270);
 
   --rank-1: oklch(0.78 0.13 25);
   --rank-1-soft: oklch(0.29 0.06 25);
@@ -336,6 +341,7 @@ body {
   padding: 0.65em 0.85em;
   text-align: center;
 }
+.prose th { background: var(--th-bg); }
 
 /* ── 모바일 ──────────────────────────────────────────────────────────────
    좁은 화면에서는 글자를 최대한 줄여 한 화면에 더 많은 내용이 들어가게 한다.
