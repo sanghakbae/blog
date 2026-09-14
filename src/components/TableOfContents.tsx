@@ -33,10 +33,10 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
 
   return (
     <nav aria-label="목차" className="no-print mb-6 rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] p-3">
-      <h2 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+      <h2 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] sm:mb-2.5 sm:text-[11px]">
         목차
       </h2>
-      <ol className="space-y-0.5">
+      <ol className="space-y-0.5 sm:space-y-1">
         {headings.map((h) => (
           <li key={h.id} className={h.level === 3 ? 'pl-3' : ''}>
             <a
@@ -45,7 +45,11 @@ export default function TableOfContents({ headings }: { headings: Heading[] }) {
                 e.preventDefault()
                 document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }}
-              className={`block truncate py-0.5 text-xs transition-colors ${
+              /* 넓은 화면에서 본문이 17px 인데 목차가 12px 이면 같은 글의 일부로
+                 읽히지 않는다. 본문보다 한 단계만 작게 둔다.
+                 좁은 화면은 그대로 둔다 — 거기서는 본문도 13px 이라 이미 비율이
+                 맞고, 항목이 열 개를 넘으면 목차가 첫 화면을 다 먹는다. */
+              className={`block truncate py-0.5 text-xs leading-snug transition-colors sm:py-1 sm:text-[13.5px] ${
                 active === h.id
                   ? 'font-medium text-[var(--accent)]'
                   : 'text-[var(--muted)] hover:text-[var(--ink)]'
