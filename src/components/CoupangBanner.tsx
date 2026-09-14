@@ -30,6 +30,10 @@ export default function CoupangBanner() {
       {/* 높이를 미리 잡아 둔다. 나중에 채워지면서 아래 내용이 밀리면
           레이아웃 이동으로 잡혀 페이지 평가가 깎인다. */}
       <div className="overflow-hidden rounded-lg" style={{ height: 140 }}>
+        {/* sandbox 의 by-user-activation 이 핵심이다. 사람이 실제로 누른 경우에만
+            이동을 허용하므로 광고 스크립트가 스스로 페이지를 옮길 수는 없다.
+            이것이 없으면 모바일에서 쿠팡 앱으로 넘어가는 딥링크가 막혀 수수료
+            추적이 끊긴다. */}
         <iframe
           src={src}
           title="쿠팡 파트너스 추천 상품"
@@ -37,7 +41,7 @@ export default function CoupangBanner() {
           height="140"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
-          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
           className="block w-full border-0"
           scrolling="no"
         />
