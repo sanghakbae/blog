@@ -10,6 +10,17 @@
     { "binding": "BUCKET", "bucket_name": "blog-images" }
   ],
 
+  // 방문 기록. 쓰기가 사실상 공짜고 SQL 로 조회할 수 있어 이 용도에 맞는다.
+  // Firestore 에 쓰면 조회 한 번이 쓰기 한 번이라 비용이 조회수에 비례한다.
+  //
+  // 계정에서 Analytics Engine 을 켜야 이 바인딩으로 배포된다. 켜지 않은 채로
+  // 두면 배포 자체가 거절되므로 주석으로 둔다. 켠 뒤에 주석을 풀고 배포한다:
+  //   https://dash.cloudflare.com/ → Workers & Pages → Analytics Engine
+  // 바인딩이 없으면 /visit 은 503 을 돌려주고 아무것도 기록하지 않는다.
+  // "analytics_engine_datasets": [
+  //   { "binding": "VISITS", "dataset": "blog_visits" }
+  // ],
+
   // 댓글 알림 메일. 인증된 수신 주소로만 보내므로 요금제와 무관하게 무료다.
   "send_email": [
     { "name": "EMAIL" }

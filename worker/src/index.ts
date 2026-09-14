@@ -1,6 +1,7 @@
 import { requireAdmin, requireUser } from './auth'
 import { notifyComment } from './notify'
 import { sendWebhook } from './webhook'
+import { recordVisit } from './visit'
 
 // Env 는 `wrangler types` 가 worker-configuration.d.ts 에 만든 전역 타입을 쓴다.
 // wrangler.jsonc 를 바꾸면 다시 생성해야 한다.
@@ -105,6 +106,18 @@ export default {
       } catch (err) {
         console.error('notify-auth', err)
         return json({ error: (err as Error).message }, 500, headers)
+      }
+    }
+
+    // 방문 기록. 로그인하지 않아도 남긴다 — 로그인 여부 자체가 기록할 값이다.
+    if (url.pathname === '/visit') {
+      try {
+        const r = await recordVisit(req, env)
+        return json(r.body, r.status, headers)
+      } catch (err) {
+        console.error('visit', err)
+        // 기록 실패가 글 읽기를 막을 이유는 없다. 조용히 성공으로 답한다.
+        return json({ ok: false }, 200, headers)
       }
     }
 

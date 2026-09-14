@@ -7,6 +7,7 @@ import {
   type Engagement,
 } from '../lib/engagement'
 import { signIn, subscribeViewer, type Viewer } from '../lib/authState'
+import { recordVisit } from '../lib/recordVisit'
 
 /**
  * 글 아래 붙는 조회수와 좋아요.
@@ -26,7 +27,10 @@ export default function PostEngagement({ postId }: { postId: string }) {
   useEffect(() => subscribeViewer(setViewer), [])
 
   useEffect(() => {
+    // 세는 것과 남기는 것은 목적이 다르다. 조회수는 같은 사람이 여러 번 봐도
+    // 하루 한 번만 세고, 방문 기록은 열 때마다 남긴다.
     void countView(postId)
+    recordVisit(postId)
     return subscribeEngagement(postId, setStats)
   }, [postId])
 

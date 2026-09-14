@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+
 /**
  * 본문 끝에 붙는 쿠팡 파트너스 배너.
  *
@@ -25,14 +27,37 @@ const TRACKING = import.meta.env.VITE_COUPANG_TRACKING_CODE ?? ''
  */
 const ID = import.meta.env.VITE_COUPANG_PARTNER_ID || TRACKING.replace(/\D/g, '')
 
+const MAX_WIDTH = 680
+const HEIGHT = 140
+
 export default function CoupangBanner() {
+  const box = useRef<HTMLDivElement>(null)
+  /**
+   * 실제로 그려질 폭을 재서 넘긴다.
+   *
+   * 680 으로 고정해 보내면 좁은 화면에서 위젯이 680px 짜리 배치를 만들고, 그것이
+   * 343px 틀 안에서 잘려 아무것도 보이지 않는다. 모바일에서 배너가 안 뜨던
+   * 이유가 이것이다. 화면에 맞춰 재서 알려 주는 것이 양쪽에서 맞는 유일한 방법이다.
+   *
+   * 한 번만 잰다. 창 크기가 바뀔 때마다 다시 보내면 주소가 바뀌어 iframe 이
+   * 처음부터 다시 로드되고 노출 집계도 그만큼 중복된다.
+   */
+  const [width, setWidth] = useState(0)
+
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const w = Math.round(el.getBoundingClientRect().width)
+    if (w > 0) setWidth(Math.min(w, MAX_WIDTH))
+  }, [])
+
   // 설정이 없으면 자리 자체를 만들지 않는다. 빈 칸이 남으면 본문이 끊겨 보인다.
   if (!ID || !TRACKING) return null
 
   const src =
     `https://ads-partners.coupang.com/widgets.html?id=${encodeURIComponent(ID)}` +
     `&template=carousel&trackingCode=${encodeURIComponent(TRACKING)}` +
-    `&subId=&width=680&height=140&tsource=`
+    `&subId=&width=${width}&height=${HEIGHT}&tsource=`
 
   return (
     <aside className="no-print mt-10 border-t border-[var(--line)] pt-6">
@@ -40,22 +65,30 @@ export default function CoupangBanner() {
           레이아웃 이동으로 잡혀 페이지 평가가 깎인다. */}
       {/* 폭을 URL 에 적은 값과 맞춘다. w-full 로 늘려 두면 쿠팡이 그 폭을 채우려고
           상품을 스무 개 가까이 밀어 넣어, 본문 끝에 광고 띠가 길게 눕는다. */}
-      <div className="mx-auto max-w-[680px] overflow-hidden rounded-lg" style={{ height: 140 }}>
+      <div
+        ref={box}
+        className="mx-auto max-w-[680px] overflow-hidden rounded-lg"
+        style={{ height: HEIGHT }}
+      >
         {/* sandbox 의 by-user-activation 이 핵심이다. 사람이 실제로 누른 경우에만
             이동을 허용하므로 광고 스크립트가 스스로 페이지를 옮길 수는 없다.
             이것이 없으면 모바일에서 쿠팡 앱으로 넘어가는 딥링크가 막혀 수수료
             추적이 끊긴다. */}
-        <iframe
-          src={src}
-          title="쿠팡 파트너스 추천 상품"
-          width="680"
-          height="140"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-          className="block w-full border-0"
-          scrolling="no"
-        />
+        {/* 폭을 재기 전에는 만들지 않는다. 0 으로 한 번 부르고 다시 부르면
+            노출이 두 번 집계된다. */}
+        {width > 0 && (
+          <iframe
+            src={src}
+            title="쿠팡 파트너스 추천 상품"
+            width={width}
+            height={HEIGHT}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+            className="block border-0"
+            scrolling="no"
+          />
+        )}
       </div>
       <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
         이 배너는 쿠팡 파트너스 활동의 일환으로, 이를 통해 구매가 이루어지면
