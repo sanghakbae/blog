@@ -11,3 +11,4 @@ dist
 *service-account*.json
 *.key
 *.pem
+.naver-posted.json
