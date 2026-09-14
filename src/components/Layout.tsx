@@ -6,6 +6,7 @@ import ThemeToggle from './ThemeToggle'
 import InstallGuide from './InstallGuide'
 import { onSignIn, subscribeViewer, type Viewer } from '../lib/authState'
 import { fetchIndexSummary, type IndexSummary } from '../lib/indexSummary'
+import { loadAdSense } from '../lib/adsense'
 
 /** 좁은 화면의 메뉴 패널에서만 쓰는 관리 링크 */
 const ADMIN_LINKS = [
@@ -29,6 +30,13 @@ export default function Layout() {
   const [report, setReport] = useState<IndexSummary | null>(null)
 
   useEffect(() => subscribeViewer(setViewer), [])
+
+  /* 애드센스 스크립트는 광고 단위와 별개로 모든 화면에 실려야 한다. 심사가
+     그것을 보고, 승인 전에는 슬롯 ID 가 나오지도 않는다. 설정이 없으면
+     아무것도 하지 않는다. */
+  useEffect(() => {
+    void loadAdSense()
+  }, [])
 
   /* 관리자가 로그인하면 그동안의 색인 결과를 먼저 보여 준다.
      읽기는 문서 한 장이고, 없거나 권한이 없으면 조용히 지나간다. */
