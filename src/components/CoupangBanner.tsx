@@ -13,8 +13,17 @@
  * 공정거래위원회 추천·보증 심사지침상 대가를 받는다는 사실을 소비자가 쉽게 알
  * 수 있게 표시해야 한다. 배너 바로 아래에 적는다.
  */
-const ID = import.meta.env.VITE_COUPANG_PARTNER_ID ?? ''
 const TRACKING = import.meta.env.VITE_COUPANG_TRACKING_CODE ?? ''
+
+/**
+ * 위젯 주소의 id 는 추적 코드에서 접두사를 뗀 숫자다.
+ *
+ * 쿠팡이 주는 코드에는 두 값이 따로 적혀 있지만 실제로는 같은 번호다.
+ * id=AF5168844 는 400 을 돌려주고 id=5168844 는 정상으로 뜬다. 값을 두 번
+ * 넣게 하면 한쪽만 바꿔 놓고 배너가 왜 안 나오는지 찾게 되므로 여기서 뽑는다.
+ * 따로 지정해야 하는 경우를 대비해 덮어쓸 길은 남겨 둔다.
+ */
+const ID = import.meta.env.VITE_COUPANG_PARTNER_ID || TRACKING.replace(/\D/g, '')
 
 export default function CoupangBanner() {
   // 설정이 없으면 자리 자체를 만들지 않는다. 빈 칸이 남으면 본문이 끊겨 보인다.
