@@ -420,6 +420,9 @@ if (onlyMissing) {
     targets.slice(i, i + 100).forEach(({ post, tags }, j) => {
       const at = new Date(end - (targets.length - 1 - (i + j)) * STEP_MS)
       tags.forEach((t) => addedTags.set(t, (addedTags.get(t) ?? 0) + 1))
+      // 조회수·좋아요를 세는 문서를 함께 만든다. 화면에서는 만들 수 없게
+      // 막아 두었다 — increment 만 담은 생성은 규칙이 값을 검사하지 못한다.
+      batch.set(db.collection('stats').doc(post.slug), { views: 0, likes: 0 }, { merge: true })
       batch.set(db.collection('posts').doc(post.slug), {
         title: post.title,
         body: post.body,
@@ -468,6 +471,7 @@ for (let i = 0; i < result.length; i += 100) {
     at.setDate(at.getDate() + i + j)
     // 문서 ID 는 slug 다. 검색에 유리하고, 재실행이 새 문서 생성이 아니라 덮어쓰기가 된다.
     queued++
+    batch.set(db.collection('stats').doc(post.slug), { views: 0, likes: 0 }, { merge: true })
     batch.set(db.collection('posts').doc(post.slug), {
       title: post.title,
       body: post.body,

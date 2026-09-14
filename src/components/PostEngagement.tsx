@@ -38,16 +38,18 @@ export default function PostEngagement({ postId }: { postId: string }) {
   async function onLike() {
     setBusy(true)
     try {
-      if (!viewer) {
-        await signIn()
-        // 로그인 팝업을 닫았을 수도 있다. 켜졌는지 확인하고 다음 누름에 맡긴다.
-        return
-      }
+      // 로그인하지 않았으면 먼저 로그인하고, 같은 누름으로 좋아요까지 끝낸다.
+      // 로그인만 하고 끝내면 사용자는 눌렀는데 아무 일도 없는 것으로 본다 —
+      // 두 번 눌러야 한다는 것을 알 방법이 없다.
+      if (!viewer) await signIn()
       // 화면을 먼저 바꾼다. 구독이 곧 진짜 값으로 덮어쓰므로 어긋나도 오래가지 않는다.
       setLiked((v) => !v)
       setLiked(await toggleLike(postId))
-    } catch {
+    } catch (err) {
+      // 로그인 팝업을 닫은 경우까지 포함된다. 실제 상태로 되돌린다.
       setLiked(await hasLiked(postId))
+      const message = (err as Error).message
+      if (message && !/popup|cancel|closed/i.test(message)) console.warn('좋아요 실패', err)
     } finally {
       setBusy(false)
     }

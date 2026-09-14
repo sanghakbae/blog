@@ -42,10 +42,10 @@ export default function PostNav({ post }: { post: Post }) {
               to={`/posts/${siblings.prev.id}`}
               className="rounded-lg border border-[var(--line)] p-3 transition-colors hover:border-[var(--accent)]"
             >
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] sm:text-[11.5px]">
                 ← 이전 글
               </span>
-              <span className="mt-1 block truncate text-[13px] font-medium">
+              <span className="mt-1 block truncate text-[13px] font-medium sm:text-[15px]">
                 {siblings.prev.title}
               </span>
             </Link>
@@ -57,10 +57,10 @@ export default function PostNav({ post }: { post: Post }) {
               to={`/posts/${siblings.next.id}`}
               className="rounded-lg border border-[var(--line)] p-3 text-right transition-colors hover:border-[var(--accent)]"
             >
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] sm:text-[11.5px]">
                 다음 글 →
               </span>
-              <span className="mt-1 block truncate text-[13px] font-medium">
+              <span className="mt-1 block truncate text-[13px] font-medium sm:text-[15px]">
                 {siblings.next.title}
               </span>
             </Link>
@@ -70,7 +70,7 @@ export default function PostNav({ post }: { post: Post }) {
 
       {related.length > 0 && (
         <section>
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] sm:text-[11.5px]">
             같은 태그의 글
           </h2>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -80,8 +80,8 @@ export default function PostNav({ post }: { post: Post }) {
                   to={`/posts/${r.id}`}
                   className="block rounded-lg border border-[var(--line)] p-3 transition-colors hover:border-[var(--accent)]"
                 >
-                  <span className="block truncate text-[13px] font-medium">{r.title}</span>
-                  <span className="mt-1 flex items-center gap-2 font-mono text-[10px] text-[var(--muted)]">
+                  <span className="block truncate text-[13px] font-medium sm:text-[15px]">{r.title}</span>
+                  <span className="mt-1 flex items-center gap-2 font-mono text-[10px] text-[var(--muted)] sm:text-[11.5px]">
                     {formatDate(r.createdAt)}
                     <span className="flex gap-1">
                       {r.tags.slice(0, 2).map((t) => (

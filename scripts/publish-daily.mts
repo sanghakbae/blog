@@ -71,6 +71,9 @@ for (const d of drafts.docs) {
     updatedAt: FieldValue.serverTimestamp(),
   })
 
+  // 세는 문서가 없으면 화면에서 만들 수 없어 조회수가 영영 0 이 된다
+  await db.collection('stats').doc(d.id).set({ views: 0, likes: 0 }, { merge: true })
+
   for (const tag of (data.tags ?? []) as string[])
     await db.collection('tags').doc(tag).set({ name: tag, count: FieldValue.increment(1) }, { merge: true })
 }

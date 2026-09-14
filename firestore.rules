@@ -101,9 +101,17 @@ service cloud.firestore {
         return request.resource.data.keys().hasOnly(keys);
       }
       // 문서가 없을 때의 첫 쓰기 — 1 에서 시작한다
-      allow create: if onlyFields(['views', 'likes'])
-        && (!('views' in request.resource.data) || request.resource.data.views == 1)
-        && (!('likes' in request.resource.data) || request.resource.data.likes == 1);
+      /**
+       * 만들기는 아무도 못 한다.
+       *
+       * increment 만 담은 쓰기는 규칙이 값을 볼 수 없다 — 생성 시점에는
+       * request.resource.data 에 그 필드가 없어서, 값 검사를 붙여 놔도 전부
+       * 건너뛴다. 실제로 익명 요청이 likes=1 로 문서를 만들 수 있었다.
+       *
+       * 그래서 세는 문서는 글을 넣을 때 함께 만든다(scripts/seed.mts,
+       * publish-daily.mts). 화면에서 만들 일이 없으니 길을 막는다.
+       */
+      allow create: if false;
 
       function bumped(field, delta) {
         return request.resource.data[field] == resource.data.get(field, 0) + delta;
