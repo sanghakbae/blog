@@ -38,7 +38,9 @@ export default function CoupangBanner() {
     <aside className="no-print mt-10 border-t border-[var(--line)] pt-6">
       {/* 높이를 미리 잡아 둔다. 나중에 채워지면서 아래 내용이 밀리면
           레이아웃 이동으로 잡혀 페이지 평가가 깎인다. */}
-      <div className="overflow-hidden rounded-lg" style={{ height: 140 }}>
+      {/* 폭을 URL 에 적은 값과 맞춘다. w-full 로 늘려 두면 쿠팡이 그 폭을 채우려고
+          상품을 스무 개 가까이 밀어 넣어, 본문 끝에 광고 띠가 길게 눕는다. */}
+      <div className="mx-auto max-w-[680px] overflow-hidden rounded-lg" style={{ height: 140 }}>
         {/* sandbox 의 by-user-activation 이 핵심이다. 사람이 실제로 누른 경우에만
             이동을 허용하므로 광고 스크립트가 스스로 페이지를 옮길 수는 없다.
             이것이 없으면 모바일에서 쿠팡 앱으로 넘어가는 딥링크가 막혀 수수료
