@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { listAllPosts, setIndexStatus, type Post } from '../lib/posts'
 import { auditAll, summarize, type IssueArea, type PostAudit } from '../lib/seo'
 import {
-  ENGINES, ENGINE_LABEL, confirmedOn,
+  ENGINES, ENGINE_LABEL, confirmedOn, searchUrl,
   type Engine, type IndexStatus,
 } from '../lib/indexStatus'
 import IndexCheckModal from '../components/IndexCheckModal'
@@ -185,32 +185,45 @@ export default function AdminSeo() {
                 {a.title}
               </Link>
 
-              {/* 누르면 같은 화면 안에 검색 결과 팝업이 뜬다. 별도 창을 띄우면
-                  500편을 훑는 동안 창이 계속 쌓여 어느 글의 것인지 알 수 없게 된다.
-                  구글 배지는 Search Console API 가 채운 값이라 눌러도 바뀌지 않는다. */}
+              {/* 네이버·빙은 같은 화면 안 팝업에서 결과를 보고 바로 기록한다.
+                  구글은 팝업에 담을 것이 없다 — iframe 을 막는 데다 배지 값을
+                  API 가 채우므로 기록할 것도 없어서, 검색만 새 탭으로 연다. */}
               <span className="flex items-center gap-1.5">
                 <span className="text-[10px] text-[var(--muted)]">색인</span>
                 {ENGINES.map((e) => {
                   const on = !!status[a.id]?.[e]
-                  const auto = e === 'google'
-                  return (
+                  const style = `rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
+                    on
+                      ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
+                      : 'border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                  }`
+                  const label = (
+                    <>
+                      {ENGINE_LABEL[e]}
+                      {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`}
+                    </>
+                  )
+
+                  return e === 'google' ? (
+                    <a
+                      key={e}
+                      href={searchUrl(e, a.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="구글 site: 검색을 새 탭에서 엽니다 (상태는 API 가 자동으로 채웁니다)"
+                      className={style}
+                    >
+                      {label}
+                    </a>
+                  ) : (
                     <button
                       key={e}
                       type="button"
                       onClick={() => setChecking({ id: a.id, title: a.title, engine: e })}
-                      title={
-                        auto
-                          ? `${ENGINE_LABEL[e]} site: 검색을 엽니다 (상태는 API 가 자동으로 채웁니다)`
-                          : `${ENGINE_LABEL[e]} site: 검색을 열고, 본 결과를 기록합니다`
-                      }
-                      className={`rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
-                        on
-                          ? 'border-amber-400 bg-amber-300/60 font-medium text-amber-900'
-                          : 'border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
-                      }`}
+                      title={`${ENGINE_LABEL[e]} site: 검색을 열고, 본 결과를 기록합니다`}
+                      className={style}
                     >
-                      {ENGINE_LABEL[e]}
-                      {on && ` ${confirmedOn(status[a.id] ?? {}, e)}`}
+                      {label}
                     </button>
                   )
                 })}
@@ -265,12 +278,7 @@ export default function AdminSeo() {
           title={checking.title}
           engine={checking.engine}
           saving={saving}
-          // 구글은 API 가 채우므로 기록 단추를 주지 않는다
-          onMark={
-            checking.engine === 'google'
-              ? undefined
-              : (on) => mark(checking.id, checking.engine, on)
-          }
+          onMark={(on) => mark(checking.id, checking.engine, on)}
           onClose={() => setChecking(null)}
         />
       )}

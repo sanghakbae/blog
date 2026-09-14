@@ -8,11 +8,11 @@ import { ENGINE_LABEL, searchUrl, type Engine } from '../lib/indexStatus'
  * 어느 글의 것인지 알 수 없게 된다. 같은 화면 안에 띄우고, 본 결과를 그 자리에서
  * 남기면 한 글에 대한 일이 한 곳에서 끝난다.
  *
- * 구글만 iframe 에 뜨지 않는다 — x-frame-options: SAMEORIGIN 을 보낸다.
- * 네이버·빙은 그 헤더도 frame-ancestors 도 보내지 않아 그대로 뜬다. 구글은
- * 빈 칸을 보여 주는 대신 왜 안 되는지 적고 새 창 단추를 준다.
+ * 구글은 여기 오지 않는다. x-frame-options: SAMEORIGIN 을 보내 iframe 에 뜨지
+ * 않는 데다, 배지 값은 Search Console API 가 채우므로 기록할 것도 없다. 띄워 봐야
+ * 새 창 단추 하나뿐인 빈 칸이라 목록에서 바로 새 탭으로 연다.
+ * 네이버·빙은 그 헤더도 frame-ancestors 도 보내지 않아 그대로 뜬다.
  */
-const FRAMEABLE: Record<Engine, boolean> = { google: false, naver: true, bing: true }
 
 export default function IndexCheckModal({
   postId,
@@ -26,8 +26,7 @@ export default function IndexCheckModal({
   title: string
   engine: Engine
   saving: boolean
-  /** 구글은 API 가 채우므로 넘기지 않는다 — 그때는 기록 단추를 숨긴다 */
-  onMark?: (on: boolean) => void
+  onMark: (on: boolean) => void
   onClose: () => void
 }) {
   const ref = useRef<HTMLDialogElement>(null)
@@ -85,60 +84,42 @@ export default function IndexCheckModal({
       </div>
 
       <div className="min-h-0 flex-1 bg-[var(--bg)]">
-        {FRAMEABLE[engine] ? (
-          <iframe
-            src={url}
-            title={`${ENGINE_LABEL[engine]} 검색 결과`}
-            className="size-full border-0"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="grid size-full place-items-center px-6 text-center">
-            <p className="text-[11px] leading-relaxed text-[var(--muted)]">
-              구글은 <code className="font-mono">x-frame-options: SAMEORIGIN</code> 을 보내
-              다른 사이트 안에 뜨지 않습니다.
-              <br />
-              위의 <strong className="font-medium text-[var(--ink)]">새 창에서 열기</strong> 로
-              확인하세요.
-              <br />
-              <br />
-              구글 배지는 Search Console API 가 12시간마다 자동으로 채우므로 직접 기록할
-              필요가 없습니다.
-            </p>
-          </div>
-        )}
+        <iframe
+          src={url}
+          title={`${ENGINE_LABEL[engine]} 검색 결과`}
+          className="size-full border-0"
+          referrerPolicy="no-referrer"
+        />
       </div>
 
-      {onMark && (
-        <div className="flex shrink-0 items-center gap-2 border-t border-[var(--line)] px-4 py-2.5">
-          <span className="text-[11px] text-[var(--muted)]">
-            검색 결과에 이 글이 있나요?
-          </span>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => onMark(true)}
-            className="rounded border border-amber-400 bg-amber-300/60 px-2 py-0.5 text-[11px] font-medium text-amber-900 disabled:opacity-50"
-          >
-            있음
-          </button>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => onMark(false)}
-            className="rounded border border-[var(--line)] px-2 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] disabled:opacity-50"
-          >
-            없음
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto text-[11px] text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
-          >
-            기록하지 않고 닫기
-          </button>
-        </div>
-      )}
+      <div className="flex shrink-0 items-center gap-2 border-t border-[var(--line)] px-4 py-2.5">
+        <span className="text-[11px] text-[var(--muted)]">
+          검색 결과에 이 글이 있나요?
+        </span>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => onMark(true)}
+          className="rounded border border-amber-400 bg-amber-300/60 px-2 py-0.5 text-[11px] font-medium text-amber-900 disabled:opacity-50"
+        >
+          있음
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => onMark(false)}
+          className="rounded border border-[var(--line)] px-2 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--ink)] disabled:opacity-50"
+        >
+          없음
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto text-[11px] text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+        >
+          기록하지 않고 닫기
+        </button>
+      </div>
     </dialog>
   )
 }
