@@ -255,12 +255,8 @@ if (dry) {
   process.exit(0)
 }
 
-if (!changed.length) {
-  console.log('\n기록할 것이 없습니다.')
-  process.exit(0)
-}
-
 const now = new Date().toISOString()
+
 for (let i = 0; i < changed.length; i += 400) {
   const batch = db.batch()
   for (const row of changed.slice(i, i + 400)) {
@@ -274,5 +270,38 @@ for (let i = 0; i < changed.length; i += 400) {
   await batch.commit()
 }
 
-console.log(`\n갱신 ${changed.length}편 (상태 변화 ${flipped.length}편)`)
+/**
+ * 로그인했을 때 보여 줄 요약을 문서 한 장에 남긴다.
+ *
+ * 화면에서 500편을 모두 읽어 세면 로그인할 때마다 큰 읽기가 생긴다. 세는 일은
+ * 이미 여기서 끝났으니 결과만 적어 두고, 화면은 이 한 장만 읽는다.
+ *
+ * 바뀐 글이 없어도 쓴다 — 확인한 시각 자체가 알려 줄 내용이고, 이걸 건너뛰면
+ * 화면이 며칠 전 시각을 붙들고 "갱신이 멈췄나" 하게 만든다.
+ */
+const stillIndexed = new Set(all.filter((p) => p.status.google).map((p) => p.id))
+for (const r of rows) {
+  if (r.indexed) stillIndexed.add(r.id)
+  else stillIndexed.delete(r.id)
+}
+
+await db.collection('meta').doc('index-status').set({
+  at: now,
+  published: all.length,
+  indexed: stillIndexed.size,
+  checked: rows.length,
+  skipped,
+  failed,
+  newlyIndexed: flipped.filter((r) => r.indexed).map((r) => ({ id: r.id, title: r.title })),
+  lost: flipped.filter((r) => !r.indexed).map((r) => ({ id: r.id, title: r.title })),
+  states: [...byState.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([state, count]) => ({ state, count })),
+})
+
+console.log(
+  changed.length
+    ? `\n갱신 ${changed.length}편 (상태 변화 ${flipped.length}편) · 요약 기록`
+    : '\n바뀐 글은 없고 요약만 기록했습니다.',
+)
 process.exit(0)

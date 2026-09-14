@@ -4,7 +4,8 @@ import TagSidebar from './TagSidebar'
 import AuthButton from './AuthButton'
 import ThemeToggle from './ThemeToggle'
 import InstallGuide from './InstallGuide'
-import { subscribeViewer, type Viewer } from '../lib/authState'
+import { onSignIn, subscribeViewer, type Viewer } from '../lib/authState'
+import { fetchIndexSummary, type IndexSummary } from '../lib/indexSummary'
 
 /** 좁은 화면의 메뉴 패널에서만 쓰는 관리 링크 */
 const ADMIN_LINKS = [
@@ -18,14 +19,27 @@ const ADMIN_LINKS = [
 // 처리방침은 열어볼 때만 내려받는다
 const PrivacyModal = lazy(() => import('./PrivacyModal'))
 const SearchDialog = lazy(() => import('./SearchDialog'))
+const IndexReportModal = lazy(() => import('./IndexReportModal'))
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [viewer, setViewer] = useState<Viewer>(null)
+  const [report, setReport] = useState<IndexSummary | null>(null)
 
   useEffect(() => subscribeViewer(setViewer), [])
+
+  /* 관리자가 로그인하면 그동안의 색인 결과를 먼저 보여 준다.
+     읽기는 문서 한 장이고, 없거나 권한이 없으면 조용히 지나간다. */
+  useEffect(
+    () =>
+      onSignIn((v) => {
+        if (!v?.isAdmin) return
+        void fetchIndexSummary().then((s) => s && setReport(s))
+      }),
+    [],
+  )
 
   // ⌘K / Ctrl+K 로 어디서든 검색을 연다
   useEffect(() => {
@@ -144,6 +158,12 @@ export default function Layout() {
       {privacyOpen && (
         <Suspense fallback={null}>
           <PrivacyModal onClose={() => setPrivacyOpen(false)} />
+        </Suspense>
+      )}
+
+      {report && (
+        <Suspense fallback={null}>
+          <IndexReportModal summary={report} onClose={() => setReport(null)} />
         </Suspense>
       )}
 

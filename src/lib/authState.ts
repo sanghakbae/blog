@@ -21,6 +21,22 @@ const subscribers = new Set<(v: Viewer) => void>()
 
 const notify = () => subscribers.forEach((cb) => cb(viewer))
 
+/**
+ * "방금 로그인을 눌렀다" 는 신호.
+ *
+ * subscribeViewer 는 새로고침으로 세션이 복원될 때도 부른다. 그것까지 로그인으로
+ * 치면 탭을 열 때마다 팝업이 떠서 금방 성가셔진다. 그래서 signIn 을 통과한
+ * 경우만 따로 알린다.
+ */
+const signInSubscribers = new Set<(v: Viewer) => void>()
+
+export function onSignIn(cb: (v: Viewer) => void) {
+  signInSubscribers.add(cb)
+  return () => {
+    signInSubscribers.delete(cb)
+  }
+}
+
 function toViewer(user: {
   uid: string
   email: string | null
@@ -75,6 +91,7 @@ export async function signIn(): Promise<Viewer> {
   logAudit('auth.signin')
   // 알림은 로그인 흐름을 붙잡지 않는다 — 실패해도 로그인은 이미 끝났다
   void import('./notifyAuth').then((m) => m.notifyAuth())
+  signInSubscribers.forEach((cb) => cb(viewer))
   return viewer
 }
 
