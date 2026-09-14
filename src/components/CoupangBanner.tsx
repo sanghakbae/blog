@@ -47,8 +47,36 @@ export default function CoupangBanner() {
   useEffect(() => {
     const el = box.current
     if (!el) return
-    const w = Math.round(el.getBoundingClientRect().width)
-    if (w > 0) setWidth(Math.min(w, MAX_WIDTH))
+
+    const measure = (w: number) => {
+      if (w > 0) setWidth((prev) => (prev > 0 ? prev : Math.min(Math.round(w), MAX_WIDTH)))
+    }
+
+    // 첫 배치에서 이미 폭이 나오면 그것을 쓴다.
+    measure(el.getBoundingClientRect().width)
+
+    // 나오지 않을 수도 있다. 본문이 아직 그려지는 중이거나 글꼴이 로드되기 전이면
+    // 첫 측정이 0 으로 나오고, 한 번만 재는 구조에서는 그대로 멈춰 배너가 영영
+    // 뜨지 않는다. 실제로 모바일에서 그렇게 됐다. 폭이 잡힐 때까지 지켜본다.
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0
+      if (w > 0) {
+        measure(w)
+        ro.disconnect()
+      }
+    })
+    ro.observe(el)
+
+    // 그래도 못 재는 경우를 대비한 마지막 수단. 화면 폭에서 좌우 여백을 뺀다.
+    const fallback = setTimeout(() => {
+      measure(Math.min(window.innerWidth - 32, MAX_WIDTH))
+      ro.disconnect()
+    }, 1200)
+
+    return () => {
+      ro.disconnect()
+      clearTimeout(fallback)
+    }
   }, [])
 
   // 설정이 없으면 자리 자체를 만들지 않는다. 빈 칸이 남으면 본문이 끊겨 보인다.
@@ -61,19 +89,22 @@ export default function CoupangBanner() {
 
   return (
     <aside className="no-print mt-10 border-t border-[var(--line)] pt-6">
-      {/* 높이를 미리 잡아 둔다. 나중에 채워지면서 아래 내용이 밀리면
-          레이아웃 이동으로 잡혀 페이지 평가가 깎인다. */}
-      {/* 폭을 URL 에 적은 값과 맞춘다. w-full 로 늘려 두면 쿠팡이 그 폭을 채우려고
-          상품을 스무 개 가까이 밀어 넣어, 본문 끝에 광고 띠가 길게 눕는다. */}
+      {/* 높이를 미리 잡아 둔다. 나중에 채워지면서 아래 내용이 밀리면 레이아웃
+          이동으로 잡혀 페이지 평가가 깎인다. 폭은 URL 에 적은 값과 맞춘다 —
+          늘려 두면 쿠팡이 그 폭을 채우려고 상품을 스무 개 가까이 밀어 넣는다. */}
       <div
         ref={box}
         className="mx-auto max-w-[680px] overflow-hidden rounded-lg"
         style={{ height: HEIGHT }}
       >
-        {/* sandbox 의 by-user-activation 이 핵심이다. 사람이 실제로 누른 경우에만
-            이동을 허용하므로 광고 스크립트가 스스로 페이지를 옮길 수는 없다.
-            이것이 없으면 모바일에서 쿠팡 앱으로 넘어가는 딥링크가 막혀 수수료
-            추적이 끊긴다. */}
+        {/* sandbox 에 allow-same-origin 이 필요하다. 없으면 프레임이 불투명한
+            출처를 갖게 되어 그 안의 스크립트가 저장소에 손대는 순간 예외로 죽는다.
+            프레임 내용이 다른 출처(쿠팡)이므로 이 값이 있어도 우리 페이지에는
+            접근하지 못한다 — 위험해지는 조합은 같은 출처를 프레임에 담을 때다.
+
+            by-user-activation 은 사람이 실제로 누른 경우에만 이동을 허용한다.
+            없으면 모바일에서 쿠팡 앱으로 넘어가는 딥링크가 막혀 수수료 추적이
+            끊기고, 있어도 광고가 스스로 페이지를 옮기지는 못한다. */}
         {/* 폭을 재기 전에는 만들지 않는다. 0 으로 한 번 부르고 다시 부르면
             노출이 두 번 집계된다. */}
         {width > 0 && (
@@ -84,7 +115,7 @@ export default function CoupangBanner() {
             height={HEIGHT}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
             className="block border-0"
             scrolling="no"
           />
