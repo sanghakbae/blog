@@ -81,43 +81,77 @@ export default function AdminAudit() {
         <p className="text-sm text-[var(--muted)]">이 묶음에는 기록이 없습니다.</p>
       )}
 
-      {/* 좌우로 밀지 않는다. 최소 폭을 주면 좁은 화면에서 표가 넘쳐 스크롤이
-          생기는데, 감사 로그는 훑어 보는 화면이라 옆으로 미는 순간 못 읽는다.
-          대신 내용 칸을 줄바꿈시켜 세로로 늘어나게 한다. */}
       {shown.length > 0 && (
-        <div>
-          <table className="w-full table-fixed border-collapse text-sm">
+        <>
+          {/* 좁은 화면에서는 표를 버린다.
+              칸이 다섯이면 어떤 폭을 줘도 375px 안에 들어가지 않는다. 억지로 넣으면
+              내용 칸이 한 글자 폭이 되어 글자가 세로로 흐르고, 넘친 만큼 페이지
+              전체가 옆으로 밀려 왼쪽이 잘린다. 실제로 그렇게 됐다.
+              한 건을 한 장으로 쌓으면 무엇을 언제 누가 했는지 그대로 읽힌다. */}
+          <ul className="space-y-2 sm:hidden">
+            {shown.map((e) => (
+              <li
+                key={e.id}
+                className="rounded-lg border border-[var(--line)] bg-[var(--bg-elev)] p-3"
+              >
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-[13px] font-semibold">
+                    {AUDIT_LABELS[e.action] ?? e.action}
+                  </span>
+                  <span className="font-mono text-[11px] tabular-nums text-[var(--muted)]">
+                    {formatAt(e)}
+                  </span>
+                </div>
+
+                {/* 대상과 내용은 길다. 자르지 않고 접어 내린다 — 감사 기록은
+                    훑는 것이 아니라 읽는 것이라 잘리면 쓸모가 없다. */}
+                {e.target && (
+                  <p className="mt-1.5 text-[12px] break-all text-[var(--muted)]">{e.target}</p>
+                )}
+                {e.detail && (
+                  <p className="mt-1 text-[12.5px] leading-snug break-words text-[var(--ink)]">
+                    {e.detail}
+                  </p>
+                )}
+                <p className="mt-1.5 text-[11px] break-all text-[var(--muted)]">{e.actorEmail}</p>
+              </li>
+            ))}
+          </ul>
+
+          {/* 넓은 화면에서는 표가 훑기에 낫다 */}
+          <table className="hidden w-full table-fixed border-collapse sm:table">
             <thead>
-              <tr className="border-b border-[var(--line)] text-center text-[13px] text-[var(--muted)]">
-                <th className="w-[9.5rem] py-2 pr-3 font-medium">시각</th>
-                <th className="w-[5.5rem] py-2 pr-3 font-medium">행위</th>
-                <th className="hidden w-[11rem] py-2 pr-3 font-medium sm:table-cell">수행자</th>
+              <tr className="border-b border-[var(--line)] text-left text-[13px] text-[var(--muted)]">
+                <th className="w-[10rem] py-2 pr-3 font-medium">시각</th>
+                <th className="w-[6rem] py-2 pr-3 font-medium">행위</th>
+                <th className="w-[12rem] py-2 pr-3 font-medium lg:w-[14rem]">수행자</th>
                 <th className="w-[9rem] py-2 pr-3 font-medium">대상</th>
                 <th className="py-2 font-medium">내용</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((e) => (
-                <tr key={e.id} className="border-b border-[var(--line)] align-top text-left">
-                  <td className="py-2.5 pr-3 text-[13px] tabular-nums text-[var(--muted)]">
+                <tr key={e.id} className="border-b border-[var(--line)] align-top">
+                  <td className="py-2.5 pr-3 font-mono text-[12px] tabular-nums text-[var(--muted)]">
                     {formatAt(e)}
                   </td>
                   <td className="py-2.5 pr-3 text-[13px]">{AUDIT_LABELS[e.action] ?? e.action}</td>
-                  <td className="hidden py-2.5 pr-3 text-[13px] break-all text-[var(--muted)] sm:table-cell">
+                  <td className="py-2.5 pr-3 text-[12px] break-all text-[var(--muted)]">
                     {e.actorEmail}
                   </td>
-                  <td className="py-2.5 pr-3 text-[13px] break-all text-[var(--muted)]">
+                  <td className="py-2.5 pr-3 text-[12px] break-all text-[var(--muted)]">
                     {e.target || <span className="opacity-40">—</span>}
                   </td>
-                  <td className="py-2.5 text-[13px] break-words text-[var(--muted)]">
+                  <td className="py-2.5 text-[13px] break-words text-[var(--ink)]">
                     {e.detail || <span className="opacity-40">—</span>}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </>
       )}
+
     </div>
   )
 }
