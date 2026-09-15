@@ -440,7 +440,7 @@ psql -At -c "select count(distinct user_id) from access_log
     },
   },
   {
-    slug: 'incident-communication',
+    slug: 'incident-comms-during',
     title: '침해사고 중에 말을 맞추는 법',
     body: `사고 대응에서 기술 조치만큼 중요한 것이 소통이다. 안에서 정보가 어긋나면 중복 작업이 생기고, 밖으로 잘못 나가면 수습이 두 배가 된다.
 
@@ -456,7 +456,7 @@ psql -At -c "select count(distinct user_id) from access_log
 
 각 대상에게 필요한 정보가 다르다. 대응팀의 상세를 그대로 경영진에게 보내면 판단할 수 없다.
 
-![대상별 전달 내용](/img/posts/incident-communication.svg)
+![대상별 전달 내용](/img/posts/incident-comms-during.svg)
 
 ## 창구를 하나로
 
@@ -480,7 +480,7 @@ psql -At -c "select count(distinct user_id) from access_log
 
 확정되지 않은 것을 말하지 않는 것이 원칙이다. 모른다고 말하는 것이 틀린 말보다 낫다.
 
-![소통의 원칙](/img/posts/incident-communication-2.svg)
+![소통의 원칙](/img/posts/incident-comms-during-2.svg)
 
 ## 기록을 남긴다
 

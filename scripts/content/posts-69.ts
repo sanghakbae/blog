@@ -508,7 +508,7 @@ awk -F, 'NR>1 && $6 < strftime("%Y-%m-%d") {print $1, $2, $6}' \
     },
   },
   {
-    slug: 'audit-preparation',
+    slug: 'audit-evidence-routine',
     title: '심사 준비를 일상 업무로 만들기',
     body: `심사 직전 몇 주를 증적 만들기에 쓰는 조직이 많다. 그렇게 만든 증적은 실제 운영과 다르고, 다음 심사 때 또 같은 일을 한다.
 
@@ -523,7 +523,7 @@ awk -F, 'NR>1 && $6 < strftime("%Y-%m-%d") {print $1, $2, $6}' \
 
 평소에 기록이 남지 않는 구조가 근본 원인이다. 일하면서 남는 기록이 곧 증적이 되면 몰아서 할 것이 없다.
 
-![증적을 만드는 두 방식](/img/posts/audit-preparation.svg)
+![증적을 만드는 두 방식](/img/posts/audit-evidence-routine.svg)
 
 ## 자동으로 남는 것들
 
@@ -548,7 +548,7 @@ awk -F, 'NR>1 && $6 < strftime("%Y-%m-%d") {print $1, $2, $6}' \
 
 통제 대응표 한 장이 준비 시간의 대부분을 줄인다. 요구사항마다 어떤 기록이 증적인지 적어 두는 것이다.
 
-![준비 항목](/img/posts/audit-preparation-2.svg)
+![준비 항목](/img/posts/audit-evidence-routine-2.svg)
 
 ## 뽑는 것을 자동화한다
 

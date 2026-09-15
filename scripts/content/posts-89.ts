@@ -687,7 +687,7 @@ awk -F, 'NR>1 && $2=="inc-2026-09" {n++; if ($5=="done") d++}
     },
   },
   {
-    slug: 'security-handover',
+    slug: 'security-role-handover',
     title: '보안 담당이 바뀔 때 넘기는 것',
     body: `보안 업무는 문서화되지 않은 맥락이 많아서 담당자가 바뀌면 상당 부분이 사라진다. 무엇을 왜 그렇게 했는지가 빠지면 다음 사람이 손대지 못하는 구조가 남는다.
 
@@ -704,7 +704,7 @@ awk -F, 'NR>1 && $2=="inc-2026-09" {n++; if ($5=="done") d++}
 
 판단 배경이 가장 잘 빠진다. 왜 그 설정을 그렇게 뒀는지 모르면 다음 사람이 함부로 바꾸거나 영영 손대지 못한다.
 
-![인계에서 빠지는 것](/img/posts/security-handover.svg)
+![인계에서 빠지는 것](/img/posts/security-role-handover.svg)
 
 ## 인수인계를 어떻게 하나
 
@@ -728,7 +728,7 @@ awk -F, 'NR>1 && $2=="inc-2026-09" {n++; if ($5=="done") d++}
 
 계정을 그대로 물려주면 기록에서 누가 한 일인지 구분되지 않는다. 새 계정을 만들고 옛 계정은 지운다.
 
-![인계 방법](/img/posts/security-handover-2.svg)
+![인계 방법](/img/posts/security-role-handover-2.svg)
 
 ## 인계 목록을 만든다
 

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 272" width="880" height="272" role="img" aria-label="구간별 소요 시간">
+<rect width="880" height="272" rx="14" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="879" height="271" rx="13.5" fill="none" stroke="#e4e4e7"/>
+<text x="24" y="34" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="600" fill="#71717a" letter-spacing="0.04em">구간별 소요 시간</text>
+<text x="24" y="84" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">판단</text>
+<rect x="220" y="70" width="340.7142857142857" height="20" rx="5" fill="#4f46e5"/>
+<text x="570.7142857142858" y="85" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">45분</text>
+<text x="24" y="100" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">결정 지연</text>
+<text x="24" y="130" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">준비</text>
+<rect x="220" y="116" width="530" height="20" rx="5" fill="#c7d2fe"/>
+<text x="760" y="131" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">70분</text>
+<text x="24" y="146" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">권한 확보</text>
+<text x="24" y="176" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">복원</text>
+<rect x="220" y="162" width="302.85714285714283" height="20" rx="5" fill="#c7d2fe"/>
+<text x="532.8571428571429" y="177" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">40분</text>
+<text x="24" y="192" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">전송</text>
+<text x="24" y="222" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="13" font-weight="500" fill="#18181b">검증</text>
+<rect x="220" y="208" width="189.28571428571428" height="20" rx="5" fill="#c7d2fe"/>
+<text x="419.2857142857143" y="223" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="12" font-weight="600" fill="#71717a">25분</text>
+<text x="24" y="238" font-family="-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif" font-size="11" fill="#71717a">정합성</text>
+</svg>

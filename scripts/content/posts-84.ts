@@ -250,7 +250,7 @@ wc -l /var/log/assets.csv /var/log/risk-register.csv 2>/dev/null
     },
   },
   {
-    slug: 'security-team-structure',
+    slug: 'security-org-design',
     title: '보안 조직 구성을 어떻게 나눌까',
     body: `인원이 늘면 역할을 나눠야 하는데, 어떻게 나누느냐에 따라 일이 겹치거나 비는 영역이 생긴다. 조직의 규모와 위험 구조에 맞춰 나누는 것이 정답이 없는 문제다.
 
@@ -265,7 +265,7 @@ wc -l /var/log/assets.csv /var/log/risk-register.csv 2>/dev/null
 
 기능별로 나누는 것이 일반적이다. 인원이 적을 때는 나누지 않고 돌아가며 맡는 편이 낫다.
 
-![조직 구성 방식](/img/posts/security-team-structure.svg)
+![조직 구성 방식](/img/posts/security-org-design.svg)
 
 ## 보안 정책 조직을 어디에 두나
 
@@ -289,7 +289,7 @@ wc -l /var/log/assets.csv /var/log/risk-register.csv 2>/dev/null
 
 경계가 불분명하면 아무도 하지 않는 영역이 생긴다. 누가 주관하고 누가 협조하는지 문서로 정해 두면 그 공백이 줄어든다.
 
-![책임 경계](/img/posts/security-team-structure-2.svg)
+![책임 경계](/img/posts/security-org-design-2.svg)
 
 ## 업무 분포를 본다
 
@@ -658,7 +658,7 @@ ls contracts/*.md 2>/dev/null | wc -l
     },
   },
   {
-    slug: 'security-culture-signals',
+    slug: 'security-culture-indicators',
     title: '보안 문화를 알아보는 신호들',
     body: `문화는 정책 문서가 아니라 사람들이 실제로 어떻게 행동하는지에서 드러난다. 몇 가지 신호를 보면 그 조직의 보안이 형식인지 실질인지 알 수 있다.
 
@@ -674,7 +674,7 @@ ls contracts/*.md 2>/dev/null | wc -l
 
 실수를 스스로 신고하는 경우가 많으면 좋은 신호다. 숨기면 발견이 늦어지고 피해가 커지기 때문이다.
 
-![문화를 보여 주는 신호](/img/posts/security-culture-signals.svg)
+![문화를 보여 주는 신호](/img/posts/security-culture-indicators.svg)
 
 ## 무엇이 문화를 해치나
 
@@ -698,7 +698,7 @@ ls contracts/*.md 2>/dev/null | wc -l
 
 왜 그렇게 해야 하는지 설명하면 사람들이 스스로 판단할 수 있게 된다. 규칙만 주면 규칙에 없는 상황에서 무너진다.
 
-![문화를 만드는 행동](/img/posts/security-culture-signals-2.svg)
+![문화를 만드는 행동](/img/posts/security-culture-indicators-2.svg)
 
 ## 신호를 확인한다
 

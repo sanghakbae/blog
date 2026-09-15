@@ -168,7 +168,7 @@ curl -sI https://example.com/api/login | grep -i 'set-cookie'
     },
   },
   {
-    slug: 'browser-extension-risk',
+    slug: 'browser-extension-scope',
     title: '확장 프로그램이 보는 우리 화면',
     body: `사용자가 설치한 확장 프로그램은 우리 화면의 내용을 읽고 바꿀 수 있다. 우리가 통제할 수 없는 코드가 같은 페이지에서 도는 셈이고, 업무용 서비스라면 이 점을 고려해야 한다.
 
@@ -184,7 +184,7 @@ curl -sI https://example.com/api/login | grep -i 'set-cookie'
 
 권한을 넓게 요구하는 확장이면 사실상 그 사이트의 모든 것에 접근한다. 사용자는 대개 그 권한 목록을 읽지 않는다.
 
-![확장이 접근하는 범위](/img/posts/browser-extension-risk.svg)
+![확장이 접근하는 범위](/img/posts/browser-extension-scope.svg)
 
 ## 우리가 할 수 있는 것
 
@@ -208,7 +208,7 @@ curl -sI https://example.com/api/login | grep -i 'set-cookie'
 
 관리 도구로 확장 설치를 통제할 수 있다. 업무 계정으로 민감한 시스템에 접근한다면 이 통제가 필요하다.
 
-![대응 방법](/img/posts/browser-extension-risk-2.svg)
+![대응 방법](/img/posts/browser-extension-scope-2.svg)
 
 ## 어떤 것이 설치돼 있나
 

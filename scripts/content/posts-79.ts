@@ -342,7 +342,7 @@ awk -F, 'NR>1 {n[$2]++} END {for (u in n) if (n[u] > 100) print n[u], u}' \
     },
   },
   {
-    slug: 'offboarding-checklist',
+    slug: 'offboarding-access-recovery',
     title: '퇴사 처리에서 빠지는 항목들',
     body: `퇴사자의 계정을 지우는 것은 대부분 처리되지만, 그 사람이 쓰던 접근 수단은 여러 곳에 흩어져 있어 하나둘 남는다. 남은 접근은 시간이 지날수록 잊히고 아무도 확인하지 않게 된다.
 
@@ -358,7 +358,7 @@ awk -F, 'NR>1 {n[$2]++} END {for (u in n) if (n[u] > 100) print n[u], u}' \
 
 통합 인증에 연결되지 않은 외부 서비스가 가장 많이 남는다. 부서에서 개별 도입한 도구들이 그렇다.
 
-![남는 접근 수단](/img/posts/offboarding-checklist.svg)
+![남는 접근 수단](/img/posts/offboarding-access-recovery.svg)
 
 ## 퇴사자 계정 회수는 어떤 순서로 하나
 
@@ -383,7 +383,7 @@ awk -F, 'NR>1 {n[$2]++} END {for (u in n) if (n[u] > 100) print n[u], u}' \
 
 민감한 권한은 퇴사 통보 시점에 회수하는 것이 일반적이다. 신뢰 문제가 아니라 위험 관리의 기본 원칙으로 설명하면 받아들여진다.
 
-![처리 시점](/img/posts/offboarding-checklist-2.svg)
+![처리 시점](/img/posts/offboarding-access-recovery-2.svg)
 
 ## 남은 접근을 찾는다
 
@@ -431,7 +431,7 @@ grep "$FORMER_EMPLOYEE" /var/log/auth.csv 2>/dev/null | tail -3
     },
   },
   {
-    slug: 'onboarding-access-baseline',
+    slug: 'onboarding-permission-set',
     title: '입퇴사 때 주는 권한 정하기',
     body: `새로 온 사람에게 무엇을 줄지 매번 정하면 기준이 흔들리고, 앞사람 것을 그대로 복사하면 필요 없는 권한까지 함께 간다. 역할별 기본 묶음을 정해 두면 두 문제가 함께 풀린다.
 
@@ -446,7 +446,7 @@ grep "$FORMER_EMPLOYEE" /var/log/auth.csv 2>/dev/null | tail -3
 
 앞사람의 권한을 복사하는 방식이 가장 문제다. 그 사람도 복사받았다면 몇 세대를 거치며 누적된 권한이 그대로 넘어간다.
 
-![권한이 누적되는 방식](/img/posts/onboarding-access-baseline.svg)
+![권한이 누적되는 방식](/img/posts/onboarding-permission-set.svg)
 
 ## 최소 권한으로 어떻게 묶나
 
@@ -470,7 +470,7 @@ grep "$FORMER_EMPLOYEE" /var/log/auth.csv 2>/dev/null | tail -3
 
 요청이 어렵거나 오래 걸리면 미리 넓게 주는 방향으로 돌아간다. 요청 처리가 빠를수록 최소 권한이 지켜진다.
 
-![권한 묶음 구성](/img/posts/onboarding-access-baseline-2.svg)
+![권한 묶음 구성](/img/posts/onboarding-permission-set-2.svg)
 
 ## 부여 현황을 본다
 
@@ -768,7 +768,7 @@ awk -F, 'NR>1 {split($2,t,":"); if (t[1]+0 < 7 || t[1]+0 > 21) print}' \
     },
   },
   {
-    slug: 'remote-work-security',
+    slug: 'remote-work-baseline',
     title: '원격 근무 환경에서 지킬 것',
     body: `사무실 밖에서 일하면 우리가 통제하는 네트워크와 물리 환경을 벗어난다. 사무실 기준으로 만든 통제가 그대로 적용되지 않으므로, 어디까지 요구하고 무엇을 포기할지 정해야 한다.
 
@@ -784,7 +784,7 @@ awk -F, 'NR>1 {split($2,t,":"); if (t[1]+0 < 7 || t[1]+0 > 21) print}' \
 
 카페나 공용 공간에서 화면이 노출되는 문제는 기술로 막기 어렵다. 어떤 자료를 그런 곳에서 보지 않을지 기준을 주는 편이 실용적이다.
 
-![원격 환경의 차이](/img/posts/remote-work-security.svg)
+![원격 환경의 차이](/img/posts/remote-work-baseline.svg)
 
 ## 무엇을 요구하나
 
@@ -809,7 +809,7 @@ awk -F, 'NR>1 {split($2,t,":"); if (t[1]+0 < 7 || t[1]+0 > 21) print}' \
 
 통제할 수 없는 것을 요구하면 규칙이 지켜지지 않고 신뢰만 잃는다. 할 수 있는 것에 집중하고 나머지는 안내로 남긴다.
 
-![요구와 안내의 구분](/img/posts/remote-work-security-2.svg)
+![요구와 안내의 구분](/img/posts/remote-work-baseline-2.svg)
 
 ## 접속 상태를 본다
 

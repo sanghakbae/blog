@@ -174,7 +174,7 @@ grep -rIn 'analytics\\|track(' --include='*.ts' src/ 2>/dev/null | head -10
     },
   },
   {
-    slug: 'cross-border-transfer',
+    slug: 'cross-border-transfer-basis',
     title: '데이터가 국경을 넘을 때의 조건',
     body: `클라우드를 쓰면 데이터가 어느 나라에 저장되는지 모르는 채 국외로 나가는 일이 생긴다. 개인정보라면 국외 이전에 해당하고, 별도의 조건이 붙는다.
 
@@ -190,7 +190,7 @@ grep -rIn 'analytics\\|track(' --include='*.ts' src/ 2>/dev/null | head -10
 
 해외에서 접속해 조회하는 것도 이전으로 본다. 저장 위치만 국내면 된다고 생각하기 쉬운 지점이다.
 
-![국외 이전에 해당하는 경우](/img/posts/cross-border-transfer.svg)
+![국외 이전에 해당하는 경우](/img/posts/cross-border-transfer-basis.svg)
 
 ## 무엇이 필요한가
 
@@ -214,7 +214,7 @@ grep -rIn 'analytics\\|track(' --include='*.ts' src/ 2>/dev/null | head -10
 
 클라우드 지역을 국내로 지정하고 조직 정책으로 다른 지역 사용을 막으면 실수로 나가는 경로가 닫힌다.
 
-![이전 부담을 줄이는 설계](/img/posts/cross-border-transfer-2.svg)
+![이전 부담을 줄이는 설계](/img/posts/cross-border-transfer-basis-2.svg)
 
 ## 지금 어디에 있는지 본다
 
@@ -775,7 +775,7 @@ grep -c 'export.*filter=none' /var/log/app/audit.csv 2>/dev/null
     },
   },
   {
-    slug: 'data-retention-automation',
+    slug: 'retention-automation-rules',
     title: '보유 기간을 자동으로 지키게 하기',
     body: `보유 기간을 정해 두어도 사람이 기억해 지우는 방식은 지켜지지 않는다. 시간이 지나면 지우는 일이 시스템의 기본 동작이 되어야 실제로 줄어든다.
 
@@ -790,7 +790,7 @@ grep -c 'export.*filter=none' /var/log/app/audit.csv 2>/dev/null
 
 지우는 것이 무섭다는 심리가 가장 크다. 되돌릴 수 없는 작업이고, 필요했을 때의 책임이 명확하기 때문이다.
 
-![안 지워지는 이유](/img/posts/data-retention-automation.svg)
+![안 지워지는 이유](/img/posts/retention-automation-rules.svg)
 
 ## 자동화하는 방식
 
@@ -814,7 +814,7 @@ grep -c 'export.*filter=none' /var/log/app/audit.csv 2>/dev/null
 
 대량 삭제를 막는 상한이 있어야 규칙 실수로 전부 지워지는 사고를 막는다. 상한을 넘으면 멈추고 사람에게 알린다.
 
-![안전장치](/img/posts/data-retention-automation-2.svg)
+![안전장치](/img/posts/retention-automation-rules-2.svg)
 
 ## 지금 규칙이 있는지 본다
 

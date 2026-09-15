@@ -529,7 +529,7 @@ echo "재직 $hr · 활성 계정 $svc · 차이 $((svc-hr))"
     },
   },
   {
-    slug: 'api-key-vs-token',
+    slug: 'api-key-token-split',
     title: 'API 키와 토큰 중 무엇을 쓸 것인가',
     body: `외부에 접근 수단을 줄 때 긴 문자열 하나를 주는 방식과, 짧은 수명의 토큰을 발급받게 하는 방식이 있다. 둘은 운영 부담과 위험의 모양이 다르고, 상황에 따라 맞는 쪽이 갈린다.
 
@@ -545,7 +545,7 @@ echo "재직 $hr · 활성 계정 $svc · 차이 $((svc-hr))"
 
 긴 키는 만들기 쉬운 대신 유출을 발견하기 전까지 계속 유효하다. 짧은 토큰은 그 창을 줄이지만 발급 구조를 만들어야 한다.
 
-![두 방식의 위험 구간](/img/posts/api-key-vs-token.svg)
+![두 방식의 위험 구간](/img/posts/api-key-token-split.svg)
 
 ## 어느 쪽을 고르나
 
@@ -570,7 +570,7 @@ echo "재직 $hr · 활성 계정 $svc · 차이 $((svc-hr))"
 
 키를 해시로 보관하면 우리 데이터베이스가 유출돼도 키 자체는 나가지 않는다. 대신 사용자에게 보여 줄 수 없으므로 발급 시점에 한 번만 보여 준다.
 
-![긴 키를 안전하게 두는 법](/img/posts/api-key-vs-token-2.svg)
+![긴 키를 안전하게 두는 법](/img/posts/api-key-token-split-2.svg)
 
 ## 어디서 새는지 찾는다
 
@@ -789,7 +789,7 @@ done
     },
   },
   {
-    slug: 'certificate-pinning-ops',
+    slug: 'certificate-pinning-lifecycle',
     title: '인증서 고정을 운영할 때의 대가',
     body: `인증서를 고정하면 중간에서 가로채는 공격이 어려워진다. 다만 고정한 값이 바뀌는 순간 통신이 전부 끊기고, 그 복구가 앱 배포 주기에 묶인다. 얻는 것과 잃는 것을 함께 봐야 한다.
 
@@ -803,7 +803,7 @@ done
 
 공개 키를 고정하는 편이 운영에 낫다. 인증서를 갱신해도 키를 유지하면 고정 값이 바뀌지 않는다.
 
-![무엇을 고정하느냐에 따른 차이](/img/posts/certificate-pinning-ops.svg)
+![무엇을 고정하느냐에 따른 차이](/img/posts/certificate-pinning-lifecycle.svg)
 
 ## 끊겼을 때 무엇이 남나
 
@@ -829,7 +829,7 @@ done
 
 예비 키는 다른 곳에 보관해야 의미가 있다. 같은 서버에 두면 그 서버가 뚫릴 때 둘 다 나간다.
 
-![끊김 없이 교체하기](/img/posts/certificate-pinning-ops-2.svg)
+![끊김 없이 교체하기](/img/posts/certificate-pinning-lifecycle-2.svg)
 
 ## 값을 뽑아 확인한다
 

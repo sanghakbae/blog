@@ -175,7 +175,7 @@ psql -At -c "select region, dept, count(*) from employees
     },
   },
   {
-    slug: 'pseudonymization-practice',
+    slug: 'pseudonymization-steps',
     title: '가명처리를 실무에 적용하는 법',
     body: `가명처리를 거치면 추가 정보 없이는 특정 개인을 알아볼 수 없게 되고, 그에 따라 활용 범위가 넓어진다. 다만 어떤 처리를 어디까지 해야 가명처리로 인정되는지가 실무의 어려움이다.
 
@@ -191,7 +191,7 @@ psql -At -c "select region, dept, count(*) from employees
 
 이름이나 연락처만 지우면 충분하다고 보기 어렵다. 생년월일과 지역과 직업이 남으면 조합으로 특정될 수 있다.
 
-![가명처리의 단계](/img/posts/pseudonymization-practice.svg)
+![가명처리의 단계](/img/posts/pseudonymization-steps.svg)
 
 ## 추가 정보를 어떻게 다루나
 
@@ -215,7 +215,7 @@ psql -At -c "select region, dept, count(*) from employees
 
 정형 필드만 처리하고 자유 입력을 그대로 두면 그 안에 이름과 연락처가 남는다. 검출과 정제 절차가 함께 필요하다.
 
-![처리 후 관리 항목](/img/posts/pseudonymization-practice-2.svg)
+![처리 후 관리 항목](/img/posts/pseudonymization-steps-2.svg)
 
 ## 남은 식별 정보를 찾는다
 

@@ -92,7 +92,7 @@ curl -s -X POST https://example.com/api/checkout \
     },
   },
   {
-    slug: 'payment-idempotency',
+    slug: 'payment-duplicate-guard',
     title: '결제가 두 번 되지 않게 하기',
     body: `네트워크가 끊기거나 사용자가 버튼을 두 번 누르면 같은 결제가 반복될 수 있다. 중복 결제는 금전 문제라 되돌리는 비용도 크다.
 
@@ -108,7 +108,7 @@ curl -s -X POST https://example.com/api/checkout \
 
 대행사가 콜백을 여러 번 보내는 것은 정상 동작이다. 받는 쪽에서 중복을 처리해야 한다.
 
-![중복이 생기는 경로](/img/posts/payment-idempotency.svg)
+![중복이 생기는 경로](/img/posts/payment-duplicate-guard.svg)
 
 ## 어떻게 막나
 
@@ -132,7 +132,7 @@ curl -s -X POST https://example.com/api/checkout \
 
 이미 처리한 콜백에도 성공을 반환해야 대행사가 재전송을 멈춘다. 오류를 반환하면 계속 온다.
 
-![멱등 처리 구조](/img/posts/payment-idempotency-2.svg)
+![멱등 처리 구조](/img/posts/payment-duplicate-guard-2.svg)
 
 ## 중복을 확인한다
 

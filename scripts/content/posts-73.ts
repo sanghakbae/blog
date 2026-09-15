@@ -3,7 +3,7 @@ import type { SeedPost } from './types'
 /** 720~729 — 탐지 규칙을 만드는 일 */
 export const posts73: SeedPost[] = [
   {
-    slug: 'detection-rule-lifecycle',
+    slug: 'detection-rule-aging',
     title: '탐지 규칙에도 수명 주기가 있다',
     body: `한 번 만든 탐지 규칙을 그대로 두면 시간이 지나며 오탐만 내거나 아무것도 잡지 못하는 상태가 된다. 규칙에도 만들고 고치고 없애는 주기가 필요하다.
 
@@ -18,7 +18,7 @@ export const posts73: SeedPost[] = [
 
 로그 형식이 바뀌어 규칙이 아무것도 매칭하지 않는데 아무도 모르는 상태가 가장 흔하다. 조용히 죽어 있다.
 
-![규칙이 낡는 과정](/img/posts/detection-rule-lifecycle.svg)
+![규칙이 낡는 과정](/img/posts/detection-rule-aging.svg)
 
 ## 무엇을 기록하나
 
@@ -43,7 +43,7 @@ export const posts73: SeedPost[] = [
 
 한동안 한 번도 발동하지 않은 규칙은 잘 만든 것일 수도 있고 죽은 것일 수도 있다. 시험 신호를 넣어 확인한다.
 
-![규칙 상태 점검](/img/posts/detection-rule-lifecycle-2.svg)
+![규칙 상태 점검](/img/posts/detection-rule-aging-2.svg)
 
 ## 죽은 규칙을 찾는다
 
@@ -254,7 +254,7 @@ awk -F, 'NR>1 {split($1,t,"T"); split(t[2],h,":"); n[h[1]]++}
     },
   },
   {
-    slug: 'log-normalization',
+    slug: 'log-schema-normalization',
     title: '로그 형식을 맞춰 두는 이유',
     body: `시스템마다 로그 형식이 다르면 여러 곳을 붙여 보는 일이 매번 수작업이 된다. 수집 시점에 형식을 맞춰 두면 그 부담이 사라진다.
 
@@ -270,7 +270,7 @@ awk -F, 'NR>1 {split($1,t,"T"); split(t[2],h,":"); n[h[1]]++}
 
 필드 이름이 제각각이면 검색할 때마다 여러 표현을 전부 써야 한다. 사용자 식별자가 시스템마다 다른 것도 같은 문제다.
 
-![형식이 다를 때의 부담](/img/posts/log-normalization.svg)
+![형식이 다를 때의 부담](/img/posts/log-schema-normalization.svg)
 
 ## 어디서 맞추나
 
@@ -296,7 +296,7 @@ awk -F, 'NR>1 {split($1,t,"T"); split(t[2],h,":"); n[h[1]]++}
 
 추적 식별자가 요청마다 있으면 여러 시스템의 기록이 하나로 이어진다. 분산된 구조에서는 이것이 없으면 재구성이 불가능하다.
 
-![공통 필드 구성](/img/posts/log-normalization-2.svg)
+![공통 필드 구성](/img/posts/log-schema-normalization-2.svg)
 
 ## 형식을 점검한다
 
@@ -342,7 +342,7 @@ grep -c 'Z\\|+09:00' /var/log/app/current.log 2>/dev/null
     },
   },
   {
-    slug: 'threat-hunting-hypothesis',
+    slug: 'threat-hunting-loop',
     title: '가설을 세우고 찾아보는 방식',
     body: `탐지 규칙은 알려진 것만 잡는다. 규칙에 걸리지 않은 것을 찾으려면 가설을 세우고 직접 데이터를 뒤지는 작업이 필요하다.
 
@@ -357,7 +357,7 @@ grep -c 'Z\\|+09:00' /var/log/app/current.log 2>/dev/null
 
 공격 기법 분류표에서 우리 환경에 해당하는 것을 골라 하나씩 확인하는 방식이 체계적이다.
 
-![가설 기반 탐색의 흐름](/img/posts/threat-hunting-hypothesis.svg)
+![가설 기반 탐색의 흐름](/img/posts/threat-hunting-loop.svg)
 
 ## 무엇을 확인하나
 
@@ -382,7 +382,7 @@ grep -c 'Z\\|+09:00' /var/log/app/current.log 2>/dev/null
 
 아무것도 찾지 못해도 그 가설에 대한 가시성이 있다는 것을 확인한 셈이다. 다음에 같은 가설을 다시 볼 필요가 없어진다.
 
-![탐색 결과의 활용](/img/posts/threat-hunting-hypothesis-2.svg)
+![탐색 결과의 활용](/img/posts/threat-hunting-loop-2.svg)
 
 ## 실제로 뒤져 본다
 

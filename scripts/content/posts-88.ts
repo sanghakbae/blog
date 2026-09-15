@@ -177,7 +177,7 @@ psql -At -c "select count(*) from transfers
     },
   },
   {
-    slug: 'healthcare-data-handling',
+    slug: 'health-data-requirements',
     title: '건강 정보를 다룰 때의 기준',
     body: `건강에 관한 정보는 법에서 민감정보로 분류되어 별도 동의와 더 강한 안전조치를 요구한다. 일반 개인정보와 같은 방식으로 다루면 기준 미달이 된다.
 
@@ -193,7 +193,7 @@ psql -At -c "select count(*) from transfers
 
 건강 관리 앱이 수집하는 활동 데이터도 결합하면 건강 상태를 추정할 수 있다. 개별 항목만 보고 판단하기 어려운 영역이다.
 
-![민감정보 처리의 층](/img/posts/healthcare-data-handling.svg)
+![민감정보 처리의 층](/img/posts/health-data-requirements.svg)
 
 ## 무엇이 더 필요한가
 
@@ -218,7 +218,7 @@ psql -At -c "select count(*) from transfers
 
 분석이나 연구에 쓰려면 가명처리를 거쳐야 하고, 그 절차와 결합 금지 조건이 법에 정해져 있다. 임의로 판단할 영역이 아니다.
 
-![접근 범위 구분](/img/posts/healthcare-data-handling-2.svg)
+![접근 범위 구분](/img/posts/health-data-requirements-2.svg)
 
 ## 암호화 상태를 본다
 
@@ -692,7 +692,7 @@ psql -At -c "select count(distinct tenant_id) from audit_log_views
     },
   },
   {
-    slug: 'iot-device-lifecycle',
+    slug: 'iot-device-support-span',
     title: '기기를 파는 서비스의 수명 관리',
     body: `인터넷에 연결되는 기기를 만들어 팔면 그 기기가 몇 년씩 현장에 남는다. 소프트웨어와 달리 물리적으로 회수하기 어려워, 처음 설계에서 수명 전체를 고려해야 한다.
 
@@ -708,7 +708,7 @@ psql -At -c "select count(distinct tenant_id) from audit_log_views
 
 공격자가 기기를 손에 넣고 분해할 수 있다는 전제로 설계해야 한다. 안에 있는 값은 꺼낼 수 있다고 본다.
 
-![기기 수명 주기](/img/posts/iot-device-lifecycle.svg)
+![기기 수명 주기](/img/posts/iot-device-support-span.svg)
 
 ## 무엇을 준비하나
 
@@ -733,7 +733,7 @@ psql -At -c "select count(distinct tenant_id) from audit_log_views
 
 갱신에 실패한 기기가 동작하지 않게 되면 회수 비용이 크다. 실패해도 이전 버전으로 돌아가는 구조가 필요하다.
 
-![갱신 구성](/img/posts/iot-device-lifecycle-2.svg)
+![갱신 구성](/img/posts/iot-device-support-span-2.svg)
 
 ## 기기 상태를 본다
 

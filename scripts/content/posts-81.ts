@@ -175,7 +175,7 @@ curl -s -X POST https://example.com/api/webhooks \
     },
   },
   {
-    slug: 'api-versioning-security',
+    slug: 'api-old-version-risk',
     title: '옛 버전 API가 남기는 구멍',
     body: `새 버전을 만들면서 옛 버전을 그대로 두면, 새로 추가한 검증이 옛 경로에는 적용되지 않는다. 사용자는 새 버전을 쓰지만 공격자는 옛 버전을 쓴다.
 
@@ -190,7 +190,7 @@ curl -s -X POST https://example.com/api/webhooks \
 
 옛 버전이 더 많은 필드를 응답하는 경우가 있다. 노출을 줄이려고 새 버전에서 뺐는데 옛 버전은 그대로인 상황이다.
 
-![버전이 갈라지는 지점](/img/posts/api-versioning-security.svg)
+![버전이 갈라지는 지점](/img/posts/api-old-version-risk.svg)
 
 ## 어떻게 관리하나
 
@@ -215,7 +215,7 @@ curl -s -X POST https://example.com/api/webhooks \
 
 사용량이 적더라도 중요한 고객이 쓰고 있을 수 있다. 누가 쓰는지 확인하고 개별로 안내하는 편이 갑작스러운 중단보다 낫다.
 
-![종료 절차](/img/posts/api-versioning-security-2.svg)
+![종료 절차](/img/posts/api-old-version-risk-2.svg)
 
 ## 사용 현황을 본다
 

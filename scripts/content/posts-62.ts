@@ -177,7 +177,7 @@ done
     },
   },
   {
-    slug: 'iam-policy-review',
+    slug: 'iam-policy-audit',
     title: '권한 정책을 읽어 내는 순서',
     body: `클라우드 권한 정책은 여러 개가 겹쳐 최종 권한을 만든다. 하나만 읽어서는 그 사람이 실제로 무엇을 할 수 있는지 알 수 없고, 그래서 넓은 권한이 조용히 남는다.
 
@@ -193,7 +193,7 @@ done
 
 자원 쪽에서 허용하는 정책이 놓치기 쉽다. 사용자에게 권한이 없어도 자원이 열어 주면 접근된다.
 
-![권한이 겹치는 층](/img/posts/iam-policy-review.svg)
+![권한이 겹치는 층](/img/posts/iam-policy-audit.svg)
 
 ## 넓은 권한의 모양
 
@@ -216,7 +216,7 @@ done
 | 마지막 사용 시각 | 쓰지 않는 권한 |
 | 접근 분석기 | 외부에 열린 자원 |
 
-![권한 축소 순서](/img/posts/iam-policy-review-2.svg)
+![권한 축소 순서](/img/posts/iam-policy-audit-2.svg)
 
 ## 쓰지 않는 권한을 찾는다
 
@@ -514,7 +514,7 @@ done
     },
   },
   {
-    slug: 'k8s-secret-handling',
+    slug: 'k8s-secret-storage',
     title: '쿠버네티스에서 비밀값이 새는 자리',
     body: `쿠버네티스의 비밀값 객체는 이름만 비밀이다. 기본 설정에서는 인코딩만 돼 있고 암호화되지 않으며, 볼 수 있는 사람이 생각보다 많다.
 
@@ -530,7 +530,7 @@ done
 
 백업이 자주 잊힌다. 클러스터 백업에 비밀값이 평문에 가까운 형태로 들어가고, 그 백업의 접근 통제는 대개 느슨하다.
 
-![비밀값이 보이는 경로](/img/posts/k8s-secret-handling.svg)
+![비밀값이 보이는 경로](/img/posts/k8s-secret-storage.svg)
 
 ## 기본 설정에서 해야 할 것
 
@@ -553,7 +553,7 @@ done
 
 외부 저장소를 쓰면 회전과 접근 기록이 한곳에 모인다. 클러스터 안에 값이 남지 않는 구성이 가장 낫다.
 
-![비밀값을 다루는 방식](/img/posts/k8s-secret-handling-2.svg)
+![비밀값을 다루는 방식](/img/posts/k8s-secret-storage-2.svg)
 
 ## 지금 상태를 본다
 

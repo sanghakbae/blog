@@ -343,7 +343,7 @@ curl -s -o /dev/null -w '%{http_code}\\n' https://example.com/api/me \
     },
   },
   {
-    slug: 'step-up-authentication',
+    slug: 'step-up-auth-points',
     title: '민감한 동작에 인증을 더하기',
     body: `로그인 한 번으로 모든 동작을 허용하면 세션이 탈취됐을 때 피해가 전부로 이어진다. 중요한 지점에서 다시 확인하면 그 범위가 줄어든다.
 
@@ -359,7 +359,7 @@ curl -s -o /dev/null -w '%{http_code}\\n' https://example.com/api/me \
 
 인증 수단을 바꾸는 동작이 가장 중요하다. 여기가 뚫리면 공격자가 계정을 완전히 가져간다.
 
-![추가 확인이 필요한 지점](/img/posts/step-up-authentication.svg)
+![추가 확인이 필요한 지점](/img/posts/step-up-auth-points.svg)
 
 ## 무엇으로 확인하나
 
@@ -383,7 +383,7 @@ curl -s -o /dev/null -w '%{http_code}\\n' https://example.com/api/me \
 
 한 번 확인한 뒤 몇 분간은 다시 묻지 않는 구성이 일반적이다. 연속 작업의 불편을 줄이면서 효과는 유지된다.
 
-![확인 수단의 강도](/img/posts/step-up-authentication-2.svg)
+![확인 수단의 강도](/img/posts/step-up-auth-points-2.svg)
 
 ## 우회 경로를 찾는다
 
@@ -605,7 +605,7 @@ done | awk '$2 < "'"$(date -v-365d +%Y-%m-%d)"'"' | head
     },
   },
   {
-    slug: 'api-key-vs-token',
+    slug: 'api-key-token-scope',
     title: '키와 토큰을 어떻게 나눠 쓸까',
     body: `외부에 제공하는 API 보안에서 키와 토큰은 서로 다른 문제를 푼다. 키는 누구인지 알리는 데 쓰고 토큰은 무엇을 할 수 있는지 정하는 데 쓰는데, 둘을 섞어 쓰면 회전도 권한 관리도 어려워진다.
 
@@ -620,7 +620,7 @@ done | awk '$2 < "'"$(date -v-365d +%Y-%m-%d)"'"' | head
 
 키는 식별에, 토큰은 권한 부여에 쓰는 것이 기본 구분이다. 키 하나에 모든 권한을 붙이면 범위를 좁힐 방법이 없다.
 
-![키와 토큰의 역할](/img/posts/api-key-vs-token.svg)
+![키와 토큰의 역할](/img/posts/api-key-token-scope.svg)
 
 ## 어떻게 조합하나
 
@@ -643,7 +643,7 @@ done | awk '$2 < "'"$(date -v-365d +%Y-%m-%d)"'"' | head
 
 외부 연동에 전체 권한 키를 주는 대신 필요한 범위만 담은 키를 발급하면, 그쪽이 뚫려도 피해가 제한된다.
 
-![권한 범위 구성](/img/posts/api-key-vs-token-2.svg)
+![권한 범위 구성](/img/posts/api-key-token-scope-2.svg)
 
 ## 현재 발급 상태를 본다
 

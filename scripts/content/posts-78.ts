@@ -784,7 +784,7 @@ psql -At -c "select email from users where email like '%test%' or email like '%d
     },
   },
   {
-    slug: 'dependency-pinning',
+    slug: 'dependency-lockfile-policy',
     title: '의존성 버전을 고정하는 이유',
     body: `버전을 느슨하게 지정하면 빌드할 때마다 다른 코드가 들어올 수 있다. 어제 통과한 것이 오늘 깨지고, 더 나쁘게는 침해된 버전이 조용히 들어온다.
 
@@ -799,7 +799,7 @@ psql -At -c "select email from users where email like '%test%' or email like '%d
 
 잠금 파일이 있으면 범위로 지정해도 실제로는 고정된다. 그 파일을 저장소에 함께 두는 것이 전제다.
 
-![버전 지정과 재현성](/img/posts/dependency-pinning.svg)
+![버전 지정과 재현성](/img/posts/dependency-lockfile-policy.svg)
 
 ## 무엇이 위험한가
 
@@ -823,7 +823,7 @@ psql -At -c "select email from users where email like '%test%' or email like '%d
 
 잠금 파일의 변경을 리뷰에서 확인하면 예상하지 못한 패키지가 들어오는 것이 보인다. 한 줄 고쳤는데 잠금 파일이 크게 바뀌면 이유를 확인한다.
 
-![관리 항목](/img/posts/dependency-pinning-2.svg)
+![관리 항목](/img/posts/dependency-lockfile-policy-2.svg)
 
 ## 상태를 확인한다
 

@@ -259,7 +259,7 @@ awk -F, 'NR>1 && $5!="" {n++; t+=($5-$1)/86400}
     },
   },
   {
-    slug: 'access-log-retention',
+    slug: 'access-log-retention-rules',
     title: '접속기록을 어떻게 남기고 지킬까',
     body: `개인정보를 다루는 시스템은 누가 언제 무엇을 했는지 기록하고 일정 기간 보관해야 한다. 기록을 남기는 것보다 그 기록이 변조되지 않게 지키고 정기적으로 확인하는 부분이 더 자주 빠진다.
 
@@ -275,7 +275,7 @@ awk -F, 'NR>1 && $5!="" {n++; t+=($5-$1)/86400}
 
 수행 업무와 대상이 구체적이지 않으면 기록이 있어도 쓸모가 없다. 조회했다는 사실만 있고 무엇을 조회했는지 없으면 범위를 알 수 없다.
 
-![접속기록의 구성](/img/posts/access-log-retention.svg)
+![접속기록의 구성](/img/posts/access-log-retention-rules.svg)
 
 ## 얼마나 보관하나
 
@@ -300,7 +300,7 @@ awk -F, 'NR>1 && $5!="" {n++; t+=($5-$1)/86400}
 
 기록을 같은 서버에 두면 그 서버를 장악한 사람이 지울 수 있다. 별도 시스템으로 즉시 전송하는 구성이 기본이다.
 
-![기록을 지키는 방법](/img/posts/access-log-retention-2.svg)
+![기록을 지키는 방법](/img/posts/access-log-retention-rules-2.svg)
 
 ## 점검한다
 

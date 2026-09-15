@@ -343,7 +343,7 @@ grep -rInE 'bodyParser|client_max_body_size|limit:' nginx.conf src/ 2>/dev/null 
     },
   },
   {
-    slug: 'health-check-exposure',
+    slug: 'health-endpoint-exposure',
     title: '상태 점검 경로가 알려 주는 것',
     body: `서비스가 살아 있는지 확인하는 경로는 대개 인증 없이 열려 있다. 그 응답에 버전이나 의존 시스템 상태가 담기면 공격자에게 유용한 정보가 된다.
 
@@ -359,7 +359,7 @@ grep -rInE 'bodyParser|client_max_body_size|limit:' nginx.conf src/ 2>/dev/null 
 
 데이터베이스 연결 상태를 자세히 보여 주려다 호스트 이름이나 사용자 이름까지 담는 경우가 있다.
 
-![점검 응답의 노출](/img/posts/health-check-exposure.svg)
+![점검 응답의 노출](/img/posts/health-endpoint-exposure.svg)
 
 ## 엔드포인트를 어떻게 나누나
 
@@ -383,7 +383,7 @@ grep -rInE 'bodyParser|client_max_body_size|limit:' nginx.conf src/ 2>/dev/null 
 
 살아 있음과 준비됨을 구분하지 않으면, 시작 중인 인스턴스에 트래픽이 들어가 오류가 난다. 두 경로를 나누는 것이 기본이다.
 
-![점검 경로 구분](/img/posts/health-check-exposure-2.svg)
+![점검 경로 구분](/img/posts/health-endpoint-exposure-2.svg)
 
 ## 응답을 확인한다
 

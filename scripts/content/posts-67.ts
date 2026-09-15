@@ -90,7 +90,7 @@ tail -20 /var/log/csp-report.log 2>/dev/null | head
     },
   },
   {
-    slug: 'cookie-attributes',
+    slug: 'cookie-attribute-scope',
     title: '쿠키 속성이 정하는 노출 범위',
     body: `세션 쿠키 하나에 붙는 속성 몇 개가 그 쿠키가 언제 어디로 전송되는지를 정한다. 기본값으로 두면 필요 이상으로 넓게 전송된다.
 
@@ -106,7 +106,7 @@ tail -20 /var/log/csp-report.log 2>/dev/null | head
 
 스크립트 접근을 막는 속성이 가장 기본이다. 삽입된 스크립트가 세션을 읽어 가는 경로가 닫힌다.
 
-![속성이 정하는 범위](/img/posts/cookie-attributes.svg)
+![속성이 정하는 범위](/img/posts/cookie-attribute-scope.svg)
 
 ## 교차 사이트 전송 값
 
@@ -128,7 +128,7 @@ tail -20 /var/log/csp-report.log 2>/dev/null | head
 
 상위 도메인으로 설정하면 하위 도메인 하나가 뚫릴 때 쿠키가 함께 넘어간다. 공유가 꼭 필요한 경우가 아니면 넓히지 않는다.
 
-![도메인 범위의 차이](/img/posts/cookie-attributes-2.svg)
+![도메인 범위의 차이](/img/posts/cookie-attribute-scope-2.svg)
 
 ## 지금 설정을 본다
 
@@ -258,7 +258,7 @@ curl -sI https://api.example.com/me -H 'Origin: https://evil.example' \
     },
   },
   {
-    slug: 'clickjacking-defense',
+    slug: 'clickjacking-frame-guard',
     title: '화면을 덧씌우는 클릭재킹 막기',
     body: `우리 화면을 투명한 틀에 넣고 그 위에 다른 화면을 겹치면, 사용자는 다른 것을 누른다고 생각하며 우리 화면의 버튼을 누른다.
 
@@ -274,7 +274,7 @@ curl -sI https://api.example.com/me -H 'Origin: https://evil.example' \
 
 한 번의 클릭으로 끝나는 동작이 표적이 된다. 여러 단계를 거치는 동작은 상대적으로 어렵다.
 
-![덧씌우기 공격의 구조](/img/posts/clickjacking-defense.svg)
+![덧씌우기 공격의 구조](/img/posts/clickjacking-frame-guard.svg)
 
 ## 어떻게 막나
 
@@ -298,7 +298,7 @@ curl -sI https://api.example.com/me -H 'Origin: https://evil.example' \
 
 기본을 금지로 두고 필요한 화면만 여는 것이 안전하다. 반대로 하면 새 화면이 생길 때마다 빠진다.
 
-![적용 범위](/img/posts/clickjacking-defense-2.svg)
+![적용 범위](/img/posts/clickjacking-frame-guard-2.svg)
 
 ## 지금 헤더를 본다
 

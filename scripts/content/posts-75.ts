@@ -245,7 +245,7 @@ grep -rInA5 'catch' --include='*.ts' src/auth/ 2>/dev/null \
     },
   },
   {
-    slug: 'multi-tenant-isolation',
+    slug: 'tenant-isolation-layers',
     title: '여러 고객을 한 시스템에 담을 때',
     body: `하나의 시스템에 여러 고객의 데이터를 담으면 비용이 크게 줄지만, 한 줄의 실수가 다른 고객의 데이터를 노출하는 사고로 이어진다. 격리를 어느 층에서 할지가 이 구조의 핵심 결정이다.
 
@@ -260,7 +260,7 @@ grep -rInA5 'catch' --include='*.ts' src/auth/ 2>/dev/null \
 
 행 단위로 나누면 조건 하나를 빠뜨리는 순간 다른 고객의 데이터가 나온다. 비용은 가장 적지만 코드의 정확성에 전부를 건다.
 
-![격리 층과 비용](/img/posts/multi-tenant-isolation.svg)
+![격리 층과 비용](/img/posts/tenant-isolation-layers.svg)
 
 ## 조건을 어디서 붙이나
 
@@ -285,7 +285,7 @@ grep -rInA5 'catch' --include='*.ts' src/auth/ 2>/dev/null \
 
 캐시 키에 고객 구분이 빠지면 다른 고객의 응답이 그대로 전달된다. 데이터베이스만 신경 쓰다 이런 곳에서 문제가 생긴다.
 
-![섞이기 쉬운 지점](/img/posts/multi-tenant-isolation-2.svg)
+![섞이기 쉬운 지점](/img/posts/tenant-isolation-layers-2.svg)
 
 ## 섞이는지 시험한다
 
@@ -408,7 +408,7 @@ curl -s "$FLAG_API/flags" -H "Authorization: Bearer $TOKEN" 2>/dev/null \
     },
   },
   {
-    slug: 'rate-limit-design',
+    slug: 'rate-limit-criteria',
     title: 'API 속도 제한을 설계하는 기준',
     body: `속도 제한은 남용을 막는 가장 기본적인 장치인데, 기준을 대충 잡으면 정상 사용자가 막히거나 공격자가 그대로 통과한다. 무엇을 기준으로 세고 어디에 적용할지를 먼저 정해야 한다.
 
@@ -423,7 +423,7 @@ curl -s "$FLAG_API/flags" -H "Authorization: Bearer $TOKEN" 2>/dev/null \
 
 공유 주소 뒤에 많은 사용자가 있는 환경에서는 주소 기준이 정상 사용자를 막는다. 로그인한 요청은 계정 기준으로, 그렇지 않은 요청은 주소 기준으로 나눠 적용한다.
 
-![제한 기준의 구분](/img/posts/rate-limit-design.svg)
+![제한 기준의 구분](/img/posts/rate-limit-criteria.svg)
 
 ## 엔드포인트마다 어디에 다르게 거나
 
@@ -448,7 +448,7 @@ curl -s "$FLAG_API/flags" -H "Authorization: Bearer $TOKEN" 2>/dev/null \
 
 바로 거절하는 대신 응답을 늦추면 공격자에게는 부담이 되고 정상 사용자는 조금 느려질 뿐이다. 남은 한도를 응답 헤더로 알려 주면 연동하는 쪽에서 조절할 수 있다.
 
-![경로별 제한 강도](/img/posts/rate-limit-design-2.svg)
+![경로별 제한 강도](/img/posts/rate-limit-criteria-2.svg)
 
 ## 실제로 걸리는지 본다
 
@@ -574,7 +574,7 @@ grep -rInE 'req\\.body' --include='*.ts' src/routes/ 2>/dev/null \
     },
   },
   {
-    slug: 'error-message-design',
+    slug: 'error-message-content',
     title: '오류 메시지에 무엇을 적을까',
     body: `오류 메시지는 사용자를 돕기 위한 것인데, 상세할수록 공격자에게도 정보를 준다. 사용자에게 필요한 것과 조사에 필요한 것을 나누면 두 요구를 모두 맞출 수 있다.
 
@@ -590,7 +590,7 @@ grep -rInE 'req\\.body' --include='*.ts' src/routes/ 2>/dev/null \
 
 계정이 있는지 없는지 알려 주는 메시지가 가장 흔한 문제다. 로그인과 비밀번호 찾기 양쪽에서 같은 정보가 새는 경우가 많다.
 
-![정보가 새는 경로](/img/posts/error-message-design.svg)
+![정보가 새는 경로](/img/posts/error-message-content.svg)
 
 ## 어떻게 나누나
 
@@ -613,7 +613,7 @@ grep -rInE 'req\\.body' --include='*.ts' src/routes/ 2>/dev/null \
 
 무엇을 하면 되는지 적혀 있지 않은 메시지는 사용자를 막다른 곳에 세운다. 다시 시도하라는 안내조차 없으면 문의가 늘어난다.
 
-![메시지 구성](/img/posts/error-message-design-2.svg)
+![메시지 구성](/img/posts/error-message-content-2.svg)
 
 ## 지금 나가는 것을 본다
 
@@ -739,7 +739,7 @@ aws sqs get-queue-attributes --queue-url "$QUEUE_URL" \
     },
   },
   {
-    slug: 'idor-prevention',
+    slug: 'idor-object-authz',
     title: '식별자로 남의 자원에 닿는 문제',
     body: `주소나 요청에 담긴 식별자를 바꿔 다른 사람의 자원에 접근하는 문제는 가장 흔하면서도 자동 도구로 잘 발견되지 않는다. 사람이 설계 단계에서 막아야 하는 종류의 결함이다.
 
@@ -754,7 +754,7 @@ aws sqs get-queue-attributes --queue-url "$QUEUE_URL" \
 
 로그인했는지만 확인하고 그 자원이 그 사람 것인지 확인하지 않는 구현이 원인이다. 화면에서는 자기 것만 보이니 문제가 드러나지 않는다.
 
-![식별자를 바꿔 접근하는 흐름](/img/posts/idor-prevention.svg)
+![식별자를 바꿔 접근하는 흐름](/img/posts/idor-object-authz.svg)
 
 ## 접근 통제로 어떻게 막나
 
@@ -777,7 +777,7 @@ aws sqs get-queue-attributes --queue-url "$QUEUE_URL" \
 
 추측하기 어려운 식별자는 보조 수단이지 통제가 아니다. 검색 결과나 공유 링크로 식별자가 알려질 수 있으므로 권한 확인을 대신할 수 없다.
 
-![막는 방법의 위치](/img/posts/idor-prevention-2.svg)
+![막는 방법의 위치](/img/posts/idor-object-authz-2.svg)
 
 ## 전 경로를 시험한다
 

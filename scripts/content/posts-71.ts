@@ -91,7 +91,7 @@ curl -s -X POST https://api.example.com/summarize \
     },
   },
   {
-    slug: 'llm-output-handling',
+    slug: 'llm-output-trust-boundary',
     title: 'LLM 출력을 어디까지 믿나',
     body: `모델이 만든 문자열을 그대로 화면에 넣거나 명령으로 실행하면, 사용자 입력을 검증 없이 쓰는 것과 같은 문제가 생긴다.
 
@@ -107,7 +107,7 @@ curl -s -X POST https://api.example.com/summarize \
 
 모델이 만든 질의를 그대로 실행하는 구성이 늘고 있다. 사용자가 유도한 내용이 그 질의에 반영된다.
 
-![출력이 흘러가는 경로](/img/posts/llm-output-handling.svg)
+![출력이 흘러가는 경로](/img/posts/llm-output-trust-boundary.svg)
 
 ## 어떻게 다루나
 
@@ -132,7 +132,7 @@ curl -s -X POST https://api.example.com/summarize \
 
 되돌릴 수 없는 동작에는 사람의 확인을 둔다. 확인 화면에 실제로 실행될 내용을 보여 주는 것이 핵심이다.
 
-![동작별 확인 필요성](/img/posts/llm-output-handling-2.svg)
+![동작별 확인 필요성](/img/posts/llm-output-trust-boundary-2.svg)
 
 ## 출력을 검사한다
 
@@ -260,7 +260,7 @@ curl -s -X POST https://api.example.com/chat \
     },
   },
   {
-    slug: 'ai-agent-permissions',
+    slug: 'ai-agent-tool-scope',
     title: '자동으로 일하는 에이전트의 권한',
     body: `모델에 도구를 연결해 스스로 작업하게 만들면 편리한 만큼 통제가 어려워진다. 사람이 매번 확인하지 않는 구조에서는 권한 설계가 유일한 방어선이다.
 
@@ -276,7 +276,7 @@ curl -s -X POST https://api.example.com/chat \
 
 중단 조건이 없으면 잘못된 판단이 반복되며 피해가 쌓인다. 실패가 반복되면 멈추는 규칙을 기본으로 둔다.
 
-![에이전트 권한 구성](/img/posts/ai-agent-permissions.svg)
+![에이전트 권한 구성](/img/posts/ai-agent-tool-scope.svg)
 
 ## 읽기와 쓰기를 나눈다
 
@@ -300,7 +300,7 @@ curl -s -X POST https://api.example.com/chat \
 
 나중에 무슨 일이 있었는지 재구성하려면 도구 호출 기록이 필요하다. 모델의 중간 판단까지 남기면 원인 파악이 쉬워진다.
 
-![도구 구분과 통제](/img/posts/ai-agent-permissions-2.svg)
+![도구 구분과 통제](/img/posts/ai-agent-tool-scope-2.svg)
 
 ## 한도를 건다
 
