@@ -72,6 +72,7 @@ import { posts52 } from './content/posts-52.js'
 import { posts53 } from './content/posts-53.js'
 import { posts54 } from './content/posts-54.js'
 import { posts55 } from './content/posts-55.js'
+import { posts56 } from './content/posts-56.js'
 
 /** 처음 올린 100편. */
 const LEGACY: SeedPost[] = [
@@ -89,7 +90,7 @@ const ADDED: SeedPost[] = [
   ...posts36, ...posts37, ...posts38, ...posts39, ...posts40,
   ...posts41, ...posts42, ...posts43, ...posts44, ...posts45,
   ...posts46, ...posts47, ...posts48, ...posts49, ...posts50,
-  ...posts51, ...posts52, ...posts53, ...posts54, ...posts55,
+  ...posts51, ...posts52, ...posts53, ...posts54, ...posts55, ...posts56,
 ]
 
 const ALL: SeedPost[] = [...LEGACY, ...ADDED]
@@ -103,7 +104,7 @@ const isAdded = (p: SeedPost) => ADDED.includes(p)
  * 두고 크롤링을 미뤘기 때문에, 이후로 쓰는 글은 미리 써 두고 나가는 속도만
  * 늦춘다. 파일 단위로 넣으면 어느 묶음이 아직 안 나갔는지 한눈에 보인다.
  */
-const DRAFTS = new Set<string>([...posts51, ...posts52, ...posts53, ...posts54, ...posts55].map((p) => p.slug))
+const DRAFTS = new Set<string>([...posts51, ...posts52, ...posts53, ...posts54, ...posts55, ...posts56].map((p) => p.slug))
 const isDraft = (p: SeedPost) => DRAFTS.has(p.slug)
 
 const AUTHOR = 'totoriverce@gmail.com'
