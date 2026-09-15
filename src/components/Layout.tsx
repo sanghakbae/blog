@@ -7,14 +7,18 @@ import InstallGuide from './InstallGuide'
 import { onSignIn, subscribeViewer, type Viewer } from '../lib/authState'
 import { fetchIndexSummary, type IndexSummary } from '../lib/indexSummary'
 import { loadAdSense } from '../lib/adsense'
+import { ADMIN_TABS } from '../lib/adminTabs'
 
-/** 좁은 화면의 메뉴 패널에서만 쓰는 관리 링크 */
+/**
+ * 좁은 화면의 메뉴 패널에 놓는 관리 링크.
+ *
+ * 관리 화면의 탭과 같은 목록을 쓴다. 따로 적어 두었더니 통계가 여기서만 빠져,
+ * 좁은 화면에서는 그 화면에 닿을 길이 아예 없었다. 글쓰기만 앞에 더한다 —
+ * 그것은 탭이 아니라 동작이라 관리 화면 안에는 따로 단추가 있다.
+ */
 const ADMIN_LINKS = [
   { to: '/admin/new', label: '글쓰기', end: false },
-  { to: '/admin', label: '글 목록', end: true },
-  { to: '/admin/audit', label: '감사 로그', end: false },
-  { to: '/admin/seo', label: 'SEO / GEO', end: false },
-  { to: '/admin/security', label: '보안', end: false },
+  ...ADMIN_TABS.map((t) => (t.to === '/admin' ? { ...t, label: '글 목록' } : t)),
 ]
 
 // 처리방침은 열어볼 때만 내려받는다

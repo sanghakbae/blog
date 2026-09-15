@@ -1,13 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/useAuth'
+import { ADMIN_TABS } from '../lib/adminTabs'
 
-const tabs = [
-  { to: '/admin', label: '글', end: true },
-  { to: '/admin/audit', label: '감사 로그', end: false },
-  { to: '/admin/seo', label: 'SEO / GEO', end: false },
-  { to: '/admin/security', label: '보안', end: false },
-  { to: '/admin/stats', label: '통계', end: false },
-]
 
 export default function AdminLayout() {
   const { user } = useAuth()
@@ -23,8 +17,8 @@ export default function AdminLayout() {
       </header>
 
       <div className="mb-8 flex items-end gap-3 border-b border-[var(--line)]">
-        <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
-          {tabs.map((t) => (
+        <nav className="flex min-w-0 flex-1 flex-wrap gap-1">
+          {ADMIN_TABS.map((t) => (
             <NavLink
               key={t.to}
               to={t.to}
