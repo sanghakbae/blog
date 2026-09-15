@@ -14,6 +14,7 @@ import { DEFAULT_SETTINGS, needsReauth, subscribeSettings, type SecuritySettings
 import { logAudit } from '../lib/audit'
 import { auditPost, type IssueArea } from '../lib/seo'
 import { reauthenticate } from '../lib/useAuth'
+import { downloadHtml } from '../lib/htmlExport'
 
 const draftKey = (id?: string) => `draft:${id ?? 'new'}`
 
@@ -463,6 +464,15 @@ export default function Editor() {
           className="rounded-md border border-[var(--line)] px-3 py-1.5 text-xs transition-colors hover:border-[var(--ink)] disabled:opacity-40 sm:px-4 sm:py-2 sm:text-sm"
         >
           임시저장
+        </button>
+        <button
+          type="button"
+          onClick={() => downloadHtml({ id, title: title.trim() || '제목 없음', body, tags: picked })}
+          disabled={!body.trim()}
+          title="지금 쓰고 있는 내용을 반응형 HTML 문서로 변환해 저장"
+          className="rounded-md border border-[var(--line)] px-3 py-1.5 text-xs transition-colors hover:border-[var(--ink)] disabled:opacity-40 sm:px-4 sm:py-2 sm:text-sm"
+        >
+          HTML 변환
         </button>
         {id &&
           (confirmDelete ? (

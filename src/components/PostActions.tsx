@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Post } from '../lib/posts'
 import { subscribeViewer, type Viewer } from '../lib/authState'
 import { downloadPdf, safeName } from '../lib/pdf'
+import { downloadHtml } from '../lib/htmlExport'
 
 function downloadMarkdown(post: Post) {
   const date = post.createdAt?.toDate?.().toISOString().slice(0, 10) ?? ''
@@ -70,6 +71,14 @@ export default function PostActions({ post }: { post: Post }) {
         className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] sm:px-4 sm:py-1.5 sm:text-[13px]"
       >
         MD
+      </button>
+      <button
+        type="button"
+        onClick={() => downloadHtml(post)}
+        title="반응형 HTML 문서로 변환해 저장"
+        className="rounded-md border border-[var(--line)] bg-[var(--bg-elev)] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] sm:px-4 sm:py-1.5 sm:text-[13px]"
+      >
+        HTML
       </button>
       <button
         type="button"
