@@ -16,7 +16,7 @@ const want = process.argv.slice(2).map(Number).filter((n) => n > 0)
 
 const groups: { n: number; posts: SeedPost[] }[] = []
 let broken = 0
-for (let n = 1; n <= 60; n++) {
+for (let n = 1; n <= 200; n++) {
   // 파일이 없는 것과 있는데 못 읽는 것을 구분한다. 예전에는 둘 다 조용히
   // 넘겼는데, 본문에 인라인 코드용 백틱을 그냥 써서 템플릿 문자열이 끊긴 파일이
   // 통째로 빠진 채 "문제 0편" 이 나왔다. 점검을 통과한 것이 아니라 점검 대상에서
